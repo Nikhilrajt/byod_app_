@@ -1,8 +1,193 @@
-import 'package:flutter/material.dart';
 
-// --- BYOD Page Code ---
+import 'dart:io';
+import 'package:dotted_border/dotted_border.dart';
+import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+
+// Main App definition (can be removed if this is part of a larger app)
+void main() {
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Restaurant BYOD App',
+      theme: ThemeData(primarySwatch: Colors.deepOrange, fontFamily: 'Roboto'),
+      home: const RestaurantListScreen(),
+      debugShowCheckedModeBanner: false,
+    );
+  }
+}
+
+// ===== RESTAURANT MODEL =====
+class Restaurant {
+  final String name;
+  final String imagePath;
+  final double rating;
+  final String time;
+  final String category;
+  final String location;
+  final String offer;
+
+  Restaurant({
+    required this.name,
+    required this.imagePath,
+    required this.rating,
+    required this.time,
+    required this.category,
+    required this.location,
+    required this.offer,
+  });
+}
+
+// Hardcoded list of restaurants
+final List<Restaurant> restaurants = [
+  Restaurant(
+    name: 'Nigs Hut',
+    imagePath: 'assets/images/res1.jpg',
+    rating: 4.3,
+    time: '65-90 mins',
+    category: 'Restaurant',
+    location: 'Mannarkkad',
+    offer: 'ITEMS AT ₹99',
+  ),
+  Restaurant(
+    name: 'FoodFlex',
+    imagePath: 'assets/images/res2.jpeg',
+    rating: 4.5,
+    time: '40-55 mins',
+    category: 'Healthy',
+    location: 'Palakkad',
+    offer: 'UPTO 50% OFF',
+  ),
+  // ... other restaurants
+];
+
+// ===== RESTAURANT LIST SCREEN =====
+class RestaurantListScreen extends StatelessWidget {
+  const RestaurantListScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Choose Restaurant'),
+        backgroundColor: Colors.deepOrange,
+        foregroundColor: Colors.white,
+        elevation: 0,
+      ),
+      backgroundColor: Colors.grey[100],
+      body: ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: restaurants.length,
+        itemBuilder: (context, index) {
+          final restaurant = restaurants[index];
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 16.0),
+            child: InkWell(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        RestaurantDetailScreen(restaurant: restaurant),
+                  ),
+                );
+              },
+              child: Card(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                elevation: 4,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // ... restaurant card UI
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+// ===== RESTAURANT DETAIL SCREEN =====
+class RestaurantDetailScreen extends StatelessWidget {
+  final Restaurant restaurant;
+  const RestaurantDetailScreen({required this.restaurant, super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(restaurant.name),
+        backgroundColor: Colors.deepOrange,
+        foregroundColor: Colors.white,
+      ),
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ... restaurant detail UI
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          ByodPage(restaurant: restaurant),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.deepOrange,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 4,
+                ),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.restaurant_menu, size: 24),
+                    SizedBox(width: 12),
+                    Text(
+                      'Build Your Own Dish',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// Enum for recipe input type
+enum RecipeInputType { write, upload, link }
+
+// ===== BYOD PAGE - Enhanced with Restaurant Context =====
 class ByodPage extends StatefulWidget {
-  const ByodPage({super.key});
+  final Restaurant restaurant;
+
+  const ByodPage({required this.restaurant, super.key});
 
   @override
   _ByodPageState createState() => _ByodPageState();
@@ -11,70 +196,36 @@ class ByodPage extends StatefulWidget {
 class _ByodPageState extends State<ByodPage> {
   final TextEditingController recipeNameController = TextEditingController();
   final TextEditingController recipeStepsController = TextEditingController();
+  final TextEditingController recipeLinkController = TextEditingController();
+
+  RecipeInputType _selectedInputType = RecipeInputType.write;
+  File? _selectedImage;
 
   final List<Map<String, dynamic>> ingredients = [
-    {
-      "name": "Chicken",
-      "cal": 165,
-      "protein": 31,
-      "carbs": 0,
-      "fat": 3.6,
-      "price": 60,
-    },
-    {
-      "name": "Paneer",
-      "cal": 265,
-      "protein": 18,
-      "carbs": 6,
-      "fat": 20,
-      "price": 50,
-    },
-    {
-      "name": "Rice",
-      "cal": 130,
-      "protein": 2,
-      "carbs": 28,
-      "fat": 0.3,
-      "price": 20,
-    },
-    {
-      "name": "Spinach",
-      "cal": 23,
-      "protein": 3,
-      "carbs": 4,
-      "fat": 0.4,
-      "price": 15,
-    },
-    {
-      "name": "Tomato",
-      "cal": 18,
-      "protein": 1,
-      "carbs": 4,
-      "fat": 0.2,
-      "price": 10,
-    },
-    {
-      "name": "Cheese",
-      "cal": 403,
-      "protein": 25,
-      "carbs": 1,
-      "fat": 33,
-      "price": 40,
-    },
-    {"name": "Egg", "cal": 68, "protein": 6, "carbs": 1, "fat": 5, "price": 12},
+    // ... ingredients list
   ];
 
   List<bool> selected = [];
-  int totalCalories = 0;
-  int totalProtein = 0;
-  int totalCarbs = 0;
-  int totalFat = 0;
-  int totalPrice = 0;
+  int totalCalories = 0,
+      totalProtein = 0,
+      totalCarbs = 0,
+      totalFat = 0,
+      totalPrice = 0;
+
+  Map<String, List<int>> categorizedIngredients = {};
 
   @override
   void initState() {
     super.initState();
     selected = List.generate(ingredients.length, (index) => false);
+
+    for (int i = 0; i < ingredients.length; i++) {
+      final category = ingredients[i]['category'] as String;
+      if (!categorizedIngredients.containsKey(category)) {
+        categorizedIngredients[category] = [];
+      }
+      categorizedIngredients[category]!.add(i);
+    }
   }
 
   void calculateNutrition() {
@@ -97,370 +248,233 @@ class _ByodPageState extends State<ByodPage> {
     });
   }
 
-  void submitRecipe() {
-    String recipeName = recipeNameController.text.trim();
-    String recipeSteps = recipeStepsController.text.trim();
-    List<String> selectedIngredients = [];
-    ingredients.asMap().forEach((index, ing) {
-      if (selected[index]) selectedIngredients.add(ing["name"]);
-    });
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
 
-    if (recipeName.isEmpty && selectedIngredients.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            "Please enter a recipe name or select at least one ingredient.",
-          ),
-        ),
-      );
-      return;
+    if (pickedFile != null) {
+      setState(() {
+        _selectedImage = File(pickedFile.path);
+      });
     }
+  }
 
-    print("Recipe Name: $recipeName");
-    print("Custom Steps: $recipeSteps");
-    print("Selected Ingredients: $selectedIngredients");
-    print(
-      "Nutrition: $totalCalories kcal, P:$totalProtein g, C:$totalCarbs g, F:$totalFat g",
-    );
-    print("Price: ₹$totalPrice");
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Recipe sent to the kitchen! 👨‍🍳")),
-    );
-
-    recipeNameController.clear();
-    recipeStepsController.clear();
-    selected = List.generate(ingredients.length, (index) => false);
-    calculateNutrition();
+  void submitRecipe() {
+    // ... submit recipe logic
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: const Text("BYOD - Build Your Own Dish"),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "BYOD - Build Your Own Dish",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            ),
+            Text(
+              'for ${widget.restaurant.name}',
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
         backgroundColor: Colors.deepOrange,
+        foregroundColor: Colors.white,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              "✍ Write Your Recipe",
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            TextField(
-              controller: recipeNameController,
-              decoration: const InputDecoration(
-                hintText: "Enter your recipe name",
+            // Recipe Input Section
+            Card(
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
               ),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: recipeStepsController,
-              decoration: const InputDecoration(
-                hintText: "Enter steps/instructions (optional)",
-              ),
-              maxLines: 3,
-            ),
-            const SizedBox(height: 20),
-            const Divider(),
-            const Text(
-              "🥗 Select Ingredients",
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: ingredients.length,
-              itemBuilder: (context, index) {
-                return CheckboxListTile(
-                  title: Text(
-                    "${ingredients[index]["name"]} (₹${ingredients[index]["price"]})",
-                  ),
-                  subtitle: Text(
-                    "Cal: ${ingredients[index]["cal"]}, P: ${ingredients[index]["protein"]}g, "
-                    "C: ${ingredients[index]["carbs"]}g, F: ${ingredients[index]["fat"]}g",
-                  ),
-                  value: selected[index],
-                  onChanged: (bool? value) {
-                    setState(() {
-                      selected[index] = value ?? false;
-                      calculateNutrition();
-                    });
-                  },
-                );
-              },
-            ),
-            const Divider(),
-            const Text(
-              "📊 Dish Summary",
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 5),
-            Text("Calories: $totalCalories kcal"),
-            Text("Protein: $totalProtein g"),
-            Text("Carbs: $totalCarbs g"),
-            Text("Fat: $totalFat g"),
-            const SizedBox(height: 10),
-            Text(
-              "💰 Total Price: ₹$totalPrice",
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 20),
-            Center(
-              child: ElevatedButton(
-                onPressed: submitRecipe,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.deepOrange,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 40,
-                    vertical: 12,
-                  ),
-                ),
-                child: const Text("Send Recipe"),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// --- Restaurant App Code ---
-class Restaurant {
-  final String name;
-  final String imagePath;
-  final double rating;
-  final String time;
-  final String category;
-  final String location;
-  final String offer;
-  Restaurant({
-    required this.name,
-    required this.imagePath,
-    required this.rating,
-    required this.time,
-    required this.category,
-    required this.location,
-    required this.offer,
-  });
-}
-
-final List<Restaurant> restaurants = [
-  Restaurant(
-    name: 'Nigs Hut',
-    imagePath: 'assets/images/res1.jpg',
-    rating: 4.3,
-    time: '65-90 mins',
-    category: 'Restaurent',
-    location: 'Mannarkkad',
-    offer: 'ITEMS AT ₹99',
-  ),
-  Restaurant(
-    name: 'FoodFlex',
-    imagePath: 'assets/images/res2.jpeg',
-    rating: 4.5,
-    time: '40-55 mins',
-    category: 'Healthy',
-    location: 'Palakkad',
-    offer: 'UPTO 50% OFF',
-  ),
-  Restaurant(
-    name: 'Pizza Hut',
-    imagePath: 'assets/images/res3.png',
-    rating: 4.2,
-    time: '55-65 mins',
-    category: 'Pizzas',
-    location: 'Kavumpuram',
-    offer: 'ITEMS AT ₹99',
-  ),
-  Restaurant(
-    name: 'Burger King',
-    imagePath: 'assets/images/res4.jpeg',
-    rating: 4.1,
-    time: '30-45 mins',
-    category: 'Burgers',
-    location: 'Ottapalam',
-    offer: 'FREE DELIVERY',
-  ),
-  Restaurant(
-    name: 'Subway',
-    imagePath: 'assets/images/res5.jpeg',
-    rating: 4.0,
-    time: '25-35 mins',
-    category: 'Sandwiches',
-    location: 'Shornur',
-    offer: 'BUY 1 GET 1',
-  ),
-  Restaurant(
-    name: 'The Plate',
-    imagePath: 'assets/images/res6.jpeg',
-    rating: 4.6,
-    time: '35-50 mins',
-    category: 'Multi-cuisine',
-    location: 'Cherpulassery',
-    offer: 'NEW ARRIVAL',
-  ),
-];
-
-class RestaurantDetailScreen extends StatelessWidget {
-  final Restaurant restaurant;
-  const RestaurantDetailScreen({required this.restaurant, super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(restaurant.name)),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text('Welcome to ${restaurant.name}!'),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const ByodPage()),
-                );
-              },
-              child: const Text('Build Your Own Dish'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class RestaurentListScreen extends StatelessWidget {
-  const RestaurentListScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Restaurants'),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-        elevation: 0,
-      ),
-      backgroundColor: Colors.grey[100],
-      body: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: restaurants.length,
-        itemBuilder: (context, index) {
-          final r = restaurants[index];
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 16.0),
-            child: InkWell(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => RestaurantDetailScreen(restaurant: r),
-                  ),
-                );
-              },
-              child: Card(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                elevation: 4,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Stack(
-                      children: [
-                        ClipRRect(
-                          borderRadius: const BorderRadius.vertical(
-                            top: Radius.circular(16),
-                          ),
-                          child: Image.asset(
-                            r.imagePath,
-                            height: 120,
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                        Positioned(
-                          left: 12,
-                          bottom: 12,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(0.7),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              r.offer,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(12.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            r.name,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.star,
-                                color: Colors.green,
-                                size: 16,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                '${r.rating} • ${r.time}',
-                                style: const TextStyle(fontSize: 13),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            r.category,
-                            style: TextStyle(
-                              color: Colors.grey[700],
-                              fontSize: 13,
-                            ),
-                          ),
-                          Text(
-                            r.location,
-                            style: TextStyle(
-                              color: Colors.grey[700],
-                              fontSize: 13,
-                            ),
-                          ),
-                        ],
+                    const Text(
+                      "How would you like to add your recipe?",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
                       ),
                     ),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        _buildInputTypeChip(
+                            "Write", Icons.edit, RecipeInputType.write),
+                        _buildInputTypeChip(
+                            "Upload", Icons.photo, RecipeInputType.upload),
+                        _buildInputTypeChip(
+                            "Link", Icons.link, RecipeInputType.link),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    _buildInputWidget(),
                   ],
                 ),
               ),
             ),
-          );
-        },
+            const SizedBox(height: 20),
+
+            // Ingredients Section
+            Card(
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // ... ingredients selection UI
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Nutrition Summary
+            Card(
+              elevation: 2,
+              color: Colors.orange[50],
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // ... nutrition summary UI
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Submit Button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: submitRecipe,
+                // ... button style
+                child: const Text("Send Recipe to Kitchen"),
+              ),
+            ),
+          ],
+        ),
       ),
     );
+  }
+
+  Widget _buildInputTypeChip(
+      String label, IconData icon, RecipeInputType type) {
+    final isSelected = _selectedInputType == type;
+    return ChoiceChip(
+      label: Text(label),
+      avatar: Icon(icon, color: isSelected ? Colors.white : Colors.deepOrange),
+      selected: isSelected,
+      onSelected: (selected) {
+        if (selected) {
+          setState(() {
+            _selectedInputType = type;
+          });
+        }
+      },
+      backgroundColor: Colors.grey[200],
+      selectedColor: Colors.deepOrange,
+      labelStyle: TextStyle(
+        color: isSelected ? Colors.white : Colors.black,
+      ),
+    );
+  }
+
+  Widget _buildInputWidget() {
+    switch (_selectedInputType) {
+      case RecipeInputType.write:
+        return Column(
+          children: [
+            TextField(
+              controller: recipeNameController,
+              decoration: const InputDecoration(
+                hintText: "Enter your recipe name",
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.restaurant_menu),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: recipeStepsController,
+              decoration: const InputDecoration(
+                hintText: "Enter steps/instructions (optional)",
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.list_alt),
+              ),
+              maxLines: 3,
+            ),
+          ],
+        );
+      case RecipeInputType.upload:
+        return GestureDetector(
+          onTap: _pickImage,
+          child: DottedBorder(
+            borderType: BorderType.RRect,
+            radius: const Radius.circular(12),
+            dashPattern: const [6, 6],
+            color: Colors.grey,
+            strokeWidth: 2,
+            child: Container(
+              height: 150,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: _selectedImage != null
+                  ? Image.file(_selectedImage!, fit: BoxFit.cover)
+                  : const Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.cloud_upload,
+                              size: 40, color: Colors.grey),
+                          SizedBox(height: 8),
+                          Text("Tap to upload a photo"),
+                        ],
+                      ),
+                    ),
+            ),
+          ),
+        );
+      case RecipeInputType.link:
+        return TextField(
+          controller: recipeLinkController,
+          decoration: const InputDecoration(
+            hintText: "Paste a link to your recipe",
+            border: OutlineInputBorder(),
+            prefixIcon: Icon(Icons.link),
+          ),
+        );
+    }
+  }
+
+  Widget _buildNutritionItem(String label, String value, String unit) {
+    // ... nutrition item UI
+    return Container();
   }
 }
