@@ -1,10 +1,154 @@
 import 'package:flutter/material.dart';
-import 'package:project/auth/intro.dart';
 
-import 'package:project/homescreen/terms_and_conditiions.dart';
-import 'package:project/profile/personalinformation.dart';
+// -----------------------------------------------------------------
+// MOCK CLASSES (Required for navigation)
+// -----------------------------------------------------------------
 
-import '../auth/intro.dart';
+class Intro extends StatelessWidget {
+  const Intro({super.key});
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Intro Screen')),
+      body: const Center(child: Text('Logged Out!')),
+    );
+  }
+}
+
+class TermsAndConditiions extends StatelessWidget {
+  const TermsAndConditiions({super.key});
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Terms and Conditions')),
+      body: const Center(child: Text('Terms and Conditions Content')),
+    );
+  }
+}
+
+class Personalinformation extends StatelessWidget {
+  const Personalinformation({super.key});
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Personal Information')),
+      body: const Center(child: Text('Personal Information Form')),
+    );
+  }
+}
+
+// -----------------------------------------------------------------
+// NEW ORDERS PAGE WIDGET
+// -----------------------------------------------------------------
+
+class OrdersPage extends StatelessWidget {
+  const OrdersPage({super.key});
+
+  // Helper to determine status color
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'Delivered':
+        return Colors.green.shade700;
+      case 'Cancelled':
+        return Colors.red.shade700;
+      default:
+        return Colors.deepPurple;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Mock list of recent orders
+    final List<Map<String, String>> mockOrders = const [
+      {
+        'id': 'BYOD-10521',
+        'date': 'Today, 4:30 PM',
+        'status': 'Delivered',
+        'total': '₹450',
+      },
+      {
+        'id': 'BYOD-10502',
+        'date': 'Yesterday, 8:15 PM',
+        'status': 'Cancelled',
+        'total': '₹720',
+      },
+      {
+        'id': 'BYOD-10488',
+        'date': 'Oct 09, 1:00 PM',
+        'status': 'Delivered',
+        'total': '₹300',
+      },
+      {
+        'id': 'BYOD-10450',
+        'date': 'Oct 05, 7:00 PM',
+        'status': 'Delivered',
+        'total': '₹999',
+      },
+    ];
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('My Orders'),
+        backgroundColor: Colors.deepPurple,
+        foregroundColor: Colors.white,
+      ),
+      body: ListView.builder(
+        padding: const EdgeInsets.all(8.0),
+        itemCount: mockOrders.length,
+        itemBuilder: (context, index) {
+          final order = mockOrders[index];
+          return Card(
+            elevation: 2,
+            margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: ListTile(
+              contentPadding: const EdgeInsets.all(12),
+              leading: const CircleAvatar(
+                backgroundColor: Colors.deepPurple,
+                child: Icon(Icons.receipt_long, color: Colors.white),
+              ),
+              title: Text(
+                'Order ${order['id']}',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              subtitle: Text('${order['date']}\nTotal: ${order['total']}'),
+              trailing: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    order['status']!,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: _getStatusColor(order['status']!),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Icon(
+                    Icons.arrow_forward_ios,
+                    size: 16,
+                    color: Colors.grey,
+                  ),
+                ],
+              ),
+              onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Viewing details for ${order['id']}')),
+                );
+              },
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+// -----------------------------------------------------------------
+// LANGUAGE SELECTOR WIDGET
+// -----------------------------------------------------------------
 
 class LanguageSelector extends StatefulWidget {
   final String selectedLanguage;
@@ -23,7 +167,7 @@ class LanguageSelector extends StatefulWidget {
 }
 
 class _LanguageSelectorState extends State<LanguageSelector> {
-  final List<Map<String, String>> languages = [
+  final List<Map<String, String>> languages = const [
     {'lang': 'English', 'country': 'United Kingdom'},
     {'lang': 'हिंदी', 'country': 'भारत'},
     {'lang': 'العربية', 'country': 'العالم'},
@@ -39,38 +183,41 @@ class _LanguageSelectorState extends State<LanguageSelector> {
   void _showLanguagesheet() {
     showModalBottomSheet(
       context: context,
-      shape: RoundedRectangleBorder(
+      shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) {
-        return ListView(
-          children: languages.map((lang) {
-            final isSelected =
-                lang['lang'] == widget.selectedLanguage &&
-                lang['country'] == widget.selectedCountry;
-            return ListTile(
-              title: Row(
-                children: [
-                  Text(lang['lang'] ?? ''),
-                  SizedBox(width: 8),
-                  Text(
-                    lang['country'] ?? '',
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                ],
-              ),
-              trailing: isSelected
-                  ? Icon(
-                      Icons.check_circle,
-                      color: const Color.fromARGB(255, 32, 5, 150),
-                    )
-                  : null,
-              onTap: () {
-                widget.onSelected(lang['lang']!, lang['country']!);
-                Navigator.pop(context);
-              },
-            );
-          }).toList(),
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.5,
+          child: ListView(
+            children: languages.map((lang) {
+              final isSelected =
+                  lang['lang'] == widget.selectedLanguage &&
+                  lang['country'] == widget.selectedCountry;
+              return ListTile(
+                title: Row(
+                  children: [
+                    Text(lang['lang'] ?? ''),
+                    const SizedBox(width: 8),
+                    Text(
+                      lang['country'] ?? '',
+                      style: const TextStyle(color: Colors.grey),
+                    ),
+                  ],
+                ),
+                trailing: isSelected
+                    ? const Icon(
+                        Icons.check_circle,
+                        color: Color.fromARGB(255, 32, 5, 150),
+                      )
+                    : null,
+                onTap: () {
+                  widget.onSelected(lang['lang']!, lang['country']!);
+                  Navigator.pop(context);
+                },
+              );
+            }).toList(),
+          ),
         );
       },
     );
@@ -81,30 +228,37 @@ class _LanguageSelectorState extends State<LanguageSelector> {
     return GestureDetector(
       onTap: _showLanguagesheet,
       child: Container(
-        margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
           color: Colors.grey[200],
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
           children: [
-            Icon(Icons.language, color: Colors.deepPurple),
-            SizedBox(width: 8),
+            const Icon(Icons.language, color: Colors.deepPurple),
+            const SizedBox(width: 8),
             Text(
               widget.selectedLanguage,
-              style: TextStyle(fontWeight: FontWeight.bold),
+              style: const TextStyle(fontWeight: FontWeight.bold),
             ),
-            SizedBox(width: 4),
-            Text(widget.selectedCountry, style: TextStyle(color: Colors.grey)),
-            Spacer(),
-            Icon(Icons.keyboard_arrow_down),
+            const SizedBox(width: 4),
+            Text(
+              widget.selectedCountry,
+              style: const TextStyle(color: Colors.grey),
+            ),
+            const Spacer(),
+            const Icon(Icons.keyboard_arrow_down),
           ],
         ),
       ),
     );
   }
 }
+
+// -----------------------------------------------------------------
+// PROFILE SCREEN WIDGET (Updated with OrdersPage link)
+// -----------------------------------------------------------------
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -121,44 +275,85 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final containerWidth = screenWidth > 600 ? 500.0 : screenWidth * 0.95;
+
     return Scaffold(
       appBar: AppBar(
-        title: Text('profile'),
-        actions: [Icon(Icons.person_outline_outlined)],
+        title: const Text('Profile'),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        foregroundColor: Colors.black,
+        actions: const [
+          Padding(
+            padding: EdgeInsets.only(right: 16.0),
+            child: Icon(
+              Icons.person_outline_outlined,
+              color: Colors.deepPurple,
+            ),
+          ),
+        ],
       ),
       body: Center(
         child: Container(
+          margin: const EdgeInsets.all(16.0),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(30),
+            borderRadius: BorderRadius.circular(20),
             color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.2),
+                spreadRadius: 1,
+                blurRadius: 5,
+                offset: const Offset(0, 3),
+              ),
+            ],
           ),
-          width: 380,
-          height: 550,
+          width: containerWidth,
           child: SingleChildScrollView(
-            child: ListView(
-              shrinkWrap: true,
-              physics: NeverScrollableScrollPhysics(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
+                // 1. My Account Section Title
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(16, 20, 16, 8),
                   child: Text(
-                    'My account',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                    'My Account',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                   ),
                 ),
 
+                // 2. Personal Information
                 ListTile(
-                  leading: Icon(Icons.person),
-                  title: Text('Personal Information'),
+                  leading: const Icon(Icons.person, color: Colors.deepPurple),
+                  title: const Text('Personal Information'),
+                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                   onTap: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => Personalinformation(),
+                        builder: (context) => const Personalinformation(),
                       ),
                     );
                   },
                 ),
+
+                // 2.5. My Orders (NEW)
+                ListTile(
+                  leading: const Icon(Icons.history, color: Colors.deepPurple),
+                  title: const Text('My Orders'),
+                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const OrdersPage(),
+                      ),
+                    );
+                  },
+                ),
+
+                // 3. Language Selector
                 LanguageSelector(
                   selectedLanguage: selectedLanguage,
                   selectedCountry: selectedCountry,
@@ -169,43 +364,113 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     });
                   },
                 ),
+
+                // 4. Privacy and Policy
                 ListTile(
-                  leading: Icon(Icons.language),
-                  title: Text('Language :$selectedLanguage($selectedCountry)'),
-                  onTap: () {},
-                ),
-                ListTile(
-                  leading: Icon(Icons.privacy_tip),
-                  title: Text('Privacy and Policy'),
+                  leading: const Icon(
+                    Icons.privacy_tip,
+                    color: Colors.deepPurple,
+                  ),
+                  title: const Text('Privacy and Policy'),
+                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                   onTap: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => TermsAndConditiions(),
+                        builder: (context) => const TermsAndConditiions(),
                       ),
                     );
                   },
                 ),
+
+                // 5. Settings
                 ListTile(
-                  leading: Icon(Icons.settings),
-                  title: Text('Setting'),
+                  leading: const Icon(Icons.settings, color: Colors.deepPurple),
+                  title: const Text('Setting'),
+                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                   onTap: () {
-                    print('object');
+                    // Placeholder for navigation/action
                   },
                 ),
-                //notification
-                Text(
-                  'Notifications',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+
+                // Divider and Notifications Section Title
+                const Divider(
+                  height: 1,
+                  thickness: 1,
+                  indent: 16,
+                  endIndent: 16,
                 ),
-                ListTile(
-                  leading: Icon(Icons.help),
-                  title: Text('Help Center'),
-                  onTap: () {},
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+                  child: Text(
+                    'Notifications',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                  ),
                 ),
+
+                // 6. Push Notifications Switch
+                SwitchListTile(
+                  secondary: const Icon(
+                    Icons.notifications_active,
+                    color: Colors.deepPurple,
+                  ),
+                  title: const Text('Push Notifications'),
+                  value: pushNotifications,
+                  onChanged: (bool value) {
+                    setState(() {
+                      pushNotifications = value;
+                    });
+                  },
+                  activeColor: Colors.deepPurple,
+                ),
+
+                // 7. Promotional Notifications Switch
+                SwitchListTile(
+                  secondary: const Icon(
+                    Icons.local_offer,
+                    color: Colors.deepPurple,
+                  ),
+                  title: const Text('Promotional Notifications'),
+                  value: promotionalNotifications,
+                  onChanged: (bool value) {
+                    setState(() {
+                      promotionalNotifications = value;
+                    });
+                  },
+                  activeColor: Colors.deepPurple,
+                ),
+
+                // Divider
+                const Divider(
+                  height: 1,
+                  thickness: 1,
+                  indent: 16,
+                  endIndent: 16,
+                ),
+
+                // 8. Help Center
                 ListTile(
-                  leading: Icon(Icons.logout),
-                  title: Text('Logout'),
+                  leading: const Icon(
+                    Icons.help_center,
+                    color: Colors.deepPurple,
+                  ),
+                  title: const Text('Help Center'),
+                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                  onTap: () {
+                    // Placeholder for navigation/action
+                  },
+                ),
+
+                // 9. Logout
+                ListTile(
+                  leading: const Icon(Icons.logout, color: Colors.red),
+                  title: const Text(
+                    'Logout',
+                    style: TextStyle(
+                      color: Colors.red,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                   onTap: () {
                     Navigator.pushAndRemoveUntil(
                       context,
@@ -214,6 +479,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     );
                   },
                 ),
+                const SizedBox(height: 20),
               ],
             ),
           ),
@@ -222,3 +488,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 }
+
+// -----------------------------------------------------------------
+// MAIN APP ENTRY POINT
+// -----------------------------------------------------------------
+
+// void main() {
+//   runApp(const MyApp());
+// }
+
+// class MyApp extends StatelessWidget {
+//   const MyApp({super.key});
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return MaterialApp(
+//       title: 'Profile Example',
+//       debugShowCheckedModeBanner: false,
+//       theme: ThemeData(
+//         primarySwatch: Colors.deepPurple,
+//         useMaterial3: true,
+//       ),
+//       home: const ProfileScreen(),
+//     );
+//   }
+// }
