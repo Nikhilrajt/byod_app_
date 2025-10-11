@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 
-class ChangePasswordPage extends StatefulWidget {
+class ChangePassword extends StatefulWidget {
   @override
+  // ignore: library_private_types_in_public_api
   _ChangePasswordPageState createState() => _ChangePasswordPageState();
 }
 
-class _ChangePasswordPageState extends State<ChangePasswordPage> {
+class _ChangePasswordPageState extends State<ChangePassword> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController oldPasswordController = TextEditingController();
   final TextEditingController newPasswordController = TextEditingController();
@@ -45,7 +46,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text("Change Password"),
-        backgroundColor: Colors.deepOrange,
+        backgroundColor: const Color.fromARGB(255, 249, 249, 249),
       ),
       body: Padding(
         padding: EdgeInsets.all(16.0),
@@ -69,7 +70,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                   border: OutlineInputBorder(),
                   suffixIcon: IconButton(
                     icon: Icon(
-                      _obscureOld ? Icons.visibility : Icons.visibility_off,
+                      _obscureOld ? Icons.visibility_off : Icons.visibility,
                     ),
                     onPressed: () => setState(() => _obscureOld = !_obscureOld),
                   ),
@@ -91,7 +92,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                   border: OutlineInputBorder(),
                   suffixIcon: IconButton(
                     icon: Icon(
-                      _obscureNew ? Icons.visibility : Icons.visibility_off,
+                      _obscureNew ? Icons.visibility_off : Icons.visibility,
                     ),
                     onPressed: () => setState(() => _obscureNew = !_obscureNew),
                   ),
@@ -115,7 +116,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                   border: OutlineInputBorder(),
                   suffixIcon: IconButton(
                     icon: Icon(
-                      _obscureConfirm ? Icons.visibility : Icons.visibility_off,
+                      _obscureConfirm ? Icons.visibility_off : Icons.visibility,
                     ),
                     onPressed: () =>
                         setState(() => _obscureConfirm = !_obscureConfirm),

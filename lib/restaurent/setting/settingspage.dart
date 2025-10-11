@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:project/auth/intro.dart';
-import 'package:project/auth/loginscreen.dart';
-import 'package:project/restaurent/setting/changepassword.dart/change.dart';
+// removed unused imports
 import 'package:project/restaurent/setting/delivery_settings_page.dart';
+import 'package:project/restaurent/setting/changepassword.dart/change.dart';
 import 'package:project/restaurent/setting/manage_ingredients_page.dart';
 import 'package:project/restaurent/setting/manage_menu_page.dart';
 import 'package:project/restaurent/setting/restaurant_profile_page.dart';
@@ -20,9 +20,7 @@ class _SettingspageState extends State<Settingspage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Settings'),
-      ),
+      appBar: AppBar(title: const Text('Settings')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -64,9 +62,7 @@ class _SettingspageState extends State<Settingspage> {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (context) => const ManageMenuPage(),
-                ),
+                MaterialPageRoute(builder: (context) => const ManageMenuPage()),
               );
             },
           ),
@@ -116,9 +112,7 @@ class _SettingspageState extends State<Settingspage> {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (context) => const Change(),
-                ),
+                MaterialPageRoute(builder: (context) => ChangePassword()),
               );
             },
           ),
@@ -166,18 +160,4 @@ class _SettingspageState extends State<Settingspage> {
   }
 }
 
-class Change extends StatelessWidget {
-  const Change({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Change Password'),
-      ),
-      body: const Center(
-        child: Text('Change Password screen placeholder'),
-      ),
-    );
-  }
-}
+// Placeholder removed - using ChangePassword from change.dart
