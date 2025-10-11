@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:project/auth/intro.dart';
+import 'package:project/restaurent/Ingredientpage.dart';
 // removed unused imports
 import 'package:project/restaurent/setting/delivery_settings_page.dart';
 import 'package:project/restaurent/setting/changepassword.dart/change.dart';
@@ -75,9 +76,7 @@ class _SettingspageState extends State<Settingspage> {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (context) => const ManageIngredientsPage(),
-                ),
+                MaterialPageRoute(builder: (context) => const IngredientPage()),
               );
             },
           ),

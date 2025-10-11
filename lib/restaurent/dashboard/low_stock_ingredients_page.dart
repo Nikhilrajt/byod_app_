@@ -1,0 +1,18 @@
+
+import 'package:flutter/material.dart';
+
+class LowStockIngredientsPage extends StatelessWidget {
+  const LowStockIngredientsPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Low Stock Ingredients'),
+      ),
+      body: const Center(
+        child: Text('Low Stock Ingredients Page'),
+      ),
+    );
+  }
+}

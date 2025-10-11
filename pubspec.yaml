@@ -43,6 +43,7 @@ dependencies:
   iconly: ^1.0.1
   image_picker: ^1.0.4
   dotted_border: ^2.1.0
+  intl: ^0.17.0
   
 
 

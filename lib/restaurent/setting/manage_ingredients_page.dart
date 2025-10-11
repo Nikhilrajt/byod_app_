@@ -36,8 +36,20 @@ class _ManageIngredientsPageState extends State<ManageIngredientsPage> {
 
   void _loadMock() {
     _items.addAll([
-      IngredientStock(name: 'Tomato', quantity: 120, unit: 'g', threshold: 30, byod: true),
-      IngredientStock(name: 'Cheese', quantity: 40, unit: 'g', threshold: 50, byod: true),
+      IngredientStock(
+        name: 'Tomato',
+        quantity: 120,
+        unit: 'g',
+        threshold: 30,
+        byod: true,
+      ),
+      IngredientStock(
+        name: 'Cheese',
+        quantity: 40,
+        unit: 'g',
+        threshold: 50,
+        byod: true,
+      ),
       IngredientStock(
         name: 'Flour',
         quantity: 5000,
@@ -45,7 +57,13 @@ class _ManageIngredientsPageState extends State<ManageIngredientsPage> {
         threshold: 1000,
         byod: false,
       ),
-      IngredientStock(name: 'Salt', quantity: 200, unit: 'g', threshold: 20, byod: false),
+      IngredientStock(
+        name: 'Salt',
+        quantity: 200,
+        unit: 'g',
+        threshold: 20,
+        byod: false,
+      ),
     ]);
   }
 
@@ -67,7 +85,7 @@ class _ManageIngredientsPageState extends State<ManageIngredientsPage> {
         return AlertDialog(
           title: Text(isEdit ? 'Edit Ingredient' : 'Add Ingredient'),
           content: SingleChildScrollView(
-                child: Column(
+            child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextFormField(
@@ -224,15 +242,35 @@ class _ManageIngredientsPageState extends State<ManageIngredientsPage> {
                                   const SizedBox(width: 6),
                                   if (it.byod)
                                     Chip(
-                                      backgroundColor: Colors.deepOrange.shade50,
-                                      label: Text('BYOD', style: TextStyle(color: Colors.deepOrange.shade700, fontWeight: FontWeight.bold)),
+                                      backgroundColor:
+                                          Colors.deepOrange.shade50,
+                                      label: Text(
+                                        'BYOD',
+                                        style: TextStyle(
+                                          color: Colors.deepOrange.shade700,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
                                     ),
-                                  if (it.quantity <= 0) const SizedBox(width: 6),
+                                  if (it.quantity <= 0)
+                                    const SizedBox(width: 6),
                                   if (it.quantity <= 0)
                                     Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                      decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(12)),
-                                      child: const Text('Out', style: TextStyle(color: Colors.black54, fontWeight: FontWeight.bold)),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 4,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey.shade200,
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: const Text(
+                                        'Out',
+                                        style: TextStyle(
+                                          color: Colors.black54,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
                                     ),
                                 ],
                               ),
