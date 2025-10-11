@@ -146,78 +146,79 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ),
-            
-              ListTile(
-                leading: Icon(Icons.person),
-                title: Text('Personal Information'),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => Personalinformation(),
-                    ),
-                  );
-                },
-              ),
-              LanguageSelector(
-                selectedLanguage: selectedLanguage,
-                selectedCountry: selectedCountry,
-                onSelected: (lang, country) {
-                  setState(() {
-                    selectedLanguage = lang;
-                    selectedCountry = country;
-                  });
-                },
-              ),
-              ListTile(
-                leading: Icon(Icons.language),
-                title: Text('Language :$selectedLanguage($selectedCountry)'),
-                onTap: () {},
-              ),
-              ListTile(
-                leading: Icon(Icons.privacy_tip),
-                title: Text('Privacy and Policy'),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => TermsAndConditiions(),
-                    ),
-                  );
-                },
-              ),
-              ListTile(
-                leading: Icon(Icons.settings),
-                title: Text('Setting'),
-                onTap: () {
-                  print('object');
-                },
-              ),
-              //notification
-              Text(
-                'Notifications',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              ListTile(
-                leading: Icon(Icons.help),
-                title: Text('Help Center'),
-                onTap: () {},
-              ),
-              ListTile(
-                leading: Icon(Icons.logout),
-                title: Text('Logout'),
-                onTap: () {
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(builder: (context) => const Intro()),
-                    (route) => false,
-                  );
-                },
-              ),
-            ],
+
+                ListTile(
+                  leading: Icon(Icons.person),
+                  title: Text('Personal Information'),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => Personalinformation(),
+                      ),
+                    );
+                  },
+                ),
+                LanguageSelector(
+                  selectedLanguage: selectedLanguage,
+                  selectedCountry: selectedCountry,
+                  onSelected: (lang, country) {
+                    setState(() {
+                      selectedLanguage = lang;
+                      selectedCountry = country;
+                    });
+                  },
+                ),
+                ListTile(
+                  leading: Icon(Icons.language),
+                  title: Text('Language :$selectedLanguage($selectedCountry)'),
+                  onTap: () {},
+                ),
+                ListTile(
+                  leading: Icon(Icons.privacy_tip),
+                  title: Text('Privacy and Policy'),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => TermsAndConditiions(),
+                      ),
+                    );
+                  },
+                ),
+                ListTile(
+                  leading: Icon(Icons.settings),
+                  title: Text('Setting'),
+                  onTap: () {
+                    print('object');
+                  },
+                ),
+                //notification
+                Text(
+                  'Notifications',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                ListTile(
+                  leading: Icon(Icons.help),
+                  title: Text('Help Center'),
+                  onTap: () {},
+                ),
+                ListTile(
+                  leading: Icon(Icons.logout),
+                  title: Text('Logout'),
+                  onTap: () {
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(builder: (context) => const Intro()),
+                      (route) => false,
+                    );
+                  },
+                ),
+              ],
+            ),
           ),
         ),
       ),
-    ));
+    );
   }
 }

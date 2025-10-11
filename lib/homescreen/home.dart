@@ -1,14 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-// import 'package:project/homescreen/BYOD/byod.dart';
+import 'package:project/admin/admin_dashboard.dart';
 import 'package:project/homescreen/BYOD/restaurent_list_Screen.dart';
 import 'package:project/homescreen/cart.dart';
-import 'package:project/homescreen/delivery.dart';
 import 'package:project/homescreen/homecontent.dart';
 import 'package:project/profile/profile.dart';
-// import 'package:project/homescreen/location.dart'; // Make sure this path matches the actual file where LocationScreen is defined
-// TODO: Update the import below to the correct path if profile.dart exists elsewhere
-// import 'package:project/your_actual_profile_path/profile.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -22,8 +18,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   final List<Widget> _pages = [
     HomeContent(), // Home
-    LocationScreen(),
-      RestaurentListScreen(),
+    Container(), // Placeholder for LocationScreen
+    RestaurentListScreen(),
     CartScreen(),
     Center(child: ProfileScreen()),
   ];
@@ -38,6 +34,16 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: _pages[_selectedIndex],
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => AdminDashboard()),
+          );
+        },
+        child: Icon(Icons.admin_panel_settings),
+        backgroundColor: Colors.deepOrange,
+      ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -50,7 +56,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
-
         child: ClipRRect(
           borderRadius: BorderRadius.vertical(top: Radius.circular(100)),
           child: BottomNavigationBar(
@@ -90,43 +95,3 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
-
-  
-
-
-// Scaffold(
-//       backgroundColor: Colors.white,
-//       body: _pages[_selectedIndex],
-//       bottomNavigationBar: BottomNavigationBar(
-//         currentIndex: _selectedIndex,
-//         onTap: (index) {
-//           setState(() {
-//             _selectedIndex = index;
-//           });
-//         },
-//         selectedItemColor: Colors.amber,
-//         unselectedItemColor: Colors.white,
-//         backgroundColor: Colors.black,
-//         type: BottomNavigationBarType.fixed,
-//         items: [
-//           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'home'),
-//           BottomNavigationBarItem(
-//             icon: Icon(Icons.delivery_dining_outlined, weight: 70),
-//             label: 'Location',
-//           ),
-//           BottomNavigationBarItem(
-//             icon: SvgPicture.asset('assets/images/BYOD plate.svg', width: 70),
-//             label: 'byod',
-//           ),
-//           BottomNavigationBarItem(
-//             icon: Icon(Icons.shopping_cart_sharp),
-//             label: 'Cart',
-//           ),
-//           BottomNavigationBarItem(
-//             icon: Icon(Icons.person_outline),
-//             label: 'Profile',
-//           ),
-//         ],
-//       ),
-      
-//     );
