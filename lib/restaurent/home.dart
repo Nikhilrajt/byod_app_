@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:project/restaurent/Dashboard.dart';
+import 'package:project/restaurent/dashboard/Dashboard.dart';
 import 'package:project/restaurent/Ingredientpage.dart';
 import 'package:project/restaurent/Orderpage.dart';
 import 'package:project/restaurent/feedbackpage.dart';
@@ -17,7 +17,7 @@ class _restaurent_home_pageState extends State<restaurent_home_page> {
   final List<Widget> _pages = [
     DashboardPage(),
     Orderpage(),
-    Ingredientpage(),
+    IngredientPage(),
     Feedbackpage(),
     Settingspage(),
   ];
