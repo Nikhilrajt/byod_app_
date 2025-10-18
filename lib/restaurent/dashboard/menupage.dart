@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
 // You need to ensure the 'intl' package is added to your pubspec.yaml:
@@ -19,12 +22,146 @@ class Modifier {
   Modifier({required this.id, required this.name, required this.price});
 }
 
+// ---------------- AddItemPage ----------------
+class AddItemPage extends StatefulWidget {
+  final String categoryName;
+  const AddItemPage({super.key, required this.categoryName});
+
+  @override
+  State<AddItemPage> createState() => _AddItemPageState();
+}
+
+class _AddItemPageState extends State<AddItemPage> {
+  final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
+  final _descController = TextEditingController();
+  final _priceController = TextEditingController();
+  final _nutritionController = TextEditingController();
+  String? _imagePath;
+
+  final ImagePicker _picker = ImagePicker();
+
+  Future<void> _pickImage() async {
+    try {
+      final XFile? file = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+      if (file != null) {
+        setState(() => _imagePath = file.path);
+      }
+    } catch (e) {
+      // ignore for now
+    }
+  }
+
+  void _save() {
+    if (!_formKey.currentState!.validate()) return;
+    final id = DateTime.now().millisecondsSinceEpoch.toString();
+    final item = MenuItem(
+      id: id,
+      name: _nameController.text.trim(),
+      description: _descController.text.trim(),
+      basePrice: double.tryParse(_priceController.text.trim()) ?? 0.0,
+      imagePath: _imagePath,
+      nutrition: _nutritionController.text.trim(),
+    );
+    Navigator.of(context).pop(item);
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _descController.dispose();
+    _priceController.dispose();
+    _nutritionController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Add Item to ${widget.categoryName}'),
+        backgroundColor: Colors.deepPurple,
+        actions: [
+          TextButton(
+            onPressed: _save,
+            child: const Text('Save', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                GestureDetector(
+                  onTap: _pickImage,
+                  child: Container(
+                    height: 180,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      color: Colors.grey.shade200,
+                      image: _imagePath != null
+                          ? DecorationImage(image: FileImage(File(_imagePath!)), fit: BoxFit.cover)
+                          : null,
+                    ),
+                    child: _imagePath == null
+                        ? Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: const [Icon(Icons.add_a_photo, size: 40), SizedBox(height: 8), Text('Tap to pick image')],
+                          )
+                        : null,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(labelText: 'Dish name'),
+                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Enter a name' : null,
+                ),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _descController,
+                  decoration: const InputDecoration(labelText: 'Description'),
+                  maxLines: 2,
+                ),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _priceController,
+                  decoration: const InputDecoration(labelText: 'Price'),
+                  keyboardType: TextInputType.numberWithOptions(decimal: true),
+                  validator: (v) => (v == null || double.tryParse(v) == null) ? 'Enter a valid price' : null,
+                ),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _nutritionController,
+                  decoration: const InputDecoration(labelText: 'Nutrition (calories / details)'),
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: _save,
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.deepPurple),
+                  child: const Text('Save Item'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 // Represents a single menu item
 class MenuItem {
   final String id;
   final String name;
   final String description;
   final double basePrice;
+  final String? imagePath;
+  final String? nutrition;
   bool isAvailable;
   bool isPopular;
   final List<Modifier> modifiers;
@@ -34,6 +171,8 @@ class MenuItem {
     required this.name,
     required this.description,
     required this.basePrice,
+    this.imagePath,
+    this.nutrition,
     this.isAvailable = true,
     this.isPopular = false,
     this.modifiers = const [],
@@ -189,9 +328,23 @@ class _MenuPageState extends State<MenuPage> {
   }
 
   void _addItem(MenuCategory category) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Opening form to add item to ${category.name}')),
-    );
+    // Open a full-screen form to add a new MenuItem. The form returns
+    // a MenuItem via Navigator.pop when saved.
+    Navigator.push<MenuItem?>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AddItemPage(categoryName: category.name),
+      ),
+    ).then((created) {
+      if (created != null) {
+        setState(() {
+          category.items.add(created);
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Added "${created.name}" to ${category.name}')),
+        );
+      }
+    });
   }
 
   void _editItem(MenuItem item) {

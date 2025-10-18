@@ -10,6 +10,7 @@ class HomeContent extends StatefulWidget {
 }
 
 class _HomeContentState extends State<HomeContent> {
+  bool _healthMode = false;
   @override
   Widget build(BuildContext context) {
     double Topmargin = MediaQuery.of(context).padding.top;
@@ -164,14 +165,23 @@ class _HomeContentState extends State<HomeContent> {
           ],
         ),
         IconButton(
+          tooltip: _healthMode ? 'Health mode: ON' : 'Health mode: OFF',
           onPressed: () {
-            print("Notification button pressed");
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => CartScreen()),
+            setState(() => _healthMode = !_healthMode);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  _healthMode ? 'Health mode enabled' : 'Health mode disabled',
+                ),
+                duration: const Duration(seconds: 1),
+              ),
             );
           },
-          icon: Icon(Icons.notifications, size: 30),
+          icon: Icon(
+            Icons.health_and_safety,
+            size: 30,
+            color: _healthMode ? Colors.green : Colors.grey.shade600,
+          ),
         ),
       ],
     );

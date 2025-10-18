@@ -5,6 +5,7 @@ import 'package:project/homescreen/BYOD/restaurent_list_Screen.dart';
 import 'package:project/homescreen/cart.dart';
 import 'package:project/homescreen/homecontent.dart';
 import 'package:project/profile/profile.dart';
+import 'delivery.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -18,7 +19,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   final List<Widget> _pages = [
     HomeContent(), // Home
-    Container(), // Placeholder for LocationScreen
+    const Delivery(), // Delivery / Location tab
     RestaurentListScreen(),
     CartScreen(),
     Center(child: ProfileScreen()),
