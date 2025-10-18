@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-
+import 'package:project/admin/widget/restaurentcontent.dart';
+import 'package:project/admin/widget/usermanagement.dart';
 import 'widget/dashboardcontent.dart';
 
 class AdminDashboard extends StatefulWidget {
@@ -13,8 +14,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
   int _selectedIndex = 0;
   final List<Widget> _pages = [
     DashboardContent(),
-    Center(child: Text('Restaurent Management Page')),
-    Center(child: Text('User Management Page')),
+    
+    RestaurentContent(),
+    UserManagement(),
   ];
   @override
   Widget build(BuildContext context) {
@@ -33,100 +35,62 @@ class _AdminDashboardState extends State<AdminDashboard> {
             // For height, if it's directly inside a Row within Scaffold's body,
             // it will naturally expand to fill the available height.
             // No explicit height property is usually needed here.
+            // Inside the Container for your side panel:
             child: Column(
-              // Your Column for vertical arrangement of menu items
               children: [
-                // Add some initial padding at the top for the app title/logo
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 20.0),
-                  // child: Text(
-                  //   ' // Placeholder for your branding
-                  //   style: TextStyle(
-                  //     color: Colors.white,
-                  //     fontSize: 20,
-                  //     fontWeight: FontWeight.bold,
-                  //   ),
-                  // ),
-                ),
-                // This is where your menu items will go
-                // For now, just a placeholder
-                Container(
-                  color: _selectedIndex == 0
-                      ? Colors.blue[900]
-                      : Colors.transparent,
-                  child: InkWell(
-                    onTap: () {
-                      setState(() {
-                        _selectedIndex = 0;
-                      });
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Row(
-                        children: [
-                          Icon(Icons.dashboard, color: Colors.white70),
-                          SizedBox(width: 10),
-                          Text(
-                            'Dashboard',
-                            style: TextStyle(color: Colors.white70),
-                          ),
-                        ],
-                      ),
+                // Branding / Header (optional, but good practice)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 20.0),
+                  child: Text(
+                    'FoodFlex Admin',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
-                SizedBox(height: 20),
-                Container(
-                  color: _selectedIndex == 1
-                      ? Colors.blue[900]
-                      : Colors.transparent,
-                  child: InkWell(
-                    onTap: () {
-                      setState(() {
-                        _selectedIndex = 1;
-                      });
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Row(
-                        children: [
-                          Icon(Icons.restaurant, color: Colors.white70),
-                          SizedBox(width: 10),
-                          Text(
-                            'Restaurent Management',
-                            style: TextStyle(color: Colors.white70),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+
+                // 1. Dashboard Item
+                _SideMenuItem(
+                  icon: Icons.dashboard,
+                  title: 'Dashboard',
+                  index: 0,
+                  selectedIndex: _selectedIndex,
+                  onTap: () {
+                    setState(() {
+                      _selectedIndex = 0;
+                    });
+                  },
                 ),
-                SizedBox(height: 20),
-                Container(
-                  color: _selectedIndex == 2
-                      ? Colors.blue[900]
-                      : Colors.transparent,
-                  child: InkWell(
-                    onTap: () {
-                      setState(() {
-                        _selectedIndex = 2;
-                      });
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Row(
-                        children: [
-                          Icon(Icons.person_3_outlined, color: Colors.white70),
-                          SizedBox(width: 10),
-                          Text(
-                            'User Management',
-                            style: TextStyle(color: Colors.white70),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+                const SizedBox(height: 5), // Small space between items
+                // 2. Restaurant Management Item
+                _SideMenuItem(
+                  icon: Icons.restaurant,
+                  title: 'Restaurent Management',
+                  index: 1,
+                  selectedIndex: _selectedIndex,
+                  onTap: () {
+                    setState(() {
+                      _selectedIndex = 1;
+                    });
+                  },
                 ),
+                const SizedBox(height: 5),
+
+                // 3. User Management Item
+                _SideMenuItem(
+                  icon: Icons.person_3_outlined,
+                  title: 'User Management',
+                  index: 2,
+                  selectedIndex: _selectedIndex,
+                  onTap: () {
+                    setState(() {
+                      _selectedIndex = 2;
+                    });
+                  },
+                ),
+                const SizedBox(height: 5),
               ],
             ),
           ),
@@ -144,15 +108,14 @@ class _AdminDashboardState extends State<AdminDashboard> {
   }
 }
 
-
-
-class _SidemenuItem extends StatelessWidget {
+class _SideMenuItem extends StatelessWidget {
   final IconData icon;
   final String title;
   final int index;
   final int selectedIndex;
   final VoidCallback onTap;
-  const _SidemenuItem({
+
+  const _SideMenuItem({
     required this.icon,
     required this.title,
     required this.index,
@@ -163,8 +126,29 @@ class _SidemenuItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    this.selectedIndex == this.index;
-
-    return Container();
+    // THIS IS THE CONTENT YOU NEED TO ADD/CORRECT
+    return Container(
+      color:
+          selectedIndex ==
+              index // Use 'selectedIndex' and 'index' properties
+          ? Colors.blue[700] // Highlight color
+          : Colors.transparent, // Default transparent
+      child: InkWell(
+        onTap: onTap, // Use the 'onTap' callback property
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+          child: Row(
+            children: [
+              Icon(icon, color: Colors.white70), // Use the 'icon' property
+              const SizedBox(width: 10),
+              Text(
+                title, // Use the 'title' property
+                style: const TextStyle(color: Colors.white70),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
