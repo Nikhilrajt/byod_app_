@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:project/admin/admin_dashboard.dart';
 import 'package:project/auth/sign_up.dart';
 import 'package:project/auth/forgot%20password/forgot_password.dart';
 import 'package:project/homescreen/home.dart';
@@ -395,6 +396,20 @@ class _LoginscreenState extends State<Loginscreen> {
                             },
                             child: Text(
                               'Login As restaurent',
+                              style: TextStyle(color: Colors.amberAccent),
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => AdminDashboard(),
+                                ),
+                              );
+                            },
+                            child: Text(
+                              'Admin Login',
                               style: TextStyle(color: Colors.amberAccent),
                             ),
                           ),

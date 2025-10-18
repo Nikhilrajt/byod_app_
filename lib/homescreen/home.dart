@@ -35,16 +35,16 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: _pages[_selectedIndex],
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => AdminDashboard()),
-          );
-        },
-        child: Icon(Icons.admin_panel_settings),
-        backgroundColor: Colors.deepOrange,
-      ),
+      // floatingActionButton: FloatingActionButton(
+      //   onPressed: () {
+      //     Navigator.push(
+      //       context,
+      //       MaterialPageRoute(builder: (context) => AdminDashboard()),
+      //     );
+      //   },
+      //   child: Icon(Icons.admin_panel_settings),
+      //   backgroundColor: Colors.deepOrange,
+      // ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: Colors.white,
