@@ -2,6 +2,7 @@
 import 'dart:io';
 import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/material.dart';
+
 import 'package:image_picker/image_picker.dart';
 
 // Main App definition (can be removed if this is part of a larger app)
@@ -432,33 +433,27 @@ class _ByodPageState extends State<ByodPage> {
       case RecipeInputType.upload:
         return GestureDetector(
           onTap: _pickImage,
-          child: DottedBorder(
-            borderType: BorderType.RRect,
-            radius: const Radius.circular(12),
-            dashPattern: const [6, 6],
-            color: Colors.grey,
-            strokeWidth: 2,
-            child: Container(
-              height: 150,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: _selectedImage != null
-                  ? Image.file(_selectedImage!, fit: BoxFit.cover)
-                  : const Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.cloud_upload,
-                              size: 40, color: Colors.grey),
-                          SizedBox(height: 8),
-                          Text("Tap to upload a photo"),
-                        ],
-                      ),
-                    ),
+          child: Container(
+            height: 150,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey, width: 2),
             ),
+            clipBehavior: Clip.hardEdge,
+            child: _selectedImage != null
+                ? Image.file(_selectedImage!, fit: BoxFit.cover)
+                : const Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.cloud_upload, size: 40, color: Colors.grey),
+                        SizedBox(height: 8),
+                        Text("Tap to upload a photo"),
+                      ],
+                    ),
+                  ),
           ),
         );
       case RecipeInputType.link:

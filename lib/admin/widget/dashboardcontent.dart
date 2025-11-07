@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:project/admin/widget/detailed_info_section.dart';
-import 'package:project/admin/widget/order_summary_section.dart';
+// import 'package:project/admin/widget/order_summary_section.dart';
 import 'package:project/admin/widget/review_section.dart';
 import 'package:project/admin/widget/sales_performance_section.dart';
 import 'package:project/admin/widget/top_selling_items_section.dart';
 
 class DashboardContent extends StatefulWidget {
-  const DashboardContent({super.key});
+  final bool compactView;
+
+  const DashboardContent({super.key, this.compactView = false});
 
   @override
   State<DashboardContent> createState() => _DashboardContentState();
@@ -35,14 +37,16 @@ class _DashboardContentState extends State<DashboardContent> {
         final crossAxisCount = isLargeScreen
             ? 3
             : (constraints.maxWidth > 600 ? 2 : 1);
+        final padding = widget.compactView ? 8.0 : 20.0;
+        final gridSpacing = widget.compactView ? 8.0 : 20.0;
 
         return SingleChildScrollView(
-          padding: const EdgeInsets.all(20.0),
+          padding: EdgeInsets.all(padding),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const _Header(),
-              const SizedBox(height: 30),
+              SizedBox(height: widget.compactView ? 12 : 30),
               _Tabs(
                 tabs: _tabs,
                 selectedIndex: _selectedIndex,
@@ -52,11 +56,11 @@ class _DashboardContentState extends State<DashboardContent> {
                   });
                 },
               ),
-              const SizedBox(height: 30),
+              SizedBox(height: widget.compactView ? 12 : 30),
               GridView.count(
                 crossAxisCount: crossAxisCount,
-                crossAxisSpacing: 20,
-                mainAxisSpacing: 20,
+                crossAxisSpacing: gridSpacing,
+                mainAxisSpacing: gridSpacing,
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 children: [
@@ -103,13 +107,25 @@ class _DashboardContentState extends State<DashboardContent> {
                             setState(() {
                               _isStatusActive = !_isStatusActive;
                             });
-                            print('Suspend Account button pressed. Status is now: ${_isStatusActive}');
+                            print(
+                              'Suspend Account button pressed. Status is now: ${_isStatusActive}',
+                            );
                           },
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: _isStatusActive ? Colors.redAccent : Colors.green,
-                            side: BorderSide(color: _isStatusActive ? Colors.redAccent : Colors.green),
+                            foregroundColor: _isStatusActive
+                                ? Colors.redAccent
+                                : Colors.green,
+                            side: BorderSide(
+                              color: _isStatusActive
+                                  ? Colors.redAccent
+                                  : Colors.green,
+                            ),
                           ),
-                          child: Text(_isStatusActive ? 'Suspend Account' : 'Activate Account'),
+                          child: Text(
+                            _isStatusActive
+                                ? 'Suspend Account'
+                                : 'Activate Account',
+                          ),
                         ),
                       ],
                     ),

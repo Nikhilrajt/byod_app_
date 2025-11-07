@@ -8,6 +8,10 @@ import 'package:project/restaurent/dashboard/completed_orders_page.dart';
 import 'package:project/restaurent/dashboard/todays_earnings_page.dart';
 import 'package:project/restaurent/dashboard/low_stock_ingredients_page.dart';
 
+// Placeholder `items` list — do not populate here. This list is expected to
+// be filled from the app's existing menu/data sources (DB, provider, etc.).
+final List<dynamic> items = [];
+
 // ---------------------------------------------------------------- //
 // Placeholder for MenuPage (You should move this to a separate file)
 // class MenuPage extends StatelessWidget {
