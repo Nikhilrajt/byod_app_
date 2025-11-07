@@ -1034,11 +1034,10 @@ class _ByodPageState extends State<ByodPage> {
             GestureDetector(
               onTap: () => _pickImage(ImageSource.gallery),
               child: DottedBorder(
-                borderType: BorderType.RRect,
-                radius: const Radius.circular(12),
-                dashPattern: const [6, 6],
-                color: Colors.grey,
-                strokeWidth: 2,
+                // borderType: BorderType.RRect,
+                // radius: const Radius.circular(12),
+                // dashPattern: const [6, 6],
+                // color: Colors.grey,
                 child: Container(
                   height: 170,
                   decoration: BoxDecoration(

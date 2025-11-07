@@ -5,7 +5,7 @@ import 'package:project/homescreen/BYOD/restaurent_list_Screen.dart';
 import 'package:project/homescreen/cart.dart';
 import 'package:project/homescreen/homecontent.dart';
 import 'package:project/profile/profile.dart';
-import 'delivery.dart';
+import 'package:project/homescreen/category.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -19,7 +19,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   final List<Widget> _pages = [
     HomeContent(), // Home
-    const Delivery(), // Delivery / Location tab
+    const CategoryPage(), // Category tab
     RestaurentListScreen(), // BYOD tab
     CartScreen(),
     Center(child: ProfileScreen()),
@@ -71,8 +71,8 @@ class _HomeScreenState extends State<HomeScreen> {
             items: [
               BottomNavigationBarItem(icon: Icon(Icons.home), label: 'home'),
               BottomNavigationBarItem(
-                icon: Icon(Icons.delivery_dining_outlined, weight: 70),
-                label: 'Location',
+                icon: Icon(Icons.category, weight: 70),
+                label: 'Category',
               ),
               BottomNavigationBarItem(
                 icon: SvgPicture.asset(
@@ -96,4 +96,3 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
- 

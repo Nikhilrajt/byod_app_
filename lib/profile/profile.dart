@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:project/auth/intro.dart';
+import 'package:project/profile/delivery.dart';
 
 // -----------------------------------------------------------------
 // MOCK CLASSES (Required for navigation)
@@ -338,6 +339,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       context,
                       MaterialPageRoute(
                         builder: (context) => const OrdersPage(),
+                      ),
+                    );
+                  },
+                ),
+
+                // Delivery Page
+                ListTile(
+                  leading: const Icon(Icons.delivery_dining, color: Colors.deepPurple),
+                  title: const Text('Delivery'),
+                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const Delivery(),
                       ),
                     );
                   },
