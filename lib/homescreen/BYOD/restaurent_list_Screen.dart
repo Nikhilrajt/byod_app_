@@ -1038,6 +1038,7 @@ class _ByodPageState extends State<ByodPage> {
                 // radius: const Radius.circular(12),
                 // dashPattern: const [6, 6],
                 // color: Colors.grey,
+                // strokeWidth: 2,
                 child: Container(
                   height: 170,
                   decoration: BoxDecoration(

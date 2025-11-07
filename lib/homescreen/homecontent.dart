@@ -36,19 +36,19 @@ class _HomeContentState extends State<HomeContent> {
   final List<_Food> newArrivals = const [
     _Food(
       name: 'Cheese Burst Pizza',
-      img: 'assets/images/newpizza.png',
+      img: 'assets/images/newpizza.jpg',
       price: 199,
       rating: 4.5,
     ),
     _Food(
-      name: 'Chicken Zinger Burger',
-      img: 'assets/images/newburger.png',
+      name: 'Sadhya',
+      img: 'assets/images/Kerala-Sadya.jpg',
       price: 149,
       rating: 4.3,
     ),
     _Food(
       name: 'Chocolate Lava Cake',
-      img: 'assets/images/newlava.png',
+      img: 'assets/images/newlava.jpg',
       price: 89,
       rating: 4.8,
     ),
@@ -157,7 +157,7 @@ class _HomeContentState extends State<HomeContent> {
 
                     const SizedBox(height: 24),
 
-                    _buildSection(context, 'New Food Arrivals'),
+                    _buildSection(context, 'Top Dishes'),
                     const SizedBox(height: 12),
                     _buildNewArrivals(),
 
