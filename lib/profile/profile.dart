@@ -1,19 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:project/auth/intro.dart';
 
 // -----------------------------------------------------------------
 // MOCK CLASSES (Required for navigation)
 // -----------------------------------------------------------------
-
-class Intro extends StatelessWidget {
-  const Intro({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Intro Screen')),
-      body: const Center(child: Text('Logged Out!')),
-    );
-  }
-}
 
 class TermsAndConditiions extends StatelessWidget {
   const TermsAndConditiions({super.key});
@@ -463,19 +453,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                 // 9. Logout
                 ListTile(
-                  leading: const Icon(Icons.logout, color: Colors.red),
-                  title: const Text(
-                    'Logout',
-                    style: TextStyle(
-                      color: Colors.red,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  leading: const Icon(Icons.logout, color: Colors.black),
+                  title: const Text("Logout"),
+                  subtitle: const Text("Sign out from this account"),
                   onTap: () {
-                    Navigator.pushAndRemoveUntil(
-                      context,
-                      MaterialPageRoute(builder: (context) => const Intro()),
-                      (route) => false,
+                    showDialog(
+                      context: context,
+                      builder: (BuildContext context) {
+                        return AlertDialog(
+                          title: const Text('Logout'),
+                          content: const Text(
+                            'Are you sure you want to log out?',
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () {
+                                Navigator.of(context).pop();
+                              },
+                              child: const Text('Cancel'),
+                            ),
+                            TextButton(
+                              onPressed: () {
+                                Navigator.of(context).pop();
+                                Navigator.pushAndRemoveUntil(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => Intro(),
+                                  ),
+                                  (route) => true,
+                                );
+                              },
+                              child: const Text('Logout'),
+                            ),
+                          ],
+                        );
+                      },
                     );
                   },
                 ),

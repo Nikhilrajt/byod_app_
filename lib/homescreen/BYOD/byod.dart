@@ -1,4 +1,3 @@
-
 import 'dart:io';
 import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/material.dart';
@@ -144,8 +143,7 @@ class RestaurantDetailScreen extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) =>
-                          ByodPage(restaurant: restaurant),
+                      builder: (context) => ByodPage(restaurant: restaurant),
                     ),
                   );
                 },
@@ -316,11 +314,20 @@ class _ByodPageState extends State<ByodPage> {
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
                         _buildInputTypeChip(
-                            "Write", Icons.edit, RecipeInputType.write),
+                          "Write",
+                          Icons.edit,
+                          RecipeInputType.write,
+                        ),
                         _buildInputTypeChip(
-                            "Upload", Icons.photo, RecipeInputType.upload),
+                          "Upload",
+                          Icons.photo,
+                          RecipeInputType.upload,
+                        ),
                         _buildInputTypeChip(
-                            "Link", Icons.link, RecipeInputType.link),
+                          "Link",
+                          Icons.link,
+                          RecipeInputType.link,
+                        ),
                       ],
                     ),
                     const SizedBox(height: 16),
@@ -384,7 +391,10 @@ class _ByodPageState extends State<ByodPage> {
   }
 
   Widget _buildInputTypeChip(
-      String label, IconData icon, RecipeInputType type) {
+    String label,
+    IconData icon,
+    RecipeInputType type,
+  ) {
     final isSelected = _selectedInputType == type;
     return ChoiceChip(
       label: Text(label),
@@ -399,9 +409,7 @@ class _ByodPageState extends State<ByodPage> {
       },
       backgroundColor: Colors.grey[200],
       selectedColor: Colors.deepOrange,
-      labelStyle: TextStyle(
-        color: isSelected ? Colors.white : Colors.black,
-      ),
+      labelStyle: TextStyle(color: isSelected ? Colors.white : Colors.black),
     );
   }
 
