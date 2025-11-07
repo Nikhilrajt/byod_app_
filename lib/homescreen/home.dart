@@ -20,7 +20,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<Widget> _pages = [
     HomeContent(), // Home
     const Delivery(), // Delivery / Location tab
-    RestaurentListScreen(),
+    RestaurentListScreen(), // BYOD tab
     CartScreen(),
     Center(child: ProfileScreen()),
   ];
