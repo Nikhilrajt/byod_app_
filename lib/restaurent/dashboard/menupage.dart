@@ -25,7 +25,8 @@ class Modifier {
 // ---------------- AddItemPage ----------------
 class AddItemPage extends StatefulWidget {
   final String categoryName;
-  const AddItemPage({super.key, required this.categoryName});
+  final MenuItem? initialItem; // if provided, the page will be in edit mode
+  const AddItemPage({super.key, required this.categoryName, this.initialItem});
 
   @override
   State<AddItemPage> createState() => _AddItemPageState();
@@ -43,7 +44,10 @@ class _AddItemPageState extends State<AddItemPage> {
 
   Future<void> _pickImage() async {
     try {
-      final XFile? file = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+      final XFile? file = await _picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 80,
+      );
       if (file != null) {
         setState(() => _imagePath = file.path);
       }
@@ -52,9 +56,25 @@ class _AddItemPageState extends State<AddItemPage> {
     }
   }
 
+  @override
+  void initState() {
+    super.initState();
+    // Prefill controllers if editing an existing item
+    final existing = widget.initialItem;
+    if (existing != null) {
+      _nameController.text = existing.name;
+      _descController.text = existing.description;
+      _priceController.text = existing.basePrice.toString();
+      _nutritionController.text = existing.nutrition ?? '';
+      _imagePath = existing.imagePath;
+    }
+  }
+
   void _save() {
     if (!_formKey.currentState!.validate()) return;
-    final id = DateTime.now().millisecondsSinceEpoch.toString();
+    final id =
+        widget.initialItem?.id ??
+        DateTime.now().millisecondsSinceEpoch.toString();
     final item = MenuItem(
       id: id,
       name: _nameController.text.trim(),
@@ -104,13 +124,20 @@ class _AddItemPageState extends State<AddItemPage> {
                       borderRadius: BorderRadius.circular(12),
                       color: Colors.grey.shade200,
                       image: _imagePath != null
-                          ? DecorationImage(image: FileImage(File(_imagePath!)), fit: BoxFit.cover)
+                          ? DecorationImage(
+                              image: FileImage(File(_imagePath!)),
+                              fit: BoxFit.cover,
+                            )
                           : null,
                     ),
                     child: _imagePath == null
                         ? Column(
                             mainAxisAlignment: MainAxisAlignment.center,
-                            children: const [Icon(Icons.add_a_photo, size: 40), SizedBox(height: 8), Text('Tap to pick image')],
+                            children: const [
+                              Icon(Icons.add_a_photo, size: 40),
+                              SizedBox(height: 8),
+                              Text('Tap to pick image'),
+                            ],
                           )
                         : null,
                   ),
@@ -119,7 +146,8 @@ class _AddItemPageState extends State<AddItemPage> {
                 TextFormField(
                   controller: _nameController,
                   decoration: const InputDecoration(labelText: 'Dish name'),
-                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Enter a name' : null,
+                  validator: (v) =>
+                      (v == null || v.trim().isEmpty) ? 'Enter a name' : null,
                 ),
                 const SizedBox(height: 8),
                 TextFormField(
@@ -132,17 +160,23 @@ class _AddItemPageState extends State<AddItemPage> {
                   controller: _priceController,
                   decoration: const InputDecoration(labelText: 'Price'),
                   keyboardType: TextInputType.numberWithOptions(decimal: true),
-                  validator: (v) => (v == null || double.tryParse(v) == null) ? 'Enter a valid price' : null,
+                  validator: (v) => (v == null || double.tryParse(v) == null)
+                      ? 'Enter a valid price'
+                      : null,
                 ),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _nutritionController,
-                  decoration: const InputDecoration(labelText: 'Nutrition (calories / details)'),
+                  decoration: const InputDecoration(
+                    labelText: 'Nutrition (calories / details)',
+                  ),
                 ),
                 const SizedBox(height: 20),
                 ElevatedButton(
                   onPressed: _save,
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.deepPurple),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.deepPurple,
+                  ),
                   child: const Text('Save Item'),
                 ),
               ],
@@ -164,6 +198,7 @@ class MenuItem {
   final String? nutrition;
   bool isAvailable;
   bool isPopular;
+  bool isHidden; // New flag to hide item from menu view
   final List<Modifier> modifiers;
 
   MenuItem({
@@ -175,6 +210,7 @@ class MenuItem {
     this.nutrition,
     this.isAvailable = true,
     this.isPopular = false,
+    this.isHidden = false,
     this.modifiers = const [],
   });
 }
@@ -261,6 +297,13 @@ class _MenuPageState extends State<MenuPage> {
 
   late MenuCategory _selectedCategory;
   String _searchQuery = ''; // State variable for search input
+  // Selection mode state for bulk delete
+  bool _selectionMode = false;
+  final Set<String> _selectedItemIds = {};
+  // Show hidden items toggle
+  bool _showHidden = false;
+  // Temporary hides (in-memory, not persisted) — toggled by the eye icon
+  final Set<String> _tempHiddenItemIds = {};
 
   // Rupee formatter
   final NumberFormat _currencyFormat = NumberFormat.currency(
@@ -341,23 +384,45 @@ class _MenuPageState extends State<MenuPage> {
           category.items.add(created);
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Added "${created.name}" to ${category.name}')),
+          SnackBar(
+            content: Text('Added "${created.name}" to ${category.name}'),
+          ),
         );
       }
     });
   }
 
   void _editItem(MenuItem item) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('Editing Item: ${item.name}')));
-  }
+    // Debug/log so we can confirm the tap was received
+    debugPrint('editItem invoked for id=${item.id}');
 
-  void _toggleItemAvailability(MenuItem item) {
-    setState(() {
-      item.isAvailable = !item.isAvailable;
+    // Open AddItemPage in edit mode; replace item on return
+    Navigator.push<MenuItem?>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AddItemPage(
+          categoryName: _selectedCategory.name,
+          initialItem: item,
+        ),
+      ),
+    ).then((updated) {
+      if (updated != null) {
+        setState(() {
+          for (var i = 0; i < _selectedCategory.items.length; i++) {
+            if (_selectedCategory.items[i].id == updated.id) {
+              _selectedCategory.items[i] = updated;
+              break;
+            }
+          }
+        });
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Updated ${updated.name}')));
+      }
     });
   }
+
+  // Availability toggling handled inline in the item card now.
 
   String _formatCurrency(double amount) => _currencyFormat.format(amount);
 
@@ -458,6 +523,8 @@ class _MenuPageState extends State<MenuPage> {
         ),
       ),
       child: ListTile(
+        // give a little more vertical padding so the tile can grow without
+        // overflowing when trailing controls need space
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         // Item Name & Description
         title: Text(
@@ -477,6 +544,8 @@ class _MenuPageState extends State<MenuPage> {
             Text(
               item.description,
               style: TextStyle(color: Colors.grey.shade600),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(height: 4),
             Text(
@@ -491,165 +560,305 @@ class _MenuPageState extends State<MenuPage> {
               Text(
                 '+ ${item.modifiers.length} Modifiers',
                 style: const TextStyle(color: Colors.orange, fontSize: 12),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
           ],
         ),
-        isThreeLine: true,
+        isThreeLine: false,
+
+        // Selection checkbox (leading) when in selection mode
+        leading: _selectionMode
+            ? Checkbox(
+                value: _selectedItemIds.contains(item.id),
+                onChanged: (v) {
+                  setState(() {
+                    if (v == true)
+                      _selectedItemIds.add(item.id);
+                    else
+                      _selectedItemIds.remove(item.id);
+                  });
+                },
+              )
+            : null,
 
         // Management Options (Trailing)
-        trailing: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            // Edit Button
-            SizedBox(
-              height: 30,
-              child: IconButton(
-                icon: const Icon(Icons.edit, size: 20, color: Colors.blue),
-                onPressed: () => _editItem(item),
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-                tooltip: 'Edit Item Details/Modifiers',
-              ),
-            ),
-            const SizedBox(height: 8),
-            // Availability Switch
-            SizedBox(
-              height: 30,
-              child: Switch(
-                value: item.isAvailable,
-                onChanged: (_) => _toggleItemAvailability(item),
-                activeColor: Colors.green,
-                inactiveThumbColor: Colors.red,
-                inactiveTrackColor: Colors.red.shade200,
-              ),
-            ),
-            Text(
-              item.isAvailable ? 'Available' : 'Sold Out',
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-                color: item.isAvailable ? Colors.green : Colors.red,
-              ),
-            ),
-          ],
+        trailing: LayoutBuilder(
+          builder: (context, box) {
+            // Compact layout for narrow widths
+            if (box.maxWidth < 140) {
+              return Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.edit, size: 20, color: Colors.blue),
+                    onPressed: () => _editItem(item),
+                    tooltip: 'Edit',
+                  ),
+                  IconButton(
+                    icon: Icon(
+                      item.isHidden ? Icons.visibility_off : Icons.visibility,
+                      size: 20,
+                      color: item.isHidden ? Colors.orange : Colors.green,
+                    ),
+                    onPressed: () {
+                      setState(() => item.isHidden = !item.isHidden);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            item.isHidden ? 'Item hidden' : 'Item visible',
+                          ),
+                          duration: const Duration(seconds: 1),
+                        ),
+                      );
+                    },
+                    tooltip: item.isHidden ? 'Unhide' : 'Hide',
+                  ),
+                ],
+              );
+            }
+
+            // Default vertical layout for wider widths
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                // Edit Button (larger tap target)
+                IconButton(
+                  icon: const Icon(Icons.edit, size: 20, color: Colors.blue),
+                  onPressed: () {
+                    // immediate feedback to confirm tap
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Opening editor...'),
+                        duration: Duration(milliseconds: 600),
+                      ),
+                    );
+                    _editItem(item);
+                  },
+                  tooltip: 'Edit Item Details/Modifiers',
+                ),
+                const SizedBox(height: 4),
+                // Visibility toggle (eye icon) + status label
+                IconButton(
+                  icon: Icon(
+                    item.isHidden ? Icons.visibility_off : Icons.visibility,
+                    size: 20,
+                    color: item.isHidden ? Colors.orange : Colors.green,
+                  ),
+                  onPressed: () {
+                    setState(() => item.isHidden = !item.isHidden);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          item.isHidden ? 'Item hidden' : 'Item visible',
+                        ),
+                        duration: const Duration(seconds: 1),
+                      ),
+                    );
+                  },
+                  tooltip: item.isHidden ? 'Unhide Item' : 'Hide Item',
+                ),
+                // Small status label under the icon
+                Text(
+                  item.isHidden ? 'Hidden' : 'Visible',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: item.isHidden ? Colors.orange : Colors.green,
+                  ),
+                ),
+                const SizedBox(height: 6),
+              ],
+            );
+          },
         ),
       ),
     );
+  }
+
+  void _toggleSelectionMode() {
+    setState(() {
+      _selectionMode = !_selectionMode;
+      if (!_selectionMode) _selectedItemIds.clear();
+    });
+  }
+
+  void _deleteSelectedItems() async {
+    if (_selectedItemIds.isEmpty) return;
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirm Deletion'),
+        content: Text('Delete ${_selectedItemIds.length} selected item(s)?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      setState(() {
+        for (final cat in _categories) {
+          cat.items.removeWhere((i) => _selectedItemIds.contains(i.id));
+        }
+        _selectedItemIds.clear();
+        _selectionMode = false;
+      });
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: const Text('Selected items deleted')));
+    }
   }
 
   // 3. Main Content (Search Bar, Header, and Item List/Grid)
   Widget _buildMainContent(double maxWidth) {
     // Item Filtering Logic
     final filteredItems = _selectedCategory.items.where((item) {
+      // Respect permanent hidden flag and temporary hides unless 'Show Hidden' is enabled
+      if (!_showHidden &&
+          (item.isHidden || _tempHiddenItemIds.contains(item.id)))
+        return false;
       if (_searchQuery.isEmpty) return true;
       return item.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
           item.description.toLowerCase().contains(_searchQuery.toLowerCase());
     }).toList();
 
-    // Use Expanded to ensure the content takes available space in the Row (desktop)
-    return Expanded(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header Row (Category Name & Add Button)
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  _selectedCategory.name,
+    return Padding(
+      padding: const EdgeInsets.all(12.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Header: Title + Actions
+          Row(
+            children: [
+              Flexible(
+                child: Text(
+                  '${_selectedCategory.name} items',
                   style: const TextStyle(
-                    fontSize: 24,
+                    fontSize: 20,
                     fontWeight: FontWeight.bold,
                   ),
-                ),
-                ElevatedButton.icon(
-                  onPressed: () => _addItem(_selectedCategory),
-                  icon: const Icon(Icons.add),
-                  label: const Text('Add New Item'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.deepPurple,
-                    foregroundColor: Colors.white,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-
-            // Search Bar
-            TextField(
-              decoration: InputDecoration(
-                hintText: 'Search items in ${_selectedCategory.name}...',
-                prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide.none,
-                ),
-                filled: true,
-                fillColor: Colors.grey.shade100,
-                contentPadding: const EdgeInsets.symmetric(
-                  vertical: 0,
-                  horizontal: 10,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
-              onChanged: (value) {
-                setState(() {
-                  _searchQuery = value;
-                });
-              },
-            ),
-            const SizedBox(height: 16),
-
-            // Item List/Grid Area
-            filteredItems.isEmpty
-                ? Center(
-                    child: Padding(
-                      padding: const EdgeInsets.only(top: 50.0),
-                      child: Text(
-                        _searchQuery.isNotEmpty
-                            ? 'No items found matching "$_searchQuery".'
-                            : 'No items in the ${_selectedCategory.name} category. Add one!',
-                        style: const TextStyle(
-                          color: Colors.grey,
-                          fontSize: 16,
-                        ),
+              const SizedBox(width: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 6,
+                alignment: WrapAlignment.end,
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: () => _addItem(_selectedCategory),
+                    icon: const Icon(Icons.add),
+                    label: const Text('Add New Item'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.deepPurple,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
                       ),
                     ),
-                  )
-                : Expanded(
-                    // ⭐ Crucial for wide-screen GridView to fill remaining space
-                    child: (maxWidth < 700)
-                        ?
-                          // Mobile View: Use a simple ListView (scrollable inside the Expanded)
-                          ListView.builder(
-                            itemCount: filteredItems.length,
-                            itemBuilder: (context, index) {
-                              return Padding(
-                                padding: const EdgeInsets.only(bottom: 10.0),
-                                child: _buildMenuItemCard(filteredItems[index]),
-                              );
-                            },
-                          )
-                        :
-                          // Tablet/Desktop View: Use GridView
-                          GridView.builder(
-                            gridDelegate:
-                                const SliverGridDelegateWithMaxCrossAxisExtent(
-                                  maxCrossAxisExtent: 400,
-                                  childAspectRatio: 3.5,
-                                  crossAxisSpacing: 10,
-                                  mainAxisSpacing: 10,
-                                ),
-                            itemCount: filteredItems.length,
-                            itemBuilder: (context, index) {
-                              return _buildMenuItemCard(filteredItems[index]);
-                            },
-                          ),
                   ),
-          ],
-        ),
+                  OutlinedButton.icon(
+                    onPressed: _toggleSelectionMode,
+                    icon: const Icon(Icons.check_box_outline_blank),
+                    label: const Text('Select'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 8,
+                      ),
+                    ),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: () => setState(() => _showHidden = !_showHidden),
+                    icon: Icon(
+                      _showHidden ? Icons.visibility : Icons.visibility_off,
+                    ),
+                    label: Text(_showHidden ? 'Hide Hidden' : 'Show Hidden'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 8,
+                      ),
+                    ),
+                  ),
+                  if (_selectionMode)
+                    ElevatedButton.icon(
+                      onPressed: _deleteSelectedItems,
+                      icon: const Icon(Icons.delete_forever),
+                      label: const Text('Delete Selected'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Search Bar
+          TextField(
+            decoration: InputDecoration(
+              hintText: 'Search items in ${_selectedCategory.name}...',
+              prefixIcon: const Icon(Icons.search, color: Colors.grey),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide.none,
+              ),
+              filled: true,
+              fillColor: Colors.grey.shade100,
+              contentPadding: const EdgeInsets.symmetric(
+                vertical: 0,
+                horizontal: 10,
+              ),
+            ),
+            onChanged: (value) => setState(() => _searchQuery = value),
+          ),
+          const SizedBox(height: 16),
+
+          // Item List/Grid Area
+          if (filteredItems.isEmpty)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.only(top: 50.0),
+                child: Text(
+                  _searchQuery.isNotEmpty
+                      ? 'No items found matching "$_searchQuery".'
+                      : 'No items in the ${_selectedCategory.name} category. Add one!',
+                  style: const TextStyle(color: Colors.grey, fontSize: 16),
+                ),
+              ),
+            )
+          else
+            // Tablet/Desktop View: regular GridView (caller should provide Expanded)
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: 400,
+                childAspectRatio: 3.0,
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+              ),
+              itemCount: filteredItems.length,
+              itemBuilder: (context, index) =>
+                  _buildMenuItemCard(filteredItems[index]),
+            ),
+        ],
       ),
     );
   }
@@ -714,12 +923,7 @@ class _MenuPageState extends State<MenuPage> {
                     ),
                     const Divider(height: 1),
                     // Main content (search bar and item list/grid)
-                    Expanded(
-                      // ⭐ Use Expanded with the SingleChildScrollView to let it scroll
-                      child: SingleChildScrollView(
-                        child: _buildMainContent(constraints.maxWidth),
-                      ),
-                    ),
+                    _buildMainContent(constraints.maxWidth),
                   ],
                 ),
               );
@@ -730,11 +934,20 @@ class _MenuPageState extends State<MenuPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildCategoryPanel(), // Left Panel
-                _buildMainContent(constraints.maxWidth), // Right Panel
+                Expanded(
+                  child: _buildMainContent(constraints.maxWidth),
+                ), // Right Panel
               ],
             );
           },
         ),
+      ),
+      // Floating action button to quickly add an item to the currently selected category
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _addItem(_selectedCategory),
+        label: const Text('Add Item'),
+        icon: const Icon(Icons.add),
+        backgroundColor: Colors.deepPurple,
       ),
     );
   }

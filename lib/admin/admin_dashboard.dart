@@ -12,9 +12,11 @@ class AdminDashboard extends StatefulWidget {
 
 class _AdminDashboardState extends State<AdminDashboard> {
   int _selectedIndex = 0;
-  final List<Widget> _pages = [
-    DashboardContent(),
-    
+  bool _compactView = false;
+  bool _sideMenuVisible = true;
+  // Pages will be rebuilt in build() so we can pass current settings
+  List<Widget> _pages(BuildContext context) => [
+    DashboardContent(compactView: _compactView),
     RestaurentContent(),
     UserManagement(),
   ];
@@ -22,84 +24,86 @@ class _AdminDashboardState extends State<AdminDashboard> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('FoodFlex', style: TextStyle(color: Colors.black)),
+        title: const Text('FoodFlex', style: TextStyle(color: Colors.black)),
         backgroundColor: Colors.grey[700],
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.more_vert, color: Colors.white),
+            onPressed: () {
+              setState(() {
+                _sideMenuVisible = !_sideMenuVisible;
+              });
+            },
+            tooltip: _sideMenuVisible ? 'Hide side menu' : 'Show side menu',
+          ),
+        ],
       ),
       body: Row(
-        // Use a Row to place the side panel next to the main content
         children: [
-          // This will be your side panel
-          Container(
-            width: 250.0, // Let's try a more reasonable width
-            color: Colors.grey[800], // Your dark background color
-            // For height, if it's directly inside a Row within Scaffold's body,
-            // it will naturally expand to fill the available height.
-            // No explicit height property is usually needed here.
-            // Inside the Container for your side panel:
-            child: Column(
-              children: [
-                // Branding / Header (optional, but good practice)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 20.0),
-                  child: Text(
-                    'FoodFlex Admin',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: _sideMenuVisible ? 250.0 : 0.0,
+            child: _sideMenuVisible
+                ? Container(
+                    color: Colors.grey[800],
+                    child: Column(
+                      children: [
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 20.0),
+                          child: Text(
+                            'FoodFlex Admin',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        _SideMenuItem(
+                          icon: Icons.dashboard,
+                          title: 'Dashboard',
+                          index: 0,
+                          selectedIndex: _selectedIndex,
+                          onTap: () {
+                            setState(() {
+                              _selectedIndex = 0;
+                            });
+                          },
+                        ),
+                        const SizedBox(height: 5),
+                        _SideMenuItem(
+                          icon: Icons.restaurant,
+                          title: 'Restaurent Management',
+                          index: 1,
+                          selectedIndex: _selectedIndex,
+                          onTap: () {
+                            setState(() {
+                              _selectedIndex = 1;
+                            });
+                          },
+                        ),
+                        const SizedBox(height: 5),
+                        _SideMenuItem(
+                          icon: Icons.person_3_outlined,
+                          title: 'User Management',
+                          index: 2,
+                          selectedIndex: _selectedIndex,
+                          onTap: () {
+                            setState(() {
+                              _selectedIndex = 2;
+                            });
+                          },
+                        ),
+                        const SizedBox(height: 5),
+                      ],
                     ),
-                  ),
-                ),
-
-                // 1. Dashboard Item
-                _SideMenuItem(
-                  icon: Icons.dashboard,
-                  title: 'Dashboard',
-                  index: 0,
-                  selectedIndex: _selectedIndex,
-                  onTap: () {
-                    setState(() {
-                      _selectedIndex = 0;
-                    });
-                  },
-                ),
-                const SizedBox(height: 5), // Small space between items
-                // 2. Restaurant Management Item
-                _SideMenuItem(
-                  icon: Icons.restaurant,
-                  title: 'Restaurent Management',
-                  index: 1,
-                  selectedIndex: _selectedIndex,
-                  onTap: () {
-                    setState(() {
-                      _selectedIndex = 1;
-                    });
-                  },
-                ),
-                const SizedBox(height: 5),
-
-                // 3. User Management Item
-                _SideMenuItem(
-                  icon: Icons.person_3_outlined,
-                  title: 'User Management',
-                  index: 2,
-                  selectedIndex: _selectedIndex,
-                  onTap: () {
-                    setState(() {
-                      _selectedIndex = 2;
-                    });
-                  },
-                ),
-                const SizedBox(height: 5),
-              ],
-            ),
+                  )
+                : const SizedBox.shrink(),
           ),
-          // This will be the main content area of your dashboard
           Expanded(
             child: Container(
-              color: Colors
-                  .white, // Or a light grey for the main content background
-              child: _pages[_selectedIndex],
+              color: Colors.white,
+              child: _pages(context)[_selectedIndex],
             ),
           ),
         ],
@@ -116,35 +120,27 @@ class _SideMenuItem extends StatelessWidget {
   final VoidCallback onTap;
 
   const _SideMenuItem({
+    Key? key,
     required this.icon,
     required this.title,
     required this.index,
     required this.selectedIndex,
     required this.onTap,
-    super.key,
-  });
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    // THIS IS THE CONTENT YOU NEED TO ADD/CORRECT
     return Container(
-      color:
-          selectedIndex ==
-              index // Use 'selectedIndex' and 'index' properties
-          ? Colors.blue[700] // Highlight color
-          : Colors.transparent, // Default transparent
+      color: selectedIndex == index ? Colors.blue[700] : Colors.transparent,
       child: InkWell(
-        onTap: onTap, // Use the 'onTap' callback property
+        onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
           child: Row(
             children: [
-              Icon(icon, color: Colors.white70), // Use the 'icon' property
+              Icon(icon, color: Colors.white70),
               const SizedBox(width: 10),
-              Text(
-                title, // Use the 'title' property
-                style: const TextStyle(color: Colors.white70),
-              ),
+              Text(title, style: const TextStyle(color: Colors.white70)),
             ],
           ),
         ),
