@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../services/inventory_service.dart';
 
 // --- 1. Enhanced Ingredient Data Model (IMMUTABLE) ---
 class Ingredient {
@@ -726,6 +727,9 @@ class _IngredientPageState extends State<IngredientPage> {
     };
   }
 
+  // Inventory service used to keep the dashboard low-stock list in sync
+  final InventoryService _inventoryService = InventoryService();
+
   // --- Real-Time Update Logic (Add/Remove) ---
   void _updateQuantity(Ingredient ingredient, double amount) {
     setState(() {
@@ -744,6 +748,9 @@ class _IngredientPageState extends State<IngredientPage> {
         );
 
         _filterIngredients();
+        // Mirror the change to the shared inventory service so the
+        // Low Stock dashboard updates immediately.
+        _inventoryService.updateQuantity(currentIngredient.name, newQuantity);
       }
     });
   }
