@@ -19,14 +19,13 @@ class _HomeContentState extends State<HomeContent> {
     'assets/images/1.png',
     'assets/images/2.png',
     'assets/images/3.png',
-    'assets/images/4.png',
+    'assets/images/4.png', // ✅ Tap on this to toggle Health Mode
   ];
 
   /// Health mode banners
   final List<String> healthBanners = const [
     'assets/images/health1.png',
     'assets/images/health2.png',
-    // 'assets/images/healthy_banner3.png',
   ];
 
   /// Normal Categories (original)
@@ -41,7 +40,7 @@ class _HomeContentState extends State<HomeContent> {
     _Category('Fries', 'assets/images/fries.jpg'),
   ];
 
-  /// Health Mode Categories (temporary replacement)
+  /// Health Mode Categories
   final List<_Category> healthCategories = const [
     _Category('Fruits', 'assets/images/fruits.png'),
     _Category('Dry Fruits', 'assets/images/dry fruits.png'),
@@ -51,100 +50,30 @@ class _HomeContentState extends State<HomeContent> {
     _Category('Salads', 'assets/images/salad.jpg'),
   ];
 
-  /// Normal New Food Arrivals (original top dishes)
+  /// Normal New Food Arrivals
   final List<_Food> normalNewArrivals = const [
-    _Food(
-      name: 'Cheese Burst Pizza',
-      img: 'assets/images/newpizza.jpg',
-      price: 199,
-      rating: 4.5,
-    ),
-    _Food(
-      name: 'Sadhya',
-      img: 'assets/images/Kerala-Sadya.jpg',
-      price: 149,
-      rating: 4.3,
-    ),
-    _Food(
-      name: 'Chocolate Lava Cake',
-      img: 'assets/images/newlava.jpg',
-      price: 89,
-      rating: 4.8,
-    ),
-    _Food(
-      name: 'Pasta Alfredo',
-      img: 'assets/images/newpasta.png',
-      price: 169,
-      rating: 4.4,
-    ),
+    _Food(name: 'Cheese Burst Pizza', img: 'assets/images/newpizza.jpg', price: 199, rating: 4.5),
+    _Food(name: 'Sadhya', img: 'assets/images/Kerala-Sadya.jpg', price: 149, rating: 4.3),
+    _Food(name: 'Chocolate Lava Cake', img: 'assets/images/newlava.jpg', price: 89, rating: 4.8),
+    _Food(name: 'Pasta Alfredo', img: 'assets/images/newpasta.png', price: 169, rating: 4.4),
   ];
 
-  /// Health-mode top dishes (nutrition-focused)
+  /// Health-mode top dishes
   final List<_Food> healthNewArrivals = const [
-    _Food(
-      name: 'Mixed Fruit Bowl',
-      img: 'assets/images/mixed_fruit_bowl.png',
-      price: 99,
-      rating: 4.6,
-    ),
-    _Food(
-      name: 'Dry Fruit Mix',
-      img: 'assets/images/dry_fruit_mix.png',
-      price: 149,
-      rating: 4.5,
-    ),
-    _Food(
-      name: 'Grilled Mushroom Skewers',
-      img: 'assets/images/mushroom_skewers.png',
-      price: 129,
-      rating: 4.4,
-    ),
-    _Food(
-      name: 'Paneer & Veg Bowl',
-      img: 'assets/images/paneer_bowl.png',
-      price: 159,
-      rating: 4.7,
-    ),
+    _Food(name: 'Mixed Fruit Bowl', img: 'assets/images/mixed_fruit_bowl.png', price: 99, rating: 4.6),
+    _Food(name: 'Dry Fruit Mix', img: 'assets/images/dry_fruit_mix.png', price: 149, rating: 4.5),
+    _Food(name: 'Grilled Mushroom Skewers', img: 'assets/images/mushroom_skewers.png', price: 129, rating: 4.4),
+    _Food(name: 'Paneer & Veg Bowl', img: 'assets/images/paneer_bowl.png', price: 159, rating: 4.7),
   ];
 
-  /// Restaurants List (unchanged)
+  /// Restaurants List
   final List<_Restaurant> restaurants = const [
-    _Restaurant(
-      name: 'Planet Cafe',
-      data: "Club sandwich, Burger, Smoothies",
-      img: 'assets/images/res1.jpg',
-      rating: 4.4,
-    ),
-    _Restaurant(
-      name: 'Big Flooda',
-      data: "Make a way for the burger craze",
-      img: 'assets/images/res2.jpeg',
-      rating: 4.3,
-    ),
-    _Restaurant(
-      name: 'Eato',
-      data: "Indian | Chinese | Italian cuisines",
-      img: 'assets/images/res3.png',
-      rating: 4.8,
-    ),
-    _Restaurant(
-      name: 'Shawarma Fusion',
-      data: "Full meat customizable shawarma",
-      img: 'assets/images/res4.jpeg',
-      rating: 4.2,
-    ),
-    _Restaurant(
-      name: "Juicy",
-      data: "Juices with real cream",
-      img: 'assets/images/res5.jpeg',
-      rating: 4.5,
-    ),
-    _Restaurant(
-      name: "Pisharodys Pure Veg",
-      data: "Special Dosa | Roast | Meals",
-      img: 'assets/images/res6.jpeg',
-      rating: 4.5,
-    ),
+    _Restaurant(name: 'Planet Cafe', data: "Club sandwich, Burger, Smoothies", img: 'assets/images/res1.jpg', rating: 4.4),
+    _Restaurant(name: 'Big Flooda', data: "Make a way for the burger craze", img: 'assets/images/res2.jpeg', rating: 4.3),
+    _Restaurant(name: 'Eato', data: "Indian | Chinese | Italian cuisines", img: 'assets/images/res3.png', rating: 4.8),
+    _Restaurant(name: 'Shawarma Fusion', data: "Full meat customizable shawarma", img: 'assets/images/res4.jpeg', rating: 4.2),
+    _Restaurant(name: "Juicy", data: "Juices with real cream", img: 'assets/images/res5.jpeg', rating: 4.5),
+    _Restaurant(name: "Pisharodys Pure Veg", data: "Special Dosa | Roast | Meals", img: 'assets/images/res6.jpeg', rating: 4.5),
   ];
 
   List<_Category> getActiveCategories(bool healthMode) =>
@@ -259,10 +188,31 @@ class _HomeContentState extends State<HomeContent> {
             enlargeCenterPage: true,
             onPageChanged: (i, _) => setState(() => _currentOffer = i),
           ),
-          itemBuilder: (_, i, __) => ClipRRect(
-            borderRadius: BorderRadius.circular(isWide ? 18 : 14),
-            child: Image.asset(banners[i], fit: BoxFit.cover),
-          ),
+          itemBuilder: (_, i, __) {
+            return GestureDetector(
+              onTap: () {
+                // ✅ Toggle health mode when tapping 'assets/images/4.png'
+                if (banners[i] == 'assets/images/4.png') {
+                  context.read<HealthModeNotifier>().toggle();
+                  final enabled = context.read<HealthModeNotifier>().isOn;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        enabled
+                            ? 'Health mode activated via banner! 🥗'
+                            : 'Health mode deactivated.',
+                      ),
+                      duration: const Duration(seconds: 1),
+                    ),
+                  );
+                }
+              },
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(isWide ? 18 : 14),
+                child: Image.asset(banners[i], fit: BoxFit.cover),
+              ),
+            );
+          },
         ),
 
         const SizedBox(height: 8),
@@ -483,10 +433,7 @@ class RestaurantCard extends StatelessWidget {
               fit: BoxFit.cover,
             ),
           ),
-
           const SizedBox(width: 12),
-
-          /// TEXT SECTION
           Expanded(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -499,19 +446,14 @@ class RestaurantCard extends StatelessWidget {
                     fontSize: 16,
                   ),
                 ),
-
                 const SizedBox(height: 6),
-
                 Row(
                   children: [
                     const Icon(Icons.star, size: 16, color: Colors.amber),
                     Text("${item.rating}"),
                   ],
                 ),
-
                 const SizedBox(height: 6),
-
-                /// ✅ DATA LINE (description)
                 Text(
                   item.data,
                   maxLines: 1,
@@ -521,7 +463,6 @@ class RestaurantCard extends StatelessWidget {
               ],
             ),
           ),
-
           const SizedBox(width: 12),
         ],
       ),
@@ -577,21 +518,6 @@ class CustomTextField extends StatelessWidget {
     );
   }
 }
-
-class _ImageFallback extends StatelessWidget {
-  const _ImageFallback();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: Colors.grey.shade200,
-      alignment: Alignment.center,
-      child: const Icon(Icons.image_not_supported_outlined, size: 28),
-    );
-  }
-}
-
-// ---------------- MODELS ----------------
 
 class _Food {
   final String name;
