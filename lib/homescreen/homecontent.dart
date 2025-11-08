@@ -15,9 +15,10 @@ class _HomeContentState extends State<HomeContent> {
 
   /// Banners
   final List<String> offerBanners = const [
-    'assets/images/1.jpg',
-    'assets/images/2.jpg',
-    'assets/images/3.jpg',
+    'assets/images/1.png',
+    'assets/images/2.png',
+    'assets/images/3.png',
+    // 'assets/images/4.png',
   ];
 
   /// Categories
