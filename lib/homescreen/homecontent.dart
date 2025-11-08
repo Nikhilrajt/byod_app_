@@ -1,6 +1,8 @@
 // lib/homescreen/homecontent.dart
 import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
+import 'package:provider/provider.dart';
+import '../state/health_mode_notifier.dart';
 
 class HomeContent extends StatefulWidget {
   const HomeContent({super.key});
@@ -10,15 +12,21 @@ class HomeContent extends StatefulWidget {
 }
 
 class _HomeContentState extends State<HomeContent> {
-  bool _healthMode = false;
   int _currentOffer = 0;
 
-  /// Banners
-  final List<String> offerBanners = const [
+  /// Normal offer banners
+  final List<String> normalBanners = const [
     'assets/images/1.png',
     'assets/images/2.png',
     'assets/images/3.png',
-    // 'assets/images/4.png',
+    'assets/images/4.png',
+  ];
+
+  /// Health mode banners
+  final List<String> healthBanners = const [
+    'assets/images/health1.png',
+    'assets/images/health2.png',
+    // 'assets/images/healthy_banner3.png',
   ];
 
   /// Normal Categories (original)
@@ -139,15 +147,21 @@ class _HomeContentState extends State<HomeContent> {
     ),
   ];
 
-  // ------------------ Active getters ------------------
-  List<_Category> get activeCategories =>
-      _healthMode ? healthCategories : normalCategories;
+  List<_Category> getActiveCategories(bool healthMode) =>
+      healthMode ? healthCategories : normalCategories;
 
-  List<_Food> get activeNewArrivals =>
-      _healthMode ? healthNewArrivals : normalNewArrivals;
+  List<_Food> getActiveNewArrivals(bool healthMode) =>
+      healthMode ? healthNewArrivals : normalNewArrivals;
+
+  List<String> getActiveBanners(bool healthMode) =>
+      healthMode ? healthBanners : normalBanners;
 
   @override
   Widget build(BuildContext context) {
+    final healthMode = context.watch<HealthModeNotifier>().isOn;
+    final cats = getActiveCategories(healthMode);
+    final items = getActiveNewArrivals(healthMode);
+
     return Scaffold(
       body: SafeArea(
         bottom: false,
@@ -164,13 +178,14 @@ class _HomeContentState extends State<HomeContent> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Header(
-                      healthMode: _healthMode,
+                      healthMode: healthMode,
                       onToggleHealthMode: () {
-                        setState(() => _healthMode = !_healthMode);
+                        context.read<HealthModeNotifier>().toggle();
+                        final enabled = context.read<HealthModeNotifier>().isOn;
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(
-                              _healthMode
+                              enabled
                                   ? 'Health mode enabled'
                                   : 'Health mode disabled',
                             ),
@@ -188,7 +203,7 @@ class _HomeContentState extends State<HomeContent> {
               ),
 
               const SizedBox(height: 12),
-              _buildCarousel(context),
+              _buildCarousel(context, healthMode),
 
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -199,16 +214,16 @@ class _HomeContentState extends State<HomeContent> {
 
                     _buildSection(context, 'Categories'),
                     const SizedBox(height: 12),
-                    _buildCategories(),
+                    _buildCategories(cats),
 
                     const SizedBox(height: 24),
 
                     _buildSection(
                       context,
-                      _healthMode ? 'Nutrition Picks' : 'Top Dishes',
+                      healthMode ? 'Nutrition Picks' : 'Top Dishes',
                     ),
                     const SizedBox(height: 12),
-                    _buildNewArrivals(),
+                    _buildNewArrivals(items),
 
                     const SizedBox(height: 24),
 
@@ -229,14 +244,15 @@ class _HomeContentState extends State<HomeContent> {
 
   // ---------------- CAROUSEL ----------------
 
-  Widget _buildCarousel(BuildContext context) {
+  Widget _buildCarousel(BuildContext context, bool healthMode) {
+    final banners = getActiveBanners(healthMode);
     final w = MediaQuery.of(context).size.width;
     final isWide = w >= 900;
 
     return Column(
       children: [
         CarouselSlider.builder(
-          itemCount: offerBanners.length,
+          itemCount: banners.length,
           options: CarouselOptions(
             height: isWide ? 320 : 240,
             autoPlay: true,
@@ -245,7 +261,7 @@ class _HomeContentState extends State<HomeContent> {
           ),
           itemBuilder: (_, i, __) => ClipRRect(
             borderRadius: BorderRadius.circular(isWide ? 18 : 14),
-            child: Image.asset(offerBanners[i], fit: BoxFit.cover),
+            child: Image.asset(banners[i], fit: BoxFit.cover),
           ),
         ),
 
@@ -254,14 +270,16 @@ class _HomeContentState extends State<HomeContent> {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: List.generate(
-            offerBanners.length,
+            banners.length,
             (i) => AnimatedContainer(
               duration: const Duration(milliseconds: 250),
               width: _currentOffer == i ? 18 : 8,
               height: 8,
               margin: const EdgeInsets.symmetric(horizontal: 4),
               decoration: BoxDecoration(
-                color: _currentOffer == i ? Colors.deepOrange : Colors.grey,
+                color: _currentOffer == i
+                    ? (healthMode ? Colors.green : Colors.deepOrange)
+                    : Colors.grey,
                 borderRadius: BorderRadius.circular(8),
               ),
             ),
@@ -292,8 +310,7 @@ class _HomeContentState extends State<HomeContent> {
 
   // ---------------- CATEGORIES ----------------
 
-  Widget _buildCategories() {
-    final cats = activeCategories;
+  Widget _buildCategories(List<_Category> cats) {
     return SizedBox(
       height: 95,
       child: ListView.separated(
@@ -308,8 +325,7 @@ class _HomeContentState extends State<HomeContent> {
 
   // ---------------- NEW ARRIVALS ----------------
 
-  Widget _buildNewArrivals() {
-    final items = activeNewArrivals;
+  Widget _buildNewArrivals(List<_Food> items) {
     return SizedBox(
       height: 210,
       child: ListView.separated(
