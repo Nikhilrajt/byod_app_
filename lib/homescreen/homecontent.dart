@@ -21,8 +21,8 @@ class _HomeContentState extends State<HomeContent> {
     // 'assets/images/4.png',
   ];
 
-  /// Categories
-  final List<_Category> categories = const [
+  /// Normal Categories (original)
+  final List<_Category> normalCategories = const [
     _Category('Pizza', 'assets/images/Classic Cheese Pizza.png'),
     _Category('Burgers', 'assets/images/burger.png'),
     _Category('Pasta', 'assets/images/newpasta.png'),
@@ -33,8 +33,18 @@ class _HomeContentState extends State<HomeContent> {
     _Category('Fries', 'assets/images/fries.jpg'),
   ];
 
-  /// New Food Arrivals
-  final List<_Food> newArrivals = const [
+  /// Health Mode Categories (temporary replacement)
+  final List<_Category> healthCategories = const [
+    _Category('Fruits', 'assets/images/fruits.png'),
+    _Category('Dry Fruits', 'assets/images/dry fruits.png'),
+    _Category('Mushroom', 'assets/images/mushrrom.png'),
+    _Category('Paneer', 'assets/images/paneer.png'),
+    _Category('Corn', 'assets/images/corn.png'),
+    _Category('Salads', 'assets/images/salad.jpg'),
+  ];
+
+  /// Normal New Food Arrivals (original top dishes)
+  final List<_Food> normalNewArrivals = const [
     _Food(
       name: 'Cheese Burst Pizza',
       img: 'assets/images/newpizza.jpg',
@@ -61,7 +71,35 @@ class _HomeContentState extends State<HomeContent> {
     ),
   ];
 
-  /// Restaurants List
+  /// Health-mode top dishes (nutrition-focused)
+  final List<_Food> healthNewArrivals = const [
+    _Food(
+      name: 'Mixed Fruit Bowl',
+      img: 'assets/images/mixed_fruit_bowl.png',
+      price: 99,
+      rating: 4.6,
+    ),
+    _Food(
+      name: 'Dry Fruit Mix',
+      img: 'assets/images/dry_fruit_mix.png',
+      price: 149,
+      rating: 4.5,
+    ),
+    _Food(
+      name: 'Grilled Mushroom Skewers',
+      img: 'assets/images/mushroom_skewers.png',
+      price: 129,
+      rating: 4.4,
+    ),
+    _Food(
+      name: 'Paneer & Veg Bowl',
+      img: 'assets/images/paneer_bowl.png',
+      price: 159,
+      rating: 4.7,
+    ),
+  ];
+
+  /// Restaurants List (unchanged)
   final List<_Restaurant> restaurants = const [
     _Restaurant(
       name: 'Planet Cafe',
@@ -100,6 +138,13 @@ class _HomeContentState extends State<HomeContent> {
       rating: 4.5,
     ),
   ];
+
+  // ------------------ Active getters ------------------
+  List<_Category> get activeCategories =>
+      _healthMode ? healthCategories : normalCategories;
+
+  List<_Food> get activeNewArrivals =>
+      _healthMode ? healthNewArrivals : normalNewArrivals;
 
   @override
   Widget build(BuildContext context) {
@@ -158,7 +203,10 @@ class _HomeContentState extends State<HomeContent> {
 
                     const SizedBox(height: 24),
 
-                    _buildSection(context, 'Top Dishes'),
+                    _buildSection(
+                      context,
+                      _healthMode ? 'Nutrition Picks' : 'Top Dishes',
+                    ),
                     const SizedBox(height: 12),
                     _buildNewArrivals(),
 
@@ -245,16 +293,15 @@ class _HomeContentState extends State<HomeContent> {
   // ---------------- CATEGORIES ----------------
 
   Widget _buildCategories() {
+    final cats = activeCategories;
     return SizedBox(
       height: 95,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        itemCount: categories.length,
+        itemCount: cats.length,
         separatorBuilder: (_, __) => const SizedBox(width: 16),
-        itemBuilder: (_, i) => CategoryCircle(
-          title: categories[i].title,
-          image: categories[i].image,
-        ),
+        itemBuilder: (_, i) =>
+            CategoryCircle(title: cats[i].title, image: cats[i].image),
       ),
     );
   }
@@ -262,13 +309,14 @@ class _HomeContentState extends State<HomeContent> {
   // ---------------- NEW ARRIVALS ----------------
 
   Widget _buildNewArrivals() {
+    final items = activeNewArrivals;
     return SizedBox(
       height: 210,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        itemCount: newArrivals.length,
+        itemCount: items.length,
         separatorBuilder: (_, __) => const SizedBox(width: 15),
-        itemBuilder: (_, index) => FoodItemWidget(item: newArrivals[index]),
+        itemBuilder: (_, index) => FoodItemWidget(item: items[index]),
       ),
     );
   }
