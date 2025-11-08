@@ -1,7 +1,4 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
-
 import 'package:project/auth/loginscreen.dart';
 
 class Intro extends StatefulWidget {
@@ -14,38 +11,53 @@ class Intro extends StatefulWidget {
 class _IntroState extends State<Intro> {
   @override
   Widget build(BuildContext context) {
+    final double headerHeight = MediaQuery.of(context).size.height * 0.35;
+
     return Scaffold(
       body: Stack(
         children: [
+          // Background image at the top
           Container(
+            height: headerHeight,
+            width: double.infinity,
             decoration: const BoxDecoration(
               image: DecorationImage(
-                image: AssetImage('assets/images/bg1.jpg'),
+                image: AssetImage('assets/images/loginman.png'),
                 fit: BoxFit.cover,
               ),
             ),
           ),
 
-          Align(
-            alignment: Alignment.topLeft,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(20.0),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 15.0, sigmaY: 15.0),
-                child: Container(
-                  width: double.infinity,
-                  height: double.infinity,
+          // Scrollable content
+          SingleChildScrollView(
+            child: Column(
+              children: [
+                // Add top spacing equal to the image height
+                SizedBox(height: headerHeight),
 
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.5),
+                // The content section
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 20,
                   ),
-                  child: SizedBox(
-                    width: double.infinity,
-                    height: double.infinity,
-                    child: SingleChildScrollView(child: Loginscreen()),
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(50),
+                      topRight: Radius.circular(50),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black12,
+                        blurRadius: 10,
+                        offset: Offset(0, -4),
+                      ),
+                    ],
                   ),
+                  child: const Loginscreen(),
                 ),
-              ),
+              ],
             ),
           ),
         ],

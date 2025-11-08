@@ -206,6 +206,9 @@ class _DeliveryState extends State<Delivery>
   Widget build(BuildContext context) {
     super.build(context);
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('Delivery'),
+      ),
       backgroundColor: Colors.transparent,
       body: SafeArea(
         child: Padding(

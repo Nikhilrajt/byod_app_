@@ -110,7 +110,7 @@ class _ConfirmPasswordScreenState extends State<ConfirmPasswordScreen> {
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       minimumSize: Size(500, 50),
-                      backgroundColor: Colors.black,
+                      backgroundColor: Colors.deepPurple,
                     ),
                     onPressed: () {
                       if (_ConfirmPassword.currentState!.validate()) {

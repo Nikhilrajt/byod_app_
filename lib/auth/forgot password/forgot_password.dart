@@ -53,7 +53,7 @@ class _ForgotPasswordState extends State<ForgotPassword> {
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   minimumSize: Size(500, 50),
-                  backgroundColor: Colors.black,
+                  backgroundColor: Colors.deepPurple,
                 ),
                 onPressed: () {
                   if (_forgotKey.currentState!.validate()) {
