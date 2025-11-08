@@ -44,7 +44,7 @@ class _LoginscreenState extends State<Loginscreen> {
         mainAxisAlignment: MainAxisAlignment.start,
 
         children: [
-          SizedBox(height: 100),
+          SizedBox(height: 10),
           Center(
             child: Container(
               width: 200,
@@ -62,7 +62,7 @@ class _LoginscreenState extends State<Loginscreen> {
                       width: 200 * 0.5,
                       height: 50,
                       decoration: BoxDecoration(
-                        color: Colors.grey,
+                        color: Colors.deepPurple,
                         borderRadius: BorderRadius.all(Radius.circular(50.0)),
                       ),
                     ),
@@ -160,7 +160,7 @@ class _LoginscreenState extends State<Loginscreen> {
                             'Welcome back!',
                             style: TextStyle(
                               fontSize: 30,
-                              color: const Color.fromARGB(255, 248, 247, 247),
+                              color: const Color.fromARGB(255, 0, 0, 0),
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -169,13 +169,15 @@ class _LoginscreenState extends State<Loginscreen> {
                       SizedBox(height: 15),
                       TextFormField(
                         // keyboardType: TextInputType.,
-                        style: TextStyle(color: Colors.white),
+                        style: TextStyle(color: Colors.black87),
                         decoration: InputDecoration(
                           fillColor: Colors.white,
                           border: OutlineInputBorder(),
                           label: Text(
                             'Email/Phone',
-                            style: TextStyle(color: Colors.white),
+                            style: TextStyle(
+                              color: const Color.fromARGB(255, 0, 0, 0),
+                            ),
                           ),
                           prefixIcon: Icon(Icons.person_outline_rounded),
                         ),
@@ -214,20 +216,24 @@ class _LoginscreenState extends State<Loginscreen> {
                             },
                             child: Text(
                               'forgot password?',
-                              style: TextStyle(color: Colors.amberAccent),
+                              style: TextStyle(
+                                color: const Color.fromARGB(255, 70, 64, 255),
+                              ),
                             ),
                           ),
                         ],
                       ),
                       TextFormField(
                         obscureText: _obscureText,
-                        style: TextStyle(color: Colors.white),
+                        style: TextStyle(color: Colors.black87),
                         decoration: InputDecoration(
                           fillColor: Colors.white,
                           border: OutlineInputBorder(),
                           label: Text(
                             'Password',
-                            style: TextStyle(color: Colors.white),
+                            style: TextStyle(
+                              color: const Color.fromARGB(255, 0, 0, 0),
+                            ),
                           ),
                           prefixIcon: Icon(Icons.lock),
                           suffixIcon: IconButton(
@@ -261,7 +267,7 @@ class _LoginscreenState extends State<Loginscreen> {
                       SizedBox(height: 20),
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.grey,
+                          backgroundColor: Colors.deepPurple,
                           minimumSize: Size(500, 50),
                         ),
                         onPressed: () {
@@ -289,7 +295,7 @@ class _LoginscreenState extends State<Loginscreen> {
                           Text(
                             'OR',
                             style: TextStyle(
-                              color: Colors.white,
+                              color: const Color.fromARGB(255, 43, 6, 145),
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -362,7 +368,9 @@ class _LoginscreenState extends State<Loginscreen> {
                         children: [
                           Text(
                             'Dont have an account?',
-                            style: TextStyle(color: Colors.white),
+                            style: TextStyle(
+                              color: const Color.fromARGB(255, 253, 25, 25),
+                            ),
                           ),
                           TextButton(
                             onPressed: () {
@@ -376,7 +384,7 @@ class _LoginscreenState extends State<Loginscreen> {
                             child: Text(
                               'Sign up',
                               style: TextStyle(
-                                color: const Color.fromARGB(255, 241, 245, 4),
+                                color: const Color.fromARGB(255, 70, 64, 255),
                               ),
                             ),
                           ),
@@ -396,7 +404,9 @@ class _LoginscreenState extends State<Loginscreen> {
                             },
                             child: Text(
                               'Login As restaurent',
-                              style: TextStyle(color: Colors.amberAccent),
+                              style: TextStyle(
+                                color: const Color.fromARGB(255, 70, 64, 255),
+                              ),
                             ),
                           ),
                           TextButton(
@@ -410,7 +420,9 @@ class _LoginscreenState extends State<Loginscreen> {
                             },
                             child: Text(
                               'Admin Login',
-                              style: TextStyle(color: Colors.amberAccent),
+                              style: TextStyle(
+                                color: const Color.fromARGB(255, 70, 64, 255),
+                              ),
                             ),
                           ),
                         ],

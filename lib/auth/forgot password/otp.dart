@@ -59,7 +59,7 @@ class OtpScreenState extends State<OtpScreen> {
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
                 minimumSize: Size(500, 50),
-                backgroundColor: Colors.black,
+                backgroundColor: Colors.deepPurple,
               ),
               onPressed: () {
                 Navigator.push(

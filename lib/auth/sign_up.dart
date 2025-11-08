@@ -55,14 +55,16 @@ class _SignUpState extends State<SignUp> {
                     Column(
                       children: [
                         TextFormField(
-                          style: TextStyle(color: Colors.white, fontSize: 18),
+                          style: TextStyle(color: Colors.black87, fontSize: 18),
                           decoration: InputDecoration(
                             fillColor: Colors.white,
                             border: OutlineInputBorder(),
                             hintText: 'enter your name',
                             label: Text(
                               ' Full Name',
-                              style: TextStyle(color: Colors.white),
+                              style: TextStyle(
+                                color: const Color.fromARGB(255, 0, 0, 0),
+                              ),
                             ),
                             prefixIcon: Icon(Icons.person_outline_rounded),
                           ),
@@ -75,13 +77,15 @@ class _SignUpState extends State<SignUp> {
                         SizedBox(height: 20),
                         TextFormField(
                           keyboardType: TextInputType.number,
-                          style: TextStyle(color: Colors.white),
+                          style: TextStyle(color: Colors.black87),
                           decoration: InputDecoration(
                             fillColor: Colors.white,
                             border: OutlineInputBorder(),
                             label: Text(
                               'Phone Number',
-                              style: TextStyle(color: Colors.white),
+                              style: TextStyle(
+                                color: const Color.fromARGB(255, 0, 0, 0),
+                              ),
                             ),
                             prefixIcon: Icon(Icons.phone),
                           ),
@@ -98,14 +102,16 @@ class _SignUpState extends State<SignUp> {
                         SizedBox(height: 10),
                         TextFormField(
                           keyboardType: TextInputType.emailAddress,
-                          style: TextStyle(color: Colors.white, fontSize: 18),
+                          style: TextStyle(color: Colors.black87, fontSize: 18),
                           decoration: InputDecoration(
                             fillColor: Colors.white,
                             border: OutlineInputBorder(),
                             hintText: 'enter your email id',
                             label: Text(
                               'Email',
-                              style: TextStyle(color: Colors.white),
+                              style: TextStyle(
+                                color: const Color.fromARGB(255, 0, 0, 0),
+                              ),
                             ),
 
                             prefixIcon: Icon(Icons.email),
@@ -122,13 +128,15 @@ class _SignUpState extends State<SignUp> {
                         ),
                         SizedBox(height: 20),
                         TextFormField(
-                          style: TextStyle(color: Colors.white),
+                          style: TextStyle(color: Colors.black87),
                           decoration: InputDecoration(
                             fillColor: Colors.white,
                             border: OutlineInputBorder(),
                             label: Text(
                               'Password',
-                              style: TextStyle(color: Colors.white),
+                              style: TextStyle(
+                                color: const Color.fromARGB(255, 0, 0, 0),
+                              ),
                             ),
                             prefixIcon: Icon(Icons.lock),
                             suffixIcon: IconButton(
@@ -162,7 +170,7 @@ class _SignUpState extends State<SignUp> {
                         SizedBox(height: 30),
                         ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.grey,
+                            backgroundColor: Colors.deepPurple,
                             minimumSize: Size(500, 50),
                           ),
                           onPressed: () {
@@ -189,7 +197,7 @@ class _SignUpState extends State<SignUp> {
                             Text(
                               'OR',
                               style: TextStyle(
-                                color: Colors.white,
+                                color: Colors.black,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -200,7 +208,7 @@ class _SignUpState extends State<SignUp> {
                             ),
                           ],
                         ),
-                        SizedBox(height: 30),
+                        SizedBox(height: 10),
                         ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(
                             minimumSize: Size(500, 50),
@@ -216,7 +224,7 @@ class _SignUpState extends State<SignUp> {
                           ),
                         ),
 
-                        SizedBox(height: 10),
+                        SizedBox(height: 15),
                         ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(
                             minimumSize: Size(500, 50),
@@ -232,20 +240,20 @@ class _SignUpState extends State<SignUp> {
                           ),
                         ),
                         SizedBox(height: 15),
-                        ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(
-                            minimumSize: Size(500, 50),
-                          ),
-                          onPressed: () {},
-                          icon: const FaIcon(
-                            FontAwesomeIcons.apple,
-                            color: Colors.black,
-                          ),
-                          label: Text(
-                            'Continue with Apple ID',
-                            style: TextStyle(fontSize: 20),
-                          ),
-                        ),
+                        // ElevatedButton.icon(
+                        //   style: ElevatedButton.styleFrom(
+                        //     minimumSize: Size(500, 50),
+                        //   ),
+                        //   onPressed: () {},
+                        //   icon: const FaIcon(
+                        //     FontAwesomeIcons.apple,
+                        //     color: Colors.black,
+                        //   ),
+                        //   label: Text(
+                        //     'Continue with Apple ID',
+                        //     style: TextStyle(fontSize: 20),
+                        //   ),
+                        // ),
                       ],
                     ),
 
