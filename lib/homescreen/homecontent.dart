@@ -52,28 +52,98 @@ class _HomeContentState extends State<HomeContent> {
 
   /// Normal New Food Arrivals
   final List<_Food> normalNewArrivals = const [
-    _Food(name: 'Cheese Burst Pizza', img: 'assets/images/newpizza.jpg', price: 199, rating: 4.5),
-    _Food(name: 'Sadhya', img: 'assets/images/Kerala-Sadya.jpg', price: 149, rating: 4.3),
-    _Food(name: 'Chocolate Lava Cake', img: 'assets/images/newlava.jpg', price: 89, rating: 4.8),
-    _Food(name: 'Pasta Alfredo', img: 'assets/images/newpasta.png', price: 169, rating: 4.4),
+    _Food(
+      name: 'Cheese Burst Pizza',
+      img: 'assets/images/newpizza.jpg',
+      price: 199,
+      rating: 4.5,
+    ),
+    _Food(
+      name: 'Sadhya',
+      img: 'assets/images/Kerala-Sadya.jpg',
+      price: 149,
+      rating: 4.3,
+    ),
+    _Food(
+      name: 'Chocolate Lava Cake',
+      img: 'assets/images/newlava.jpg',
+      price: 89,
+      rating: 4.8,
+    ),
+    _Food(
+      name: 'Pasta Alfredo',
+      img: 'assets/images/newpasta.png',
+      price: 169,
+      rating: 4.4,
+    ),
   ];
 
   /// Health-mode top dishes
   final List<_Food> healthNewArrivals = const [
-    _Food(name: 'Mixed Fruit Bowl', img: 'assets/images/mixed_fruit_bowl.png', price: 99, rating: 4.6),
-    _Food(name: 'Dry Fruit Mix', img: 'assets/images/dry_fruit_mix.png', price: 149, rating: 4.5),
-    _Food(name: 'Grilled Mushroom Skewers', img: 'assets/images/mushroom_skewers.png', price: 129, rating: 4.4),
-    _Food(name: 'Paneer & Veg Bowl', img: 'assets/images/paneer_bowl.png', price: 159, rating: 4.7),
+    _Food(
+      name: 'Mixed Fruit Bowl',
+      img: 'assets/images/mixed_fruit_bowl.png',
+      price: 99,
+      rating: 4.6,
+    ),
+    _Food(
+      name: 'Dry Fruit Mix',
+      img: 'assets/images/dry_fruit_mix.png',
+      price: 149,
+      rating: 4.5,
+    ),
+    _Food(
+      name: 'Grilled Mushroom Skewers',
+      img: 'assets/images/mushroom_skewers.png',
+      price: 129,
+      rating: 4.4,
+    ),
+    _Food(
+      name: 'Paneer & Veg Bowl',
+      img: 'assets/images/paneer_bowl.png',
+      price: 159,
+      rating: 4.7,
+    ),
   ];
 
   /// Restaurants List
   final List<_Restaurant> restaurants = const [
-    _Restaurant(name: 'Planet Cafe', data: "Club sandwich, Burger, Smoothies", img: 'assets/images/res1.jpg', rating: 4.4),
-    _Restaurant(name: 'Big Flooda', data: "Make a way for the burger craze", img: 'assets/images/res2.jpeg', rating: 4.3),
-    _Restaurant(name: 'Eato', data: "Indian | Chinese | Italian cuisines", img: 'assets/images/res3.png', rating: 4.8),
-    _Restaurant(name: 'Shawarma Fusion', data: "Full meat customizable shawarma", img: 'assets/images/res4.jpeg', rating: 4.2),
-    _Restaurant(name: "Juicy", data: "Juices with real cream", img: 'assets/images/res5.jpeg', rating: 4.5),
-    _Restaurant(name: "Pisharodys Pure Veg", data: "Special Dosa | Roast | Meals", img: 'assets/images/res6.jpeg', rating: 4.5),
+    _Restaurant(
+      name: 'Planet Cafe',
+      data: "Club sandwich, Burger, Smoothies",
+      img: 'assets/images/res1.jpg',
+      rating: 4.4,
+    ),
+    _Restaurant(
+      name: 'Big Flooda',
+      data: "Make a way for the burger craze",
+      img: 'assets/images/res2.jpeg',
+      rating: 4.3,
+    ),
+    _Restaurant(
+      name: 'Eato',
+      data: "Indian | Chinese | Italian cuisines",
+      img: 'assets/images/res3.png',
+      rating: 4.8,
+    ),
+    _Restaurant(
+      name: 'Shawarma Fusion',
+      data: "Full meat customizable shawarma",
+      img: 'assets/images/res4.jpeg',
+      rating: 4.2,
+    ),
+    _Restaurant(
+      name: "Juicy",
+      data: "Juices with real cream",
+      img: 'assets/images/res5.jpeg',
+      rating: 4.5,
+    ),
+    _Restaurant(
+      name: "Pisharodys Pure Veg",
+      data: "Special Dosa | Roast | Meals",
+      img: 'assets/images/res6.jpeg',
+      rating: 4.5,
+    ),
   ];
 
   List<_Category> getActiveCategories(bool healthMode) =>
@@ -141,22 +211,66 @@ class _HomeContentState extends State<HomeContent> {
                   children: [
                     const SizedBox(height: 22),
 
-                    _buildSection(context, 'Categories'),
+                    // ---------- CATEGORIES ----------
+                    _buildSection(
+                      context,
+                      'Categories',
+                      onShowAll: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => CategoriesPage(
+                              title: 'All Categories',
+                              categories: cats,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
                     const SizedBox(height: 12),
                     _buildCategories(cats),
 
                     const SizedBox(height: 24),
 
+                    // ---------- FOODS ----------
                     _buildSection(
                       context,
                       healthMode ? 'Nutrition Picks' : 'Top Dishes',
+                      onShowAll: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => FoodsPage(
+                              title: healthMode
+                                  ? 'All Nutrition Picks'
+                                  : 'All Top Dishes',
+                              foods: items,
+                            ),
+                          ),
+                        );
+                      },
                     ),
                     const SizedBox(height: 12),
                     _buildNewArrivals(items),
 
                     const SizedBox(height: 24),
 
-                    _buildSection(context, 'Restaurants'),
+                    // ---------- RESTAURANTS ----------
+                    _buildSection(
+                      context,
+                      'Restaurants',
+                      onShowAll: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => RestaurantsPage(
+                              title: 'All Restaurants',
+                              restaurants: restaurants,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
                     const SizedBox(height: 12),
                     _buildRestaurantList(),
 
@@ -239,7 +353,12 @@ class _HomeContentState extends State<HomeContent> {
     );
   }
 
-  static Row _buildSection(BuildContext context, String title) {
+  // NOTE: updated to accept onShowAll callback
+  static Row _buildSection(
+    BuildContext context,
+    String title, {
+    VoidCallback? onShowAll,
+  }) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -247,11 +366,18 @@ class _HomeContentState extends State<HomeContent> {
           title,
           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
         ),
-        const Text(
-          'Show all',
-          style: TextStyle(
-            color: Colors.blue,
-            decoration: TextDecoration.underline,
+        InkWell(
+          borderRadius: BorderRadius.circular(6),
+          onTap: onShowAll,
+          child: const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+            child: Text(
+              'Show all',
+              style: TextStyle(
+                color: Colors.blue,
+                decoration: TextDecoration.underline,
+              ),
+            ),
           ),
         ),
       ],
@@ -481,12 +607,17 @@ class CategoryCircle extends StatelessWidget {
     return Column(
       children: [
         Container(
-          height: 60,
-          width: 60,
+          height: 64,
+          width: 64,
+          padding: const EdgeInsets.all(2), // space between border & image
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            image: DecorationImage(image: AssetImage(image), fit: BoxFit.cover),
+            border: Border.all(
+              color: const Color(0xFFE5E7EB), // light grey border
+              width: 5, // adjust to 1.2 for subtler border
+            ),
           ),
+          child: ClipOval(child: Image.asset(image, fit: BoxFit.cover)),
         ),
         const SizedBox(height: 6),
         Text(title),
@@ -552,4 +683,159 @@ class _Restaurant {
     required this.img,
     required this.rating,
   });
+}
+
+/// =====================
+/// Show-All Pages Below
+/// =====================
+
+class CategoriesPage extends StatelessWidget {
+  const CategoriesPage({
+    super.key,
+    required this.title,
+    required this.categories,
+  });
+  final String title;
+  final List<_Category> categories;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text(title)),
+      body: GridView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: categories.length,
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 3,
+          mainAxisSpacing: 16,
+          crossAxisSpacing: 16,
+          childAspectRatio: .85,
+        ),
+        itemBuilder: (_, i) => Column(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(50),
+              child: Image.asset(
+                categories[i].image,
+                height: 70,
+                width: 70,
+                fit: BoxFit.cover,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              categories[i].title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class FoodsPage extends StatelessWidget {
+  const FoodsPage({super.key, required this.title, required this.foods});
+  final String title;
+  final List<_Food> foods;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text(title)),
+      body: GridView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: foods.length,
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          mainAxisSpacing: 16,
+          crossAxisSpacing: 16,
+          childAspectRatio: .8,
+        ),
+        itemBuilder: (_, i) => FoodItemCardLarge(item: foods[i]),
+      ),
+    );
+  }
+}
+
+class FoodItemCardLarge extends StatelessWidget {
+  const FoodItemCardLarge({super.key, required this.item});
+  final _Food item;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      elevation: 2,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: () {}, // TODO: open details if needed
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(14),
+              ),
+              child: Image.asset(
+                item.img,
+                height: 130,
+                width: double.infinity,
+                fit: BoxFit.cover,
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(10),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      item.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  const Icon(Icons.star, size: 16, color: Colors.amber),
+                  Text("${item.rating}"),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              child: Text(
+                "₹${item.price}",
+                style: const TextStyle(color: Colors.deepOrange, fontSize: 16),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class RestaurantsPage extends StatelessWidget {
+  const RestaurantsPage({
+    super.key,
+    required this.title,
+    required this.restaurants,
+  });
+  final String title;
+  final List<_Restaurant> restaurants;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text(title)),
+      body: ListView.separated(
+        padding: const EdgeInsets.all(16),
+        itemCount: restaurants.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 12),
+        itemBuilder: (_, i) => RestaurantCard(item: restaurants[i]),
+      ),
+    );
+  }
 }
