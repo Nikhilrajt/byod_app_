@@ -10,6 +10,91 @@ class Personalinformation extends StatefulWidget {
 class _PersonalinformationState extends State<Personalinformation> {
   final _formKey = GlobalKey<FormState>();
 
+  // Text editing controllers
+  final _nameController = TextEditingController();
+  final _dayController = TextEditingController();
+  final _monthController = TextEditingController();
+  final _yearController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
+
+  // Dropdown state
+  String? _selectedCountry;
+  String? _selectedProvince;
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _dayController.dispose();
+    _monthController.dispose();
+    _yearController.dispose();
+    _emailController.dispose();
+    _phoneController.dispose();
+    super.dispose();
+  }
+
+  void _refreshForm() {
+    setState(() {
+      _nameController.clear();
+      _dayController.clear();
+      _monthController.clear();
+      _yearController.clear();
+      _emailController.clear();
+      _phoneController.clear();
+      _selectedCountry = null;
+      _selectedProvince = null;
+      _formKey.currentState?.reset();
+    });
+  }
+
+  bool _isValidDate(int day, int month, int year) {
+    try {
+      final date = DateTime(year, month, day);
+      return date.year == year && date.month == month && date.day == day;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  void _saveForm() {
+    if (_formKey.currentState!.validate()) {
+      // Get form values
+      // ignore: unused_local_variable
+      final name = _nameController.text.trim();
+      final day = int.tryParse(_dayController.text) ?? 0;
+      final month = int.tryParse(_monthController.text) ?? 0;
+      final year = int.tryParse(_yearController.text) ?? 0;
+      // ignore: unused_local_variable
+      final email = _emailController.text.trim();
+      // ignore: unused_local_variable
+      final phone = _phoneController.text.trim();
+      // ignore: unused_local_variable
+      final country = _selectedCountry ?? '';
+      // ignore: unused_local_variable
+      final province = _selectedProvince ?? '';
+
+      // Create date of birth
+      // ignore: unused_local_variable
+      final dateOfBirth = DateTime(year, month, day);
+
+      // TODO: Save the data to your backend, database, or state management
+      // Example: await savePersonalInfo(name, dateOfBirth, email, phone, country, province);
+      // The variables above (name, email, phone, country, province, dateOfBirth) are ready to use
+
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Personal information saved successfully!'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
+        ),
+      );
+
+      // You can also navigate back or perform other actions here
+      // Navigator.pop(context);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -22,7 +107,9 @@ class _PersonalinformationState extends State<Personalinformation> {
           'Personal Information',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        actions: [IconButton(icon: Icon(Icons.refresh), onPressed: () {})],
+        actions: [
+          IconButton(icon: Icon(Icons.refresh), onPressed: _refreshForm),
+        ],
         centerTitle: true,
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
@@ -43,6 +130,7 @@ class _PersonalinformationState extends State<Personalinformation> {
                 ),
                 const SizedBox(height: 8),
                 TextFormField(
+                  controller: _nameController,
                   keyboardType: TextInputType.name,
                   decoration: InputDecoration(
                     fillColor: Colors.white,
@@ -67,6 +155,7 @@ class _PersonalinformationState extends State<Personalinformation> {
                   children: [
                     Expanded(
                       child: TextFormField(
+                        controller: _dayController,
                         keyboardType: TextInputType.number,
                         decoration: InputDecoration(
                           border: OutlineInputBorder(),
@@ -80,6 +169,14 @@ class _PersonalinformationState extends State<Personalinformation> {
                           if (day == null || day < 1 || day > 31) {
                             return 'Invalid';
                           }
+                          // Validate complete date if all fields are filled
+                          final month = int.tryParse(_monthController.text);
+                          final year = int.tryParse(_yearController.text);
+                          if (month != null && year != null) {
+                            if (!_isValidDate(day, month, year)) {
+                              return 'Invalid date';
+                            }
+                          }
                           return null;
                         },
                       ),
@@ -87,6 +184,7 @@ class _PersonalinformationState extends State<Personalinformation> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: TextFormField(
+                        controller: _monthController,
                         keyboardType: TextInputType.number,
                         decoration: InputDecoration(
                           border: OutlineInputBorder(),
@@ -100,6 +198,14 @@ class _PersonalinformationState extends State<Personalinformation> {
                           if (month == null || month < 1 || month > 12) {
                             return 'Invalid';
                           }
+                          // Validate complete date if all fields are filled
+                          final day = int.tryParse(_dayController.text);
+                          final year = int.tryParse(_yearController.text);
+                          if (day != null && year != null) {
+                            if (!_isValidDate(day, month, year)) {
+                              return 'Invalid date';
+                            }
+                          }
                           return null;
                         },
                       ),
@@ -107,6 +213,7 @@ class _PersonalinformationState extends State<Personalinformation> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: TextFormField(
+                        controller: _yearController,
                         keyboardType: TextInputType.number,
                         decoration: InputDecoration(
                           border: OutlineInputBorder(),
@@ -122,6 +229,19 @@ class _PersonalinformationState extends State<Personalinformation> {
                               year > DateTime.now().year) {
                             return 'Invalid';
                           }
+                          // Validate complete date if all fields are filled
+                          final day = int.tryParse(_dayController.text);
+                          final month = int.tryParse(_monthController.text);
+                          if (day != null && month != null) {
+                            if (!_isValidDate(day, month, year)) {
+                              return 'Invalid date';
+                            }
+                            // Check if date is not in the future
+                            final date = DateTime(year, month, day);
+                            if (date.isAfter(DateTime.now())) {
+                              return 'Future date';
+                            }
+                          }
                           return null;
                         },
                       ),
@@ -135,6 +255,7 @@ class _PersonalinformationState extends State<Personalinformation> {
                 ),
                 const SizedBox(height: 8),
                 TextFormField(
+                  controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
                   decoration: InputDecoration(
                     border: OutlineInputBorder(),
@@ -161,6 +282,7 @@ class _PersonalinformationState extends State<Personalinformation> {
                 ),
                 const SizedBox(height: 8),
                 TextFormField(
+                  controller: _phoneController,
                   keyboardType: TextInputType.phone,
                   decoration: InputDecoration(
                     border: OutlineInputBorder(),
@@ -197,6 +319,7 @@ class _PersonalinformationState extends State<Personalinformation> {
                 ),
                 const SizedBox(height: 8),
                 DropdownButtonFormField<String>(
+                  value: _selectedCountry,
                   decoration: InputDecoration(
                     border: OutlineInputBorder(),
                     hintText: 'Country',
@@ -209,7 +332,11 @@ class _PersonalinformationState extends State<Personalinformation> {
                         ),
                       )
                       .toList(),
-                  onChanged: (value) {},
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedCountry = value;
+                    });
+                  },
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please select a country';
@@ -218,29 +345,41 @@ class _PersonalinformationState extends State<Personalinformation> {
                   },
                 ),
                 const SizedBox(height: 8),
-                DropdownButtonFormField<String>(
+
+                // DropdownButtonFormField<String>(
+                //   value: _selectedProvince,
+                //   decoration: InputDecoration(
+                //     border: OutlineInputBorder(),
+                //     hintText: 'address',
+                //   ),
+                //   items: ['Province 1', 'Province 2', 'Province 3']
+                //       .map(
+                //         (province) => DropdownMenuItem(
+                //           value: province,
+                //           child: Text(province),
+                //         ),
+                //       )
+                //       .toList(),
+                //   onChanged: (value) {
+                //     setState(() {
+                //       _selectedProvince = value;
+                //     });
+                //   },
+                //   validator: (value) {
+                //     if (value == null || value.isEmpty) {
+                //       return 'Please select a province';
+                //     }
+                //     return null;
+                //   },
+                // ),
+                TextField(
                   decoration: InputDecoration(
                     border: OutlineInputBorder(),
-                    hintText: 'Province',
+                    hintText: 'Address',
                   ),
-                  items: ['Province 1', 'Province 2', 'Province 3']
-                      .map(
-                        (province) => DropdownMenuItem(
-                          value: province,
-                          child: Text(province),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: (value) {},
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please select a province';
-                    }
-                    return null;
-                  },
+                  maxLines: 3,
                 ),
                 const SizedBox(height: 24),
-                SizedBox(height: 16),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
@@ -248,11 +387,7 @@ class _PersonalinformationState extends State<Personalinformation> {
                       backgroundColor: Color(0xFF2323C3),
                       padding: EdgeInsets.symmetric(vertical: 16),
                     ),
-                    onPressed: () {
-                      if (_formKey.currentState!.validate()) {
-                        // All fields are valid, proceed
-                      }
-                    },
+                    onPressed: _saveForm,
                     child: Text(
                       'Save',
                       style: TextStyle(

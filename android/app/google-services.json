@@ -1,21 +1,21 @@
 {
   "project_info": {
-    "project_number": "624304465171",
-    "project_id": "byod-df3a5",
-    "storage_bucket": "byod-df3a5.firebasestorage.app"
+    "project_number": "16964393138",
+    "project_id": "byod-573b6",
+    "storage_bucket": "byod-573b6.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:624304465171:android:76760af648d0f8b7b0a6e6",
+        "mobilesdk_app_id": "1:16964393138:android:314535d8ab6e76a8f211ab",
         "android_client_info": {
-          "package_name": "com.byod.app"
+          "package_name": "com.example.project"
         }
       },
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyB7fVNXa06spRR6rA_j9qAq5CSddKZ3Cqw"
+          "current_key": "AIzaSyAZejxISW1RiQyagD81gsr1NrfPRR-MTUI"
         }
       ],
       "services": {

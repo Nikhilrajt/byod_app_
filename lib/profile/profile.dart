@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:project/auth/intro.dart';
+import 'package:project/auth/firebase/fibase_serviece.dart';
+import 'package:project/auth/loginscreen.dart';
 import 'package:project/profile/delivery.dart';
+import 'package:project/profile/personalinformation.dart';
+import 'package:project/profile/setting.dart';
 
 // -----------------------------------------------------------------
 // MOCK CLASSES (Required for navigation)
@@ -17,16 +20,16 @@ class TermsAndConditiions extends StatelessWidget {
   }
 }
 
-class Personalinformation extends StatelessWidget {
-  const Personalinformation({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Personal Information')),
-      body: const Center(child: Text('Personal Information Form')),
-    );
-  }
-}
+// class Personalinformation extends StatelessWidget {
+//   const Personalinformation({super.key});
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: AppBar(title: const Text('Personal Information')),
+//       body: const Center(child: Text('Personal Information Form')),
+//     );
+//   }
+// }
 
 // -----------------------------------------------------------------
 // NEW ORDERS PAGE WIDGET
@@ -346,15 +349,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                 // Delivery Page
                 ListTile(
-                  leading: const Icon(Icons.delivery_dining, color: Colors.deepPurple),
+                  leading: const Icon(
+                    Icons.delivery_dining,
+                    color: Colors.deepPurple,
+                  ),
                   title: const Text('Delivery'),
                   trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(
-                        builder: (context) => const Delivery(),
-                      ),
+                      MaterialPageRoute(builder: (context) => const Delivery()),
                     );
                   },
                 ),
@@ -395,7 +399,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   title: const Text('Setting'),
                   trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                   onTap: () {
-                    // Placeholder for navigation/action
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const SettingPage(),
+                      ),
+                    );
                   },
                 ),
 
@@ -490,11 +499,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                             TextButton(
                               onPressed: () {
-                                Navigator.of(context).pop();
+                                AuthService().signOut();
+                                // Navigator.of(context).pop();
                                 Navigator.pushAndRemoveUntil(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => Intro(),
+                                    builder: (context) => Loginscreen(),
                                   ),
                                   (route) => true,
                                 );

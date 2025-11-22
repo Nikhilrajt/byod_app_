@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:project/admin/widget/restaurentcontent.dart';
 import 'package:project/admin/widget/usermanagement.dart';
+import 'package:project/auth/firebase/fibase_serviece.dart';
+import 'package:project/auth/loginscreen.dart';
 import 'widget/dashboardcontent.dart';
 
 class AdminDashboard extends StatefulWidget {
@@ -92,6 +94,23 @@ class _AdminDashboardState extends State<AdminDashboard> {
                             setState(() {
                               _selectedIndex = 2;
                             });
+                          },
+                        ),
+                        const SizedBox(height: 5),
+                        _SideMenuItem(
+                          icon: Icons.logout,
+                          title: 'Logout',
+                          index: 2,
+                          selectedIndex: _selectedIndex,
+                          onTap: () {
+                            AuthService().signOut();
+                            Navigator.pushAndRemoveUntil(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const Loginscreen(),
+                              ),
+                              (route) => false,
+                            );
                           },
                         ),
                         const SizedBox(height: 5),
