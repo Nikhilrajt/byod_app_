@@ -51,6 +51,9 @@ dependencies:
   carousel_slider: ^5.1.1
   shared_preferences: ^2.5.3
   provider: ^6.1.5+1
+  firebase_core: ^4.2.1
+  firebase_auth: ^6.1.2
+  cloud_firestore: ^6.1.0
 
 
 dev_dependencies:

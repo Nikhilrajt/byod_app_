@@ -1,4 +1,7 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
+import 'package:project/auth/firebase/fibase_serviece.dart';
 import 'package:project/auth/forgot%20password/confirm.dart';
 import 'package:project/auth/forgot%20password/otp.dart';
 
@@ -11,6 +14,7 @@ class ForgotPassword extends StatefulWidget {
 
 class _ForgotPasswordState extends State<ForgotPassword> {
   final _forgotKey = GlobalKey<FormState>();
+  TextEditingController emailController = TextEditingController();
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -28,6 +32,7 @@ class _ForgotPasswordState extends State<ForgotPassword> {
             children: [
               SizedBox(height: 40),
               TextFormField(
+                controller: emailController,
                 keyboardType: TextInputType.emailAddress,
                 style: TextStyle(color: Colors.black),
                 decoration: InputDecoration(
@@ -57,10 +62,13 @@ class _ForgotPasswordState extends State<ForgotPassword> {
                 ),
                 onPressed: () {
                   if (_forgotKey.currentState!.validate()) {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => OtpScreen()),
+                    AuthService().sendPasswordResetEmail(
+                      emailController.text.trim(),
                     );
+                    // Navigator.push(
+                    //   context,
+                    //   MaterialPageRoute(builder: (context) => OtpScreen()),
+                    // );
                   }
                 },
                 child: Text(

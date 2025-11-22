@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:project/auth/firebase/fibase_serviece.dart';
 import 'package:project/auth/intro.dart';
+import 'package:project/auth/loginscreen.dart';
 import 'package:project/restaurent/Ingredientpage.dart';
 // removed unused imports
 import 'package:project/restaurent/setting/delivery_settings_page.dart';
@@ -136,11 +138,11 @@ class _SettingspageState extends State<Settingspage> {
                       ),
                       TextButton(
                         onPressed: () {
-                          Navigator.of(context).pop();
+                          AuthService().signOut();
                           Navigator.pushAndRemoveUntil(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const Intro(),
+                              builder: (context) => const Loginscreen(),
                             ),
                             (route) => false,
                           );
