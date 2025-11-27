@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:project/restaurent/dashboard/Dashboard.dart';
 import 'package:project/restaurent/Ingredientpage.dart';
 import 'package:project/restaurent/Orderpage.dart';
-import 'package:project/restaurent/feedbackpage.dart';
+import 'package:project/restaurent/dashboard/menupage.dart';
 import 'package:project/restaurent/setting/settingspage.dart';
 
 class restaurent_home_page extends StatefulWidget {
@@ -18,7 +18,7 @@ class _restaurent_home_pageState extends State<restaurent_home_page> {
     DashboardPage(),
     Orderpage(),
     IngredientPage(),
-    Feedbackpage(),
+    MenuPage(),
     Settingspage(),
   ];
 
@@ -52,9 +52,10 @@ class _restaurent_home_pageState extends State<restaurent_home_page> {
             label: 'Ingredients',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.feedback),
-            label: 'Feedback',
+            icon: Icon(Icons.fastfood),
+            label: 'Food Items',
           ),
+
           BottomNavigationBarItem(
             icon: Icon(Icons.settings),
             label: 'Settings',

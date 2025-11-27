@@ -436,9 +436,11 @@
 //     );
 //   }
 // }
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:project/admin/admin_dashboard.dart';
+import 'package:project/admin/dashboard_admin.dart';
 import 'package:project/auth/firebase/fibase_serviece.dart';
 import 'package:project/auth/forgot%20password/forgot_password.dart';
 import 'package:project/auth/sign_up.dart';
@@ -503,7 +505,9 @@ class _LoginscreenState extends State<Loginscreen> {
       if (!mounted) return;
 
       if (result['success']) {
-        String role = result['role'] ?? 'user';
+        String role = result['role'];
+
+        print('Login successful! Role: $role');
 
         Widget homeScreen;
         switch (role) {
@@ -513,8 +517,10 @@ class _LoginscreenState extends State<Loginscreen> {
           case 'restaurant':
             homeScreen = restaurent_home_page();
             break;
+          case 'user':
           default:
             homeScreen = HomeScreen();
+            break;
         }
 
         _showSnackBar('Welcome back!', Colors.green);
@@ -525,10 +531,12 @@ class _LoginscreenState extends State<Loginscreen> {
           (route) => false,
         );
       } else {
+        log('Login failed: ${result['message']}');
         _showSnackBar(result['message'] ?? 'Login failed', Colors.red);
       }
     } catch (e) {
       if (mounted) {
+        log('Login failed: $e');
         _showSnackBar('An error occurred. Please try again.', Colors.red);
       }
     } finally {

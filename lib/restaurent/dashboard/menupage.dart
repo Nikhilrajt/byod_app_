@@ -99,7 +99,10 @@ class _AddItemPageState extends State<AddItemPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Add Item to ${widget.categoryName}'),
+        title: Text(
+          'Add Item to ${widget.categoryName}',
+          style: const TextStyle(color: Colors.white),
+        ),
         backgroundColor: Colors.deepPurple,
         actions: [
           TextButton(
@@ -240,7 +243,7 @@ class _MenuPageState extends State<MenuPage> {
   List<MenuCategory> _categories = [
     MenuCategory(
       id: 'C1',
-      name: 'Pizzas',
+      name: 'Pizza',
       items: [
         MenuItem(
           id: 'I1',
@@ -260,7 +263,7 @@ class _MenuPageState extends State<MenuPage> {
     ),
     MenuCategory(
       id: 'C2',
-      name: 'Burgers & Wraps',
+      name: 'Burgers',
       items: [
         MenuItem(
           id: 'I3',
@@ -272,17 +275,13 @@ class _MenuPageState extends State<MenuPage> {
             Modifier(id: 'M2', name: 'Add Fries', price: 150.0),
           ],
         ),
-        MenuItem(
-          id: 'I5',
-          name: 'Paneer Wrap',
-          description: 'Spicy paneer tikka wrapped in paratha.',
-          basePrice: 350.00,
-        ),
       ],
     ),
+    MenuCategory(id: 'C3', name: 'Pasta', items: []),
+    MenuCategory(id: 'C4', name: 'Desserts', items: []),
     MenuCategory(
-      id: 'C3',
-      name: 'Beverages',
+      id: 'C5',
+      name: 'Drinks',
       items: [
         MenuItem(
           id: 'I4',
@@ -292,7 +291,20 @@ class _MenuPageState extends State<MenuPage> {
         ),
       ],
     ),
-    MenuCategory(id: 'C4', name: 'Desserts', items: []),
+    MenuCategory(id: 'C6', name: 'Salads', items: []),
+    MenuCategory(
+      id: 'C7',
+      name: 'Wraps',
+      items: [
+        MenuItem(
+          id: 'I5',
+          name: 'Paneer Wrap',
+          description: 'Spicy paneer tikka wrapped in paratha.',
+          basePrice: 350.00,
+        ),
+      ],
+    ),
+    MenuCategory(id: 'C8', name: 'Fries', items: []),
   ];
 
   late MenuCategory _selectedCategory;
@@ -327,8 +339,42 @@ class _MenuPageState extends State<MenuPage> {
   }
 
   void _addCategory() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Opening form to add new category...')),
+    final _categoryNameController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Add New Category'),
+          content: TextField(
+            controller: _categoryNameController,
+            decoration: const InputDecoration(hintText: 'Category Name'),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final name = _categoryNameController.text.trim();
+                if (name.isNotEmpty) {
+                  setState(() {
+                    _categories.add(
+                      MenuCategory(
+                        id: 'C${_categories.length + 1}',
+                        name: name,
+                        items: [],
+                      ),
+                    );
+                  });
+                  Navigator.of(context).pop();
+                }
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -522,157 +568,152 @@ class _MenuPageState extends State<MenuPage> {
           width: 2,
         ),
       ),
-      child: ListTile(
-        // give a little more vertical padding so the tile can grow without
-        // overflowing when trailing controls need space
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        // Item Name & Description
-        title: Text(
-          item.name,
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-            decoration: item.isAvailable
-                ? TextDecoration.none
-                : TextDecoration.lineThrough,
-            color: item.isAvailable ? Colors.black : Colors.grey,
-          ),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              item.description,
-              style: TextStyle(color: Colors.grey.shade600),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              _formatCurrency(item.basePrice),
-              style: const TextStyle(
-                fontWeight: FontWeight.w800,
-                color: Colors.deepPurple,
-                fontSize: 18,
-              ),
-            ),
-            if (item.modifiers.isNotEmpty)
-              Text(
-                '+ ${item.modifiers.length} Modifiers',
-                style: const TextStyle(color: Colors.orange, fontSize: 12),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-          ],
-        ),
-        isThreeLine: false,
-
-        // Selection checkbox (leading) when in selection mode
-        leading: _selectionMode
-            ? Checkbox(
-                value: _selectedItemIds.contains(item.id),
-                onChanged: (v) {
-                  setState(() {
-                    if (v == true)
-                      _selectedItemIds.add(item.id);
-                    else
-                      _selectedItemIds.remove(item.id);
-                  });
-                },
+            // Leading: Checkbox or Image
+            if (_selectionMode)
+              Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Checkbox(
+                  value: _selectedItemIds.contains(item.id),
+                  onChanged: (v) {
+                    setState(() {
+                      if (v == true) {
+                        _selectedItemIds.add(item.id);
+                      } else {
+                        _selectedItemIds.remove(item.id);
+                      }
+                    });
+                  },
+                ),
               )
-            : null,
+            else if (item.imagePath != null &&
+                File(item.imagePath!).existsSync())
+              Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.file(
+                    File(item.imagePath!),
+                    width: 60,
+                    height: 60,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              )
+            else
+              const SizedBox(width: 12),
 
-        // Management Options (Trailing)
-        trailing: LayoutBuilder(
-          builder: (context, box) {
-            // Compact layout for narrow widths
-            if (box.maxWidth < 140) {
-              return Row(
+            // Main content area
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  vertical: 12.0,
+                  horizontal: 8.0,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Title
+                    Text(
+                      item.name,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        decoration: item.isAvailable
+                            ? TextDecoration.none
+                            : TextDecoration.lineThrough,
+                        color: item.isAvailable ? Colors.black : Colors.grey,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+
+                    // Description
+                    Text(
+                      item.description,
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontSize: 12,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 8),
+
+                    // Price and modifiers row
+                    Wrap(
+                      spacing: 8,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Text(
+                          _formatCurrency(item.basePrice),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w800,
+                            color: Colors.deepPurple,
+                            fontSize: 16,
+                          ),
+                        ),
+                        if (item.modifiers.isNotEmpty) ...[
+                          const Icon(
+                            Icons.extension,
+                            color: Colors.orange,
+                            size: 14,
+                          ),
+                          Text(
+                            '${item.modifiers.length} mods',
+                            style: const TextStyle(
+                              color: Colors.orange,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Trailing: Switch and Edit button
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  IconButton(
-                    icon: const Icon(Icons.edit, size: 20, color: Colors.blue),
-                    onPressed: () => _editItem(item),
-                    tooltip: 'Edit',
-                  ),
-                  IconButton(
-                    icon: Icon(
-                      item.isHidden ? Icons.visibility_off : Icons.visibility,
-                      size: 20,
-                      color: item.isHidden ? Colors.orange : Colors.green,
+                  // Availability Switch (compact)
+                  Transform.scale(
+                    scale: 0.85,
+                    child: Switch(
+                      value: item.isAvailable,
+                      onChanged: (v) => setState(() => item.isAvailable = v),
+                      activeColor: Colors.green,
+                      inactiveThumbColor: Colors.red,
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
-                    onPressed: () {
-                      setState(() => item.isHidden = !item.isHidden);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            item.isHidden ? 'Item hidden' : 'Item visible',
-                          ),
-                          duration: const Duration(seconds: 1),
-                        ),
-                      );
-                    },
-                    tooltip: item.isHidden ? 'Unhide' : 'Hide',
+                  ),
+
+                  // Edit button (compact)
+                  SizedBox(
+                    width: 36,
+                    height: 36,
+                    child: IconButton(
+                      icon: const Icon(Icons.edit, size: 18),
+                      onPressed: () => _editItem(item),
+                      tooltip: 'Edit Item',
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
                   ),
                 ],
-              );
-            }
-
-            // Default vertical layout for wider widths
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                // Edit Button (larger tap target)
-                IconButton(
-                  icon: const Icon(Icons.edit, size: 20, color: Colors.blue),
-                  onPressed: () {
-                    // immediate feedback to confirm tap
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Opening editor...'),
-                        duration: Duration(milliseconds: 600),
-                      ),
-                    );
-                    _editItem(item);
-                  },
-                  tooltip: 'Edit Item Details/Modifiers',
-                ),
-                const SizedBox(height: 4),
-                // Visibility toggle (eye icon) + status label
-                IconButton(
-                  icon: Icon(
-                    item.isHidden ? Icons.visibility_off : Icons.visibility,
-                    size: 20,
-                    color: item.isHidden ? Colors.orange : Colors.green,
-                  ),
-                  onPressed: () {
-                    setState(() => item.isHidden = !item.isHidden);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          item.isHidden ? 'Item hidden' : 'Item visible',
-                        ),
-                        duration: const Duration(seconds: 1),
-                      ),
-                    );
-                  },
-                  tooltip: item.isHidden ? 'Unhide Item' : 'Hide Item',
-                ),
-                // Small status label under the icon
-                Text(
-                  item.isHidden ? 'Hidden' : 'Visible',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: item.isHidden ? Colors.orange : Colors.green,
-                  ),
-                ),
-                const SizedBox(height: 6),
-              ],
-            );
-          },
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -703,6 +744,8 @@ class _MenuPageState extends State<MenuPage> {
             child: const Text('Delete'),
           ),
         ],
+        actionsAlignment: MainAxisAlignment.end,
+        actionsPadding: const EdgeInsets.symmetric(horizontal: 16),
       ),
     );
 
@@ -733,79 +776,118 @@ class _MenuPageState extends State<MenuPage> {
           item.description.toLowerCase().contains(_searchQuery.toLowerCase());
     }).toList();
 
+    // Action buttons that adapt to screen size
+    Widget actionButtons = LayoutBuilder(
+      builder: (context, constraints) {
+        // Use compact buttons on smaller widths
+        if (constraints.maxWidth < 450) {
+          return Wrap(
+            spacing: 4,
+            alignment: WrapAlignment.end,
+            children: [
+              IconButton(
+                onPressed: () => _addItem(_selectedCategory),
+                icon: const Icon(Icons.add),
+                tooltip: 'Add New Item',
+                visualDensity: VisualDensity.compact,
+              ),
+              IconButton(
+                onPressed: _toggleSelectionMode,
+                icon: const Icon(Icons.check_box_outline_blank),
+                tooltip: 'Select Items',
+                visualDensity: VisualDensity.compact,
+              ),
+              IconButton(
+                onPressed: () => setState(() => _showHidden = !_showHidden),
+                icon: Icon(
+                  _showHidden ? Icons.visibility : Icons.visibility_off,
+                ),
+                tooltip: _showHidden ? 'Hide Hidden' : 'Show Hidden',
+                visualDensity: VisualDensity.compact,
+              ),
+              if (_selectionMode)
+                IconButton(
+                  onPressed: _deleteSelectedItems,
+                  icon: const Icon(Icons.delete_forever, color: Colors.red),
+                  tooltip: 'Delete Selected',
+                  visualDensity: VisualDensity.compact,
+                ),
+            ],
+          );
+        }
+        // Use full-size buttons on wider screens
+        return Wrap(
+          spacing: 8,
+          runSpacing: 6,
+          alignment: WrapAlignment.end,
+          children: [
+            ElevatedButton.icon(
+              onPressed: () => _addItem(_selectedCategory),
+              icon: const Icon(Icons.add),
+              label: const Text('Add New Item'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.deepPurple,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+              ),
+            ),
+            OutlinedButton.icon(
+              onPressed: _toggleSelectionMode,
+              icon: const Icon(Icons.check_box_outline_blank),
+              label: const Text('Select'),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 8,
+                ),
+              ),
+            ),
+            OutlinedButton.icon(
+              onPressed: () => setState(() => _showHidden = !_showHidden),
+              icon: Icon(_showHidden ? Icons.visibility : Icons.visibility_off),
+              label: Text(_showHidden ? 'Hide Hidden' : 'Show Hidden'),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 8,
+                ),
+              ),
+            ),
+            if (_selectionMode)
+              ElevatedButton.icon(
+                onPressed: _deleteSelectedItems,
+                icon: const Icon(Icons.delete_forever),
+                label: const Text('Delete Selected'),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              ),
+          ],
+        );
+      },
+    );
+
     return Padding(
       padding: const EdgeInsets.all(12.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // Header: Title + Actions
-          Row(
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            alignment: WrapAlignment.spaceBetween,
             children: [
-              Flexible(
-                child: Text(
-                  '${_selectedCategory.name} items',
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+              Text(
+                '${_selectedCategory.name} items',
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-              const SizedBox(width: 12),
-              Wrap(
-                spacing: 8,
-                runSpacing: 6,
-                alignment: WrapAlignment.end,
-                children: [
-                  ElevatedButton.icon(
-                    onPressed: () => _addItem(_selectedCategory),
-                    icon: const Icon(Icons.add),
-                    label: const Text('Add New Item'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.deepPurple,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 10,
-                      ),
-                    ),
-                  ),
-                  OutlinedButton.icon(
-                    onPressed: _toggleSelectionMode,
-                    icon: const Icon(Icons.check_box_outline_blank),
-                    label: const Text('Select'),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 8,
-                      ),
-                    ),
-                  ),
-                  OutlinedButton.icon(
-                    onPressed: () => setState(() => _showHidden = !_showHidden),
-                    icon: Icon(
-                      _showHidden ? Icons.visibility : Icons.visibility_off,
-                    ),
-                    label: Text(_showHidden ? 'Hide Hidden' : 'Show Hidden'),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 8,
-                      ),
-                    ),
-                  ),
-                  if (_selectionMode)
-                    ElevatedButton.icon(
-                      onPressed: _deleteSelectedItems,
-                      icon: const Icon(Icons.delete_forever),
-                      label: const Text('Delete Selected'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                      ),
-                    ),
-                ],
-              ),
+              actionButtons,
             ],
           ),
           const SizedBox(height: 16),
@@ -849,8 +931,8 @@ class _MenuPageState extends State<MenuPage> {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                maxCrossAxisExtent: 400,
-                childAspectRatio: 3.0,
+                maxCrossAxisExtent: 450,
+                mainAxisExtent: 160, // Increased height to accommodate content
                 crossAxisSpacing: 10,
                 mainAxisSpacing: 10,
               ),
@@ -887,8 +969,28 @@ class _MenuPageState extends State<MenuPage> {
                       height: 70,
                       child: ListView.builder(
                         scrollDirection: Axis.horizontal,
-                        itemCount: _categories.length,
+                        itemCount:
+                            _categories.length +
+                            1, // Add one for the add button
                         itemBuilder: (context, index) {
+                          if (index == _categories.length) {
+                            // This is the add button
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4.0,
+                                vertical: 8.0,
+                              ),
+                              child: ActionChip(
+                                avatar: const Icon(
+                                  Icons.add,
+                                  color: Colors.black54,
+                                ),
+                                label: const Text('Add'),
+                                onPressed: _addCategory,
+                                backgroundColor: Colors.grey.shade300,
+                              ),
+                            );
+                          }
                           final category = _categories[index];
                           final isSelected =
                               category.id == _selectedCategory.id;
@@ -934,8 +1036,11 @@ class _MenuPageState extends State<MenuPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildCategoryPanel(), // Left Panel
-                Expanded(
-                  child: _buildMainContent(constraints.maxWidth),
+                Flexible(
+                  flex: 3, // Give more space to the main content
+                  child: SingleChildScrollView(
+                    child: _buildMainContent(constraints.maxWidth),
+                  ),
                 ), // Right Panel
               ],
             );
@@ -945,7 +1050,10 @@ class _MenuPageState extends State<MenuPage> {
       // Floating action button to quickly add an item to the currently selected category
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _addItem(_selectedCategory),
-        label: const Text('Add Item'),
+        label: const Text(
+          'Add Item',
+          style: TextStyle(color: Color.fromARGB(255, 238, 231, 231)),
+        ),
         icon: const Icon(Icons.add),
         backgroundColor: Colors.deepPurple,
       ),

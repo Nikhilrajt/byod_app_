@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:project/models/cart_item.dart';
+import 'package:project/models/category_models.dart' hide CategoryItem;
+// import 'package:project/models/cart_item.dart' show CategoryItem, CartItem;
+
 import 'package:provider/provider.dart';
 import '../state/cart_notifier.dart';
 import 'category.dart';
@@ -299,10 +303,11 @@ class _FoodTileWidget extends StatelessWidget {
                               onPressed: () {
                                 final cartItem = CartItem(
                                   name: item.name,
-                                  image: item.image,
-                                  price: item.price,
-                                  rating: item.rating,
+                                  // image: item.image,
+                                  price: item.price.toInt(),
+                                  // rating: item.rating,
                                   restaurantName: item.restaurantName,
+                                  imageUrl: item.image,
                                 );
                                 cartNotifier.addToCart(cartItem);
                                 ScaffoldMessenger.of(context).showSnackBar(
@@ -343,3 +348,24 @@ class _FoodTileWidget extends StatelessWidget {
     );
   }
 }
+// // project/models/cart_item.dart (Corrected version)
+// class CartItem {
+//   final String name;
+//   final String image;
+//   final double price;
+//   final double rating;
+//   // ✨ Add this new property
+//   final String restaurantName; 
+
+//   CartItem({
+//     required this.name,
+//     required this.image,
+//     required this.price,
+//     required this.rating,
+//     // ✨ Add this to the constructor
+//     required this.restaurantName,
+//   });
+
+//   // You may also want to override toString or add a copyWith method
+//   // but this basic structure should fix your immediate error.
+// }

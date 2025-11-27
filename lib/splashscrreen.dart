@@ -2,7 +2,8 @@ import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:project/admin/admin_dashboard.dart';
+import 'package:project/admin/dashboard_admin.dart';
+import 'package:project/admin/dashboard_admin.dart';
 import 'package:project/auth/firebase/fibase_serviece.dart';
 
 import 'package:project/auth/intro.dart';
