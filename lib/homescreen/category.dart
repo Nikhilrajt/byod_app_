@@ -1402,22 +1402,22 @@ class _CategoryPageState extends State<CategoryPage> {
           ),
         ],
       ),
-      floatingActionButton: cart.itemCount > 0
-          ? FloatingActionButton.extended(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => CartScreen()),
-                );
-              },
-              backgroundColor: Colors.deepOrange,
-              icon: const Icon(Icons.shopping_cart),
-              label: Text(
-                '${cart.itemCount} items',
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-            )
-          : null,
+      //       floatingActionButton: cart.itemCount > 0
+      //           ? FloatingActionButton.extended(
+      //               onPressed: () {
+      //                 Navigator.push(
+      //                   context,
+      //                   MaterialPageRoute(builder: (context) => CartScreen()),
+      //                 );
+      //               },
+      //               backgroundColor: Colors.deepOrange,
+      //               icon: const Icon(Icons.shopping_cart),
+      //               label: Text(
+      //                 '${cart.itemCount} items',
+      //                 style: const TextStyle(fontWeight: FontWeight.bold),
+      //               ),
+      //             )
+      //           : null,
     );
   }
 }

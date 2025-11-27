@@ -6,6 +6,7 @@ import 'package:project/restaurent/Ingredientpage.dart';
 // removed unused imports
 import 'package:project/restaurent/setting/delivery_settings_page.dart';
 import 'package:project/restaurent/setting/changepassword.dart/change.dart';
+import 'package:project/restaurent/setting/feedbackpage.dart';
 import 'package:project/restaurent/setting/manage_ingredients_page.dart';
 import 'package:project/restaurent/setting/manage_menu_page.dart';
 import 'package:project/restaurent/setting/restaurant_profile_page.dart';
@@ -79,6 +80,21 @@ class _SettingspageState extends State<Settingspage> {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const IngredientPage()),
+              );
+            },
+          ),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.feedback, color: Colors.amber),
+            title: const Text("Customer Feedback"),
+            subtitle: const Text("View and manage user reviews"),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const Feedbackpage(),
+                ),
               );
             },
           ),

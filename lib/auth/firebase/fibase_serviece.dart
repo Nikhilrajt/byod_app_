@@ -29,7 +29,7 @@ class AuthService {
       // Update display name
       await userCredential.user?.updateDisplayName(fullName);
 
-      // Store user data in Firestore
+      // Store user data in Firestore with role
       await _firestore.collection('users').doc(userCredential.user!.uid).set({
         'uid': userCredential.user!.uid,
         'email': email,
@@ -87,18 +87,48 @@ class AuthService {
         password: password,
       );
 
-      // Get user role
+      // Get user document
       DocumentSnapshot userDoc = await _firestore
           .collection('users')
           .doc(userCredential.user!.uid)
           .get();
 
+      String role = userDoc['role'];
+
       if (!userDoc.exists) {
-        await _auth.signOut();
-        return {'success': false, 'message': 'User data not found'};
+        // Create user document if it doesn't exist
+        await _firestore.collection('users').doc(userCredential.user!.uid).set({
+          'uid': userCredential.user!.uid,
+          'email': email,
+          'fullName': userCredential.user!.displayName,
+          'phoneNumber': emailOrPhone.contains('@') ? '' : emailOrPhone,
+          'role': role,
+          'createdAt': FieldValue.serverTimestamp(),
+          'isActive': true,
+        });
+
+        print('Created new user document with role: $role');
+      } else {
+        // Get role from document data
+        Map<String, dynamic>? userData =
+            userDoc.data() as Map<String, dynamic>?;
+
+        if (userData != null && userData.containsKey('role')) {
+          role = userData['role'];
+          print('Found existing user with role: $role');
+        } else {
+          // Update document if role field was missing
+          await _firestore
+              .collection('users')
+              .doc(userCredential.user!.uid)
+              .update({'role': role});
+          print('Updated user document with default role: $role');
+        }
       }
 
-      String role = userDoc.get('role');
+      print(
+        'Login successful - User: ${userCredential.user!.email}, Role: $role',
+      );
 
       return {
         'success': true,
@@ -107,8 +137,10 @@ class AuthService {
         'message': 'Signed in successfully',
       };
     } on FirebaseAuthException catch (e) {
+      print('Firebase Auth Error: ${e.code} - ${e.message}');
       return {'success': false, 'message': _getErrorMessage(e.code)};
     } catch (e) {
+      print('Unexpected Error: $e');
       return {
         'success': false,
         'message': 'An unexpected error occurred: ${e.toString()}',
@@ -136,17 +168,23 @@ class AuthService {
 
       if (!userDoc.exists) {
         await _auth.signOut();
-        return {'success': false, 'message': 'User data not found'};
+        return {
+          'success': false,
+          'message': 'User data not found. Please sign up first.',
+        };
       }
 
-      String userRole = userDoc.get('role');
+      // Get user data safely
+      Map<String, dynamic> userData = userDoc.data() as Map<String, dynamic>;
+      String userRole = userData['role'] ?? 'user';
       String expectedRoleStr = expectedRole.toString().split('.').last;
 
       if (userRole != expectedRoleStr) {
         await _auth.signOut();
         return {
           'success': false,
-          'message': 'You do not have $expectedRoleStr access',
+          'message':
+              'Access denied. You do not have $expectedRoleStr privileges.',
         };
       }
 
@@ -154,7 +192,7 @@ class AuthService {
         'success': true,
         'user': userCredential.user,
         'role': userRole,
-        'message': 'Signed in successfully',
+        'message': 'Signed in successfully as $userRole',
       };
     } on FirebaseAuthException catch (e) {
       return {'success': false, 'message': _getErrorMessage(e.code)};
@@ -178,7 +216,8 @@ class AuthService {
 
       if (!userDoc.exists) return null;
 
-      return userDoc.get('role');
+      Map<String, dynamic> userData = userDoc.data() as Map<String, dynamic>;
+      return userData['role'] ?? 'user';
     } catch (e) {
       return null;
     }
@@ -276,6 +315,25 @@ class AuthService {
     }
   }
 
+  // Helper: Add or update role for existing user (Admin function)
+  Future<Map<String, dynamic>> updateUserRole({
+    required String userId,
+    required UserRole newRole,
+  }) async {
+    try {
+      await _firestore.collection('users').doc(userId).update({
+        'role': newRole.toString().split('.').last,
+      });
+
+      return {'success': true, 'message': 'User role updated successfully'};
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Failed to update role: ${e.toString()}',
+      };
+    }
+  }
+
   // Helper method to get user-friendly error messages
   String _getErrorMessage(String code) {
     switch (code) {
@@ -294,7 +352,7 @@ class AuthService {
       case 'wrong-password':
         return 'Incorrect password';
       case 'invalid-credential':
-        return 'user account does not exist!';
+        return 'Invalid credentials. Please check your email and password.';
       case 'too-many-requests':
         return 'Too many attempts. Please try again later';
       case 'network-request-failed':

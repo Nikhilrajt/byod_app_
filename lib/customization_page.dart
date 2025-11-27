@@ -1,8 +1,6 @@
 // lib/screens/customization_page.dart
 
 import 'package:flutter/material.dart';
-import 'package:project/homescreen/cart.dart';
-import 'package:project/homescreen/category.dart';
 import 'package:provider/provider.dart';
 import '../models/category_models.dart';
 import '../state/cart_notifier.dart';
@@ -35,7 +33,7 @@ class _CustomizationPageState extends State<CustomizationPage> {
   void _updateSelection(int stepIndex, dynamic selection, int additionalPrice) {
     setState(() {
       final oldSelection = _selections[stepIndex];
-      
+
       // Remove old price if exists
       if (oldSelection != null) {
         if (oldSelection is CustomizationOption) {
@@ -56,39 +54,26 @@ class _CustomizationPageState extends State<CustomizationPage> {
 
   void _addToCart() {
     final cart = context.read<CartNotifier>();
-    
-    // Validate required fields
-    for (int i = 0; i < widget.template.length; i++) {
-      final step = widget.template[i];
-      if (step.isRequired && !_selections.containsKey(i)) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Please select ${step.title}'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 2),
-          ),
-        );
-        return;
-      }
-    }
-    
+
     // Build customization summary
     final customizations = <String>[];
     for (int i = 0; i < widget.template.length; i++) {
       final step = widget.template[i];
       final selection = _selections[i];
-      
+
       if (selection != null) {
         if (selection is CustomizationOption) {
           customizations.add('${step.title}: ${selection.name}');
         } else if (selection is String) {
           customizations.add('${step.title}: $selection');
         } else if (selection is List) {
-          final names = selection.map((s) {
-            if (s is CustomizationOption) return s.name;
-            if (s is String) return s;
-            return s.toString();
-          }).join(', ');
+          final names = selection
+              .map((s) {
+                if (s is CustomizationOption) return s.name;
+                if (s is String) return s;
+                return s.toString();
+              })
+              .join(', ');
           customizations.add('${step.title}: $names');
         }
       }
@@ -110,33 +95,10 @@ class _CustomizationPageState extends State<CustomizationPage> {
         content: Text('${widget.customizableItem.name} added to cart!'),
         duration: const Duration(milliseconds: 1500),
         backgroundColor: Colors.green,
-        action: SnackBarAction(
-          label: 'VIEW CART',
-          textColor: Colors.white,
-          onPressed: () {
-            Navigator.pushNamedAndRemoveUntil(
-              context,
-              '/cart',
-              (route) => route.settings.name == '/',
-            );
-          },
-        ),
       ),
     );
 
-    // Navigate to cart after brief delay
-    Future.delayed(const Duration(milliseconds: 500), () {
-      if (mounted) {
-        // Pop customization page and navigate to cart
-        Navigator.pop(context);
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) =>  CartScreen(),
-          ),
-        );
-      }
-    });
+    Navigator.pop(context);
   }
 
   @override
@@ -146,7 +108,10 @@ class _CustomizationPageState extends State<CustomizationPage> {
       appBar: AppBar(
         title: Text(
           'Customize ${widget.customizableItem.name}',
-          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+          style: const TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         backgroundColor: Colors.white,
         elevation: 0,
@@ -219,7 +184,7 @@ class _CustomizationPageState extends State<CustomizationPage> {
             ),
           ),
           const Divider(height: 1),
-          
+
           // Customization Steps
           Expanded(
             child: ListView.builder(
@@ -254,10 +219,7 @@ class _CustomizationPageState extends State<CustomizationPage> {
                       children: [
                         const Text(
                           'Total Price',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey,
-                          ),
+                          style: TextStyle(fontSize: 14, color: Colors.grey),
                         ),
                         Text(
                           '₹$_totalPrice',
@@ -366,7 +328,9 @@ class _CustomizationPageState extends State<CustomizationPage> {
         children: step.options.map((option) {
           final isString = option is String;
           final name = isString ? option : (option as CustomizationOption).name;
-          final price = isString ? 0 : (option as CustomizationOption).additionalPrice;
+          final price = isString
+              ? 0
+              : (option as CustomizationOption).additionalPrice;
           final isSelected = _selections[stepIndex] == option;
 
           return InkWell(
@@ -375,14 +339,14 @@ class _CustomizationPageState extends State<CustomizationPage> {
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: isSelected ? Colors.orange.shade50 : Colors.white,
-                border: Border(
-                  bottom: BorderSide(color: Colors.grey.shade200),
-                ),
+                border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
               ),
               child: Row(
                 children: [
                   Icon(
-                    isSelected ? Icons.radio_button_checked : Icons.radio_button_off,
+                    isSelected
+                        ? Icons.radio_button_checked
+                        : Icons.radio_button_off,
                     color: isSelected ? Colors.deepOrange : Colors.grey,
                   ),
                   const SizedBox(width: 12),
@@ -391,7 +355,9 @@ class _CustomizationPageState extends State<CustomizationPage> {
                       name,
                       style: TextStyle(
                         fontSize: 16,
-                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                        fontWeight: isSelected
+                            ? FontWeight.w600
+                            : FontWeight.normal,
                       ),
                     ),
                   ),
@@ -416,8 +382,10 @@ class _CustomizationPageState extends State<CustomizationPage> {
         children: step.options.map((option) {
           final isString = option is String;
           final name = isString ? option : (option as CustomizationOption).name;
-          final price = isString ? 0 : (option as CustomizationOption).additionalPrice;
-          
+          final price = isString
+              ? 0
+              : (option as CustomizationOption).additionalPrice;
+
           final currentSelections = _selections[stepIndex] as List? ?? [];
           final isSelected = currentSelections.contains(option);
 
@@ -426,7 +394,7 @@ class _CustomizationPageState extends State<CustomizationPage> {
               setState(() {
                 List newSelections = List.from(currentSelections);
                 int priceChange = 0;
-                
+
                 if (isSelected) {
                   newSelections.remove(option);
                   priceChange = -price;
@@ -434,7 +402,7 @@ class _CustomizationPageState extends State<CustomizationPage> {
                   newSelections.add(option);
                   priceChange = price;
                 }
-                
+
                 _selections[stepIndex] = newSelections;
                 _totalPrice += priceChange;
               });
@@ -443,14 +411,14 @@ class _CustomizationPageState extends State<CustomizationPage> {
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: isSelected ? Colors.orange.shade50 : Colors.white,
-                border: Border(
-                  bottom: BorderSide(color: Colors.grey.shade200),
-                ),
+                border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
               ),
               child: Row(
                 children: [
                   Icon(
-                    isSelected ? Icons.check_box : Icons.check_box_outline_blank,
+                    isSelected
+                        ? Icons.check_box
+                        : Icons.check_box_outline_blank,
                     color: isSelected ? Colors.deepOrange : Colors.grey,
                   ),
                   const SizedBox(width: 12),
@@ -459,7 +427,9 @@ class _CustomizationPageState extends State<CustomizationPage> {
                       name,
                       style: TextStyle(
                         fontSize: 16,
-                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                        fontWeight: isSelected
+                            ? FontWeight.w600
+                            : FontWeight.normal,
                       ),
                     ),
                   ),

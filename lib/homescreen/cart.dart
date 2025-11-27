@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:project/homescreen/category.dart';
 import 'package:provider/provider.dart';
 import '../state/cart_notifier.dart';
 import '../models/category_models.dart';
@@ -13,10 +14,10 @@ class CartScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
-        ),
+        // leading: IconButton(
+        //   icon: const Icon(Icons.arrow_back_ios, color: Colors.black),
+        //   onPressed: () => Navigator.pop(context),
+        // ),
         title: const Text(
           'My Cart',
           style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
@@ -58,14 +59,16 @@ class CartScreen extends StatelessWidget {
                   const SizedBox(height: 10),
                   Text(
                     'Add items to get started',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey.shade500,
-                    ),
+                    style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
                   ),
                   const SizedBox(height: 30),
                   ElevatedButton.icon(
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => CategoryPage(categoryName: ''),
+                      ),
+                    ),
                     icon: const Icon(Icons.restaurant_menu),
                     label: const Text('Browse Menu'),
                     style: ElevatedButton.styleFrom(
@@ -226,8 +229,8 @@ class CartScreen extends StatelessWidget {
     int index,
     CartNotifier cartNotifier,
   ) {
-    final hasCustomizations = item.customizations != null &&
-        item.customizations!.isNotEmpty;
+    final hasCustomizations =
+        item.customizations != null && item.customizations!.isNotEmpty;
 
     return Dismissible(
       key: Key('${item.name}_$index'),
@@ -259,7 +262,10 @@ class CartScreen extends StatelessWidget {
             SizedBox(height: 5),
             Text(
               'Remove',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ],
         ),
@@ -342,7 +348,11 @@ class CartScreen extends StatelessWidget {
                   children: [
                     // Remove Button
                     IconButton(
-                      icon: const Icon(Icons.close, color: Colors.red, size: 20),
+                      icon: const Icon(
+                        Icons.close,
+                        color: Colors.red,
+                        size: 20,
+                      ),
                       onPressed: () {
                         _removeItem(cartNotifier, index);
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -452,28 +462,30 @@ class CartScreen extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 6),
-                    ...item.customizations!.map((customization) => Padding(
-                          padding: const EdgeInsets.only(top: 4, left: 22),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.check_circle,
-                                size: 14,
-                                color: Colors.orange.shade700,
-                              ),
-                              const SizedBox(width: 6),
-                              Expanded(
-                                child: Text(
-                                  customization,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey.shade700,
-                                  ),
+                    ...item.customizations!.map(
+                      (customization) => Padding(
+                        padding: const EdgeInsets.only(top: 4, left: 22),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.check_circle,
+                              size: 14,
+                              color: Colors.orange.shade700,
+                            ),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                customization,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey.shade700,
                                 ),
                               ),
-                            ],
-                          ),
-                        )),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -483,7 +495,10 @@ class CartScreen extends StatelessWidget {
             if (item.quantity > 1) ...[
               const SizedBox(height: 8),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.green.shade50,
                   borderRadius: BorderRadius.circular(8),
@@ -521,12 +536,9 @@ class CartScreen extends StatelessWidget {
     CartNotifier cartNotifier,
     List<CartItem> items,
   ) {
-    final subtotal = items.fold<int>(
-      0,
-      (sum, item) => sum + item.totalPrice,
-    );
-    const deliveryFee = 40;
-    const discount = 0;
+    final subtotal = items.fold<int>(0, (sum, item) => sum + item.totalPrice);
+    const deliveryFee = 0;
+    const discount = 20;
     final total = subtotal + deliveryFee - discount;
 
     return Container(
