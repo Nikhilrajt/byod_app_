@@ -7,34 +7,15 @@ import 'package:project/restaurent/dashboard/pending_byod_requests_page.dart';
 import 'package:project/restaurent/dashboard/completed_orders_page.dart';
 import 'package:project/restaurent/dashboard/todays_earnings_page.dart';
 import 'package:project/restaurent/dashboard/low_stock_ingredients_page.dart';
+import 'package:project/restaurent/setting/restaurant_profile_page.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:project/services/low_stock_service.dart';
 
 // Placeholder `items` list — do not populate here. This list is expected to
 // be filled from the app's existing menu/data sources (DB, provider, etc.).
 final List<dynamic> items = [];
-
-// ---------------------------------------------------------------- //
-// Placeholder for MenuPage (You should move this to a separate file)
-// class MenuPage extends StatelessWidget {
-// const MenuPage({super.key});
-//
-// @override
-// Widget build(BuildContext context) {
-// return Scaffold(
-// appBar: AppBar(
-// title: const Text('Menu Management'),
-// backgroundColor: Colors.teal, // New color for Menu
-// foregroundColor: Colors.white,
-// ),
-// body: const Center(
-// child: Text(
-// 'Manage your Menu items here.',
-// style: TextStyle(fontSize: 20, color: Colors.teal),
-// ),
-// ),
-// );
-// }
-// }
-// ---------------------------------------------------------------- //
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -44,22 +25,133 @@ class DashboardPage extends StatefulWidget {
 }
 
 class _DashboardPageState extends State<DashboardPage> {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final LowStockService _lowStockService = LowStockService();
+
+  String _restaurantName = "Restaurant";
+  String? _restaurantImageUrl;
+  int _lowStockCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRestaurantData();
+  }
+
+  Future<void> _loadRestaurantData() async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+
+    try {
+      // ✅ Fetch from 'users' collection
+      final doc = await _firestore.collection('users').doc(user.uid).get();
+
+      if (doc.exists && mounted) {
+        final data = doc.data()!;
+        setState(() {
+          _restaurantName = data['fullName']?.isNotEmpty == true
+              ? data['fullName']
+              : "Restaurant";
+          _restaurantImageUrl = data['imageUrl'];
+        });
+      }
+    } catch (e) {
+      print('Error loading restaurant data: $e');
+    }
+  }
+
+  // Widget for notification badge
+  Widget _buildNotificationBadge(int count) {
+    if (count <= 0) return const SizedBox.shrink();
+
+    return Container(
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        color: Colors.red,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
+      child: Text(
+        count > 9 ? '9+' : count.toString(),
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+        ),
+        textAlign: TextAlign.center,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    // We are reverting to the simple, single-column layout
     return Scaffold(
-      // appBar: AppBar(
-      //   title: const Text("Dashboard"),
-      //   elevation: 0, // Resetting AppBar for simpler look
-      // ),
+      appBar: AppBar(
+        title: Text(
+          _restaurantName,
+          style: GoogleFonts.pacifico(
+            fontSize: 22,
+            fontWeight: FontWeight.w400,
+            color: Colors.white,
+            letterSpacing: 1.0,
+          ),
+        ),
+        actions: [
+          // Profile image with navigation to profile page
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const RestaurantProfilePage(),
+                ),
+              ).then((_) {
+                // Reload data when returning from profile page
+                _loadRestaurantData();
+              });
+            },
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: CircleAvatar(
+                radius: 28, // Increased size
+                backgroundColor: Colors.white,
+                child: CircleAvatar(
+                  radius: 25, // Slightly smaller inner circle
+                  backgroundColor: Colors.grey.shade200,
+                  backgroundImage:
+                      _restaurantImageUrl != null &&
+                          _restaurantImageUrl!.isNotEmpty
+                      ? NetworkImage(_restaurantImageUrl!)
+                      : null,
+                  child:
+                      _restaurantImageUrl == null ||
+                          _restaurantImageUrl!.isEmpty
+                      ? const Icon(
+                          Icons.restaurant,
+                          size: 30,
+                          color: Colors.grey,
+                        )
+                      : null,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               "Dashboard",
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              style: GoogleFonts.aboreto(
+                fontSize: 26,
+                fontWeight: FontWeight.w700,
+                color: Colors.deepPurple,
+                letterSpacing: 0.5,
+              ),
             ),
             const SizedBox(height: 20),
 
@@ -71,7 +163,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   MaterialPageRoute(builder: (context) => const Orderpage()),
                 );
               },
-              child: DashboardCard(
+              child: const DashboardCard(
                 title: "Today's Orders",
                 value: "18",
                 icon: Icons.receipt_long,
@@ -89,7 +181,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   ),
                 );
               },
-              child: DashboardCard(
+              child: const DashboardCard(
                 title: "Pending BYOD Requests",
                 value: "4",
                 icon: Icons.fastfood,
@@ -107,7 +199,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   ),
                 );
               },
-              child: DashboardCard(
+              child: const DashboardCard(
                 title: "Completed Orders",
                 value: "12",
                 icon: Icons.check_circle,
@@ -125,7 +217,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   ),
                 );
               },
-              child: DashboardCard(
+              child: const DashboardCard(
                 title: "Today's Earnings",
                 value: "₹4,250",
                 icon: Icons.attach_money,
@@ -141,7 +233,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   MaterialPageRoute(builder: (context) => const MenuPage()),
                 );
               },
-              child: DashboardCard(
+              child: const DashboardCard(
                 title: "Menu Management",
                 value: "Setup & Edit Items",
                 icon: Icons.restaurant_menu,
@@ -149,22 +241,42 @@ class _DashboardPageState extends State<DashboardPage> {
               ),
             ),
 
-            // Card 5: Low Stock Alerts
-            GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const LowStockIngredientsPage(),
-                  ),
+            // Card 5: Low Stock Alerts with Notification Badge
+            StreamBuilder<int>(
+              stream: _lowStockService.getLowStockCount(),
+              builder: (context, snapshot) {
+                final lowStockCount = snapshot.data ?? 0;
+
+                return Stack(
+                  children: [
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                const LowStockIngredientsPage(),
+                          ),
+                        );
+                      },
+                      child: DashboardCard(
+                        title: "Low Stock Ingredients",
+                        value: lowStockCount > 0
+                            ? "$lowStockCount Items Need Attention"
+                            : "All Stock Good",
+                        icon: Icons.warning,
+                        color: lowStockCount > 0 ? Colors.red : Colors.orange,
+                      ),
+                    ),
+                    if (lowStockCount > 0)
+                      Positioned(
+                        top: 8,
+                        right: 8,
+                        child: _buildNotificationBadge(lowStockCount),
+                      ),
+                  ],
                 );
               },
-              child: DashboardCard(
-                title: "Low Stock Ingredients",
-                value: "3 Items",
-                icon: Icons.warning,
-                color: Colors.red,
-              ),
             ),
 
             // Card 6: Ingredients
@@ -177,7 +289,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   ),
                 );
               },
-              child: DashboardCard(
+              child: const DashboardCard(
                 title: "Ingredients",
                 value: "View & Manage",
                 icon: Icons.kitchen,

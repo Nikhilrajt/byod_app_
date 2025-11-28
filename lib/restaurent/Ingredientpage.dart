@@ -1,779 +1,410 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../services/inventory_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:project/models/ingredient_model.dart';
+import 'package:project/services/ingredient_service.dart';
 
-// --- 1. Enhanced Ingredient Data Model (IMMUTABLE) ---
-class Ingredient {
-  final String name;
-  final IconData icon;
-  final double price;
-  final String category;
-  final Map<String, String> nutritionalValue;
-
-  // FINAL for immutability and safety - must always be provided
-  final double quantityAvailable;
-
-  // Getter for availability check
-  bool get isAvailable => quantityAvailable > 0;
-
-  Ingredient({
-    required this.name,
-    required this.icon,
-    required this.price,
-    required this.category,
-    required this.nutritionalValue,
-    required this.quantityAvailable,
-  });
-
-  // **Critical Fix: copyWith method for safe state updates**
-  Ingredient copyWith({
-    String? name,
-    IconData? icon,
-    double? price,
-    String? category,
-    Map<String, String>? nutritionalValue,
-    double? quantityAvailable,
-  }) {
-    return Ingredient(
-      name: name ?? this.name,
-      icon: icon ?? this.icon,
-      price: price ?? this.price,
-      category: category ?? this.category,
-      nutritionalValue: nutritionalValue ?? this.nutritionalValue,
-      quantityAvailable: quantityAvailable ?? this.quantityAvailable,
-    );
-  }
-
-  double get pricePer100g => price / 10.0;
-}
-
-// --- 2. Ingredient List Widget ---
 class IngredientPage extends StatefulWidget {
-  const IngredientPage({super.key});
+  final bool isRestaurantSide;
+  final Function(List<IngredientModel>)? onIngredientsSelected;
+  final List<IngredientModel>? initiallySelectedIngredients;
+
+  const IngredientPage({
+    super.key,
+    this.isRestaurantSide = true,
+    this.onIngredientsSelected,
+    this.initiallySelectedIngredients,
+  });
 
   @override
   State<IngredientPage> createState() => _IngredientPageState();
 }
 
 class _IngredientPageState extends State<IngredientPage> {
-  // --- Combined and Corrected Mock Ingredient Data ---
-  final List<Ingredient> _ingredients = [
-    // Vegetables
-    Ingredient(
-      name: 'Carrot',
-      icon: FontAwesomeIcons.carrot,
-      price: 50,
-      category: 'Vegetables',
-      nutritionalValue: {'Calories': '41', 'Protein': '0.9g'},
-      quantityAvailable: 15.5,
-    ),
-    Ingredient(
-      name: 'Broccoli',
-      icon: FontAwesomeIcons.seedling,
-      price: 70,
-      category: 'Vegetables',
-      nutritionalValue: {'Calories': '55', 'Protein': '3.7g'},
-      quantityAvailable: 2.0,
-    ),
-    Ingredient(
-      name: 'Spinach',
-      icon: FontAwesomeIcons.leaf,
-      price: 40,
-      category: 'Vegetables',
-      nutritionalValue: {'Calories': '23', 'Protein': '2.9g'},
-      quantityAvailable: 0.0,
-    ),
-    Ingredient(
-      name: 'Tomato',
-      icon: FontAwesomeIcons.appleWhole,
-      price: 30,
-      category: 'Vegetables',
-      nutritionalValue: {'Calories': '18', 'Protein': '0.9g'},
-      quantityAvailable: 40.8,
-    ),
-    Ingredient(
-      name: 'Cucumber',
-      icon: FontAwesomeIcons.seedling,
-      price: 25,
-      category: 'Vegetables',
-      nutritionalValue: {'Calories': '16', 'Protein': '0.7g'},
-      quantityAvailable: 12.3,
-    ),
-    Ingredient(
-      name: 'Onion',
-      icon: FontAwesomeIcons.hand,
-      price: 35,
-      category: 'Vegetables',
-      nutritionalValue: {'Calories': '40', 'Protein': '1.1g'},
-      quantityAvailable: 55.0,
-    ),
-    Ingredient(
-      name: 'Garlic',
-      icon: FontAwesomeIcons.circleDot,
-      price: 100,
-      category: 'Vegetables',
-      nutritionalValue: {'Calories': '149', 'Protein': '6.4g'},
-      quantityAvailable: 5.5,
-    ),
-    Ingredient(
-      name: 'Potato',
-      icon: FontAwesomeIcons.solidCircle,
-      price: 20,
-      category: 'Vegetables',
-      nutritionalValue: {'Calories': '77', 'Protein': '2g'},
-      quantityAvailable: 80.0,
-    ),
-    Ingredient(
-      name: 'Bell Pepper',
-      icon: FontAwesomeIcons.pepperHot,
-      price: 60,
-      category: 'Vegetables',
-      nutritionalValue: {'Calories': '31', 'Protein': '1g'},
-      quantityAvailable: 10.0,
-    ),
-    Ingredient(
-      name: 'Lettuce',
-      icon: FontAwesomeIcons.leaf,
-      price: 45,
-      category: 'Vegetables',
-      nutritionalValue: {'Calories': '15', 'Protein': '1.4g'},
-      quantityAvailable: 3.2,
-    ),
-    Ingredient(
-      name: 'Zucchini',
-      icon: FontAwesomeIcons.seedling,
-      price: 55,
-      category: 'Vegetables',
-      nutritionalValue: {'Calories': '17', 'Protein': '1.2g'},
-      quantityAvailable: 1.5,
-    ),
-    Ingredient(
-      name: 'Eggplant',
-      icon: FontAwesomeIcons.seedling,
-      price: 45,
-      category: 'Vegetables',
-      nutritionalValue: {'Calories': '25', 'Protein': '1g'},
-      quantityAvailable: 4.0,
-    ),
-    Ingredient(
-      name: 'Cabbage',
-      icon: FontAwesomeIcons.leaf,
-      price: 30,
-      category: 'Vegetables',
-      nutritionalValue: {'Calories': '25', 'Protein': '1.3g'},
-      quantityAvailable: 20.0,
-    ),
-    Ingredient(
-      name: 'Cauliflower',
-      icon: FontAwesomeIcons.seedling,
-      price: 65,
-      category: 'Vegetables',
-      nutritionalValue: {'Calories': '25', 'Protein': '1.9g'},
-      quantityAvailable: 1.0,
-    ),
-    Ingredient(
-      name: 'Mushroom',
-      icon: FontAwesomeIcons.seedling,
-      price: 85,
-      category: 'Vegetables',
-      nutritionalValue: {'Calories': '22', 'Protein': '3.1g'},
-      quantityAvailable: 0.5,
-    ),
-    Ingredient(
-      name: 'Radish',
-      icon: FontAwesomeIcons.seedling,
-      price: 25,
-      category: 'Vegetables',
-      nutritionalValue: {'Calories': '16', 'Protein': '0.7g'},
-      quantityAvailable: 5.0,
-    ),
-    Ingredient(
-      name: 'Sweet Potato',
-      icon: FontAwesomeIcons.seedling,
-      price: 35,
-      category: 'Vegetables',
-      nutritionalValue: {'Calories': '86', 'Protein': '1.6g'},
-      quantityAvailable: 10.0,
-    ),
-    Ingredient(
-      name: 'Artichoke',
-      icon: FontAwesomeIcons.seedling,
-      price: 95,
-      category: 'Vegetables',
-      nutritionalValue: {'Calories': '47', 'Protein': '3.3g'},
-      quantityAvailable: 0.0,
-    ),
-    Ingredient(
-      name: 'Asparagus',
-      icon: FontAwesomeIcons.seedling,
-      price: 110,
-      category: 'Vegetables',
-      nutritionalValue: {'Calories': '20', 'Protein': '2.2g'},
-      quantityAvailable: 0.8,
-    ),
-    Ingredient(
-      name: 'Beetroot',
-      icon: FontAwesomeIcons.seedling,
-      price: 40,
-      category: 'Vegetables',
-      nutritionalValue: {'Calories': '43', 'Protein': '1.6g'},
-      quantityAvailable: 6.0,
-    ),
-
-    // Fruits
-    Ingredient(
-      name: 'Apple',
-      icon: FontAwesomeIcons.appleWhole,
-      price: 120,
-      category: 'Fruits',
-      nutritionalValue: {'Calories': '52', 'Protein': '0.3g'},
-      quantityAvailable: 30.0,
-    ),
-    Ingredient(
-      name: 'Banana',
-      icon: FontAwesomeIcons.appleWhole,
-      price: 40,
-      category: 'Fruits',
-      nutritionalValue: {'Calories': '89', 'Protein': '1.1g'},
-      quantityAvailable: 50.0,
-    ),
-    Ingredient(
-      name: 'Orange',
-      icon: FontAwesomeIcons.appleWhole,
-      price: 80,
-      category: 'Fruits',
-      nutritionalValue: {'Calories': '47', 'Protein': '0.9g'},
-      quantityAvailable: 22.0,
-    ),
-    Ingredient(
-      name: 'Grapes',
-      icon: FontAwesomeIcons.appleWhole,
-      price: 90,
-      category: 'Fruits',
-      nutritionalValue: {'Calories': '69', 'Protein': '0.7g'},
-      quantityAvailable: 18.0,
-    ),
-    Ingredient(
-      name: 'Strawberry',
-      icon: FontAwesomeIcons.appleWhole,
-      price: 150,
-      category: 'Fruits',
-      nutritionalValue: {'Calories': '32', 'Protein': '0.7g'},
-      quantityAvailable: 0.2,
-    ),
-    Ingredient(
-      name: 'Mango',
-      icon: FontAwesomeIcons.appleWhole,
-      price: 100,
-      category: 'Fruits',
-      nutritionalValue: {'Calories': '60', 'Protein': '0.8g'},
-      quantityAvailable: 5.0,
-    ),
-    Ingredient(
-      name: 'Pineapple',
-      icon: FontAwesomeIcons.appleWhole,
-      price: 70,
-      category: 'Fruits',
-      nutritionalValue: {'Calories': '50', 'Protein': '0.5g'},
-      quantityAvailable: 8.0,
-    ),
-    Ingredient(
-      name: 'Watermelon',
-      icon: FontAwesomeIcons.appleWhole,
-      price: 50,
-      category: 'Fruits',
-      nutritionalValue: {'Calories': '30', 'Protein': '0.6g'},
-      quantityAvailable: 15.0,
-    ),
-    Ingredient(
-      name: 'Kiwi',
-      icon: FontAwesomeIcons.appleWhole,
-      price: 130,
-      category: 'Fruits',
-      nutritionalValue: {'Calories': '61', 'Protein': '1.1g'},
-      quantityAvailable: 2.0,
-    ),
-    Ingredient(
-      name: 'Blueberry',
-      icon: FontAwesomeIcons.appleWhole,
-      price: 200,
-      category: 'Fruits',
-      nutritionalValue: {'Calories': '57', 'Protein': '0.7g'},
-      quantityAvailable: 0.1,
-    ),
-    Ingredient(
-      name: 'Peach',
-      icon: FontAwesomeIcons.appleWhole,
-      price: 110,
-      category: 'Fruits',
-      nutritionalValue: {'Calories': '39', 'Protein': '0.9g'},
-      quantityAvailable: 3.5,
-    ),
-    Ingredient(
-      name: 'Plum',
-      icon: FontAwesomeIcons.appleWhole,
-      price: 100,
-      category: 'Fruits',
-      nutritionalValue: {'Calories': '46', 'Protein': '0.7g'},
-      quantityAvailable: 4.0,
-    ),
-    Ingredient(
-      name: 'Cherry',
-      icon: FontAwesomeIcons.appleWhole,
-      price: 180,
-      category: 'Fruits',
-      nutritionalValue: {'Calories': '50', 'Protein': '1g'},
-      quantityAvailable: 0.0,
-    ),
-    Ingredient(
-      name: 'Pomegranate',
-      icon: FontAwesomeIcons.appleWhole,
-      price: 140,
-      category: 'Fruits',
-      nutritionalValue: {'Calories': '83', 'Protein': '1.7g'},
-      quantityAvailable: 6.0,
-    ),
-    Ingredient(
-      name: 'Fig',
-      icon: FontAwesomeIcons.appleWhole,
-      price: 160,
-      category: 'Fruits',
-      nutritionalValue: {'Calories': '74', 'Protein': '0.8g'},
-      quantityAvailable: 1.0,
-    ),
-    Ingredient(
-      name: 'Guava',
-      icon: FontAwesomeIcons.appleWhole,
-      price: 60,
-      category: 'Fruits',
-      nutritionalValue: {'Calories': '68', 'Protein': '2.6g'},
-      quantityAvailable: 10.0,
-    ),
-    Ingredient(
-      name: 'Lychee',
-      icon: FontAwesomeIcons.appleWhole,
-      price: 170,
-      category: 'Fruits',
-      nutritionalValue: {'Calories': '66', 'Protein': '0.8g'},
-      quantityAvailable: 0.5,
-    ),
-    Ingredient(
-      name: 'Papaya',
-      icon: FontAwesomeIcons.appleWhole,
-      price: 55,
-      category: 'Fruits',
-      nutritionalValue: {'Calories': '43', 'Protein': '0.5g'},
-      quantityAvailable: 7.0,
-    ),
-    Ingredient(
-      name: 'Raspberry',
-      icon: FontAwesomeIcons.appleWhole,
-      price: 220,
-      category: 'Fruits',
-      nutritionalValue: {'Calories': '52', 'Protein': '1.2g'},
-      quantityAvailable: 0.0,
-    ),
-    Ingredient(
-      name: 'Blackberry',
-      icon: FontAwesomeIcons.appleWhole,
-      price: 210,
-      category: 'Fruits',
-      nutritionalValue: {'Calories': '43', 'Protein': '1.4g'},
-      quantityAvailable: 0.1,
-    ),
-
-    // Grains
-    Ingredient(
-      name: 'Rice',
-      icon: FontAwesomeIcons.bowlRice,
-      price: 80,
-      category: 'Grains',
-      nutritionalValue: {'Calories': '130', 'Protein': '2.7g'},
-      quantityAvailable: 500.0,
-    ),
-    Ingredient(
-      name: 'Wheat',
-      icon: FontAwesomeIcons.wheatAwn,
-      price: 60,
-      category: 'Grains',
-      nutritionalValue: {'Calories': '329', 'Protein': '13.2g'},
-      quantityAvailable: 300.0,
-    ),
-    Ingredient(
-      name: 'Oats',
-      icon: FontAwesomeIcons.bowlFood,
-      price: 100,
-      category: 'Grains',
-      nutritionalValue: {'Calories': '68', 'Protein': '2.4g'},
-      quantityAvailable: 15.0,
-    ),
-    Ingredient(
-      name: 'Quinoa',
-      icon: FontAwesomeIcons.bowlFood,
-      price: 250,
-      category: 'Grains',
-      nutritionalValue: {'Calories': '120', 'Protein': '4.1g'},
-      quantityAvailable: 5.0,
-    ),
-    Ingredient(
-      name: 'Barley',
-      icon: FontAwesomeIcons.wheatAwn,
-      price: 70,
-      category: 'Grains',
-      nutritionalValue: {'Calories': '123', 'Protein': '2.3g'},
-      quantityAvailable: 10.0,
-    ),
-    Ingredient(
-      name: 'Corn',
-      icon: FontAwesomeIcons.seedling,
-      price: 40,
-      category: 'Grains',
-      nutritionalValue: {'Calories': '86', 'Protein': '3.2g'},
-      quantityAvailable: 20.0,
-    ),
-    Ingredient(
-      name: 'Millet',
-      icon: FontAwesomeIcons.bowlFood,
-      price: 90,
-      category: 'Grains',
-      nutritionalValue: {'Calories': '378', 'Protein': '11g'},
-      quantityAvailable: 8.0,
-    ),
-    Ingredient(
-      name: 'Rye',
-      icon: FontAwesomeIcons.wheatAwn,
-      price: 85,
-      category: 'Grains',
-      nutritionalValue: {'Calories': '338', 'Protein': '10g'},
-      quantityAvailable: 12.0,
-    ),
-    Ingredient(
-      name: 'Buckwheat',
-      icon: FontAwesomeIcons.bowlFood,
-      price: 150,
-      category: 'Grains',
-      nutritionalValue: {'Calories': '343', 'Protein': '13g'},
-      quantityAvailable: 4.0,
-    ),
-    Ingredient(
-      name: 'Sorghum',
-      icon: FontAwesomeIcons.bowlFood,
-      price: 75,
-      category: 'Grains',
-      nutritionalValue: {'Calories': '329', 'Protein': '11g'},
-      quantityAvailable: 9.0,
-    ),
-
-    // Proteins
-    Ingredient(
-      name: 'Chicken Breast',
-      icon: FontAwesomeIcons.drumstickBite,
-      price: 250,
-      category: 'Proteins',
-      nutritionalValue: {'Calories': '165', 'Protein': '31g'},
-      quantityAvailable: 30.0,
-    ),
-    Ingredient(
-      name: 'Salmon',
-      icon: FontAwesomeIcons.fish,
-      price: 500,
-      category: 'Proteins',
-      nutritionalValue: {'Calories': '208', 'Protein': '20g'},
-      quantityAvailable: 8.0,
-    ),
-    Ingredient(
-      name: 'Eggs (Dozen)',
-      icon: FontAwesomeIcons.egg,
-      price: 60,
-      category: 'Proteins',
-      nutritionalValue: {'Calories': '155', 'Protein': '13g'},
-      quantityAvailable: 50.0,
-    ),
-    Ingredient(
-      name: 'Tofu',
-      icon: FontAwesomeIcons.cube,
-      price: 120,
-      category: 'Proteins',
-      nutritionalValue: {'Calories': '76', 'Protein': '8g'},
-      quantityAvailable: 10.0,
-    ),
-    Ingredient(
-      name: 'Lentils',
-      icon: FontAwesomeIcons.seedling,
-      price: 90,
-      category: 'Proteins',
-      nutritionalValue: {'Calories': '116', 'Protein': '9g'},
-      quantityAvailable: 40.0,
-    ),
-    Ingredient(
-      name: 'Chickpeas',
-      icon: FontAwesomeIcons.seedling,
-      price: 80,
-      category: 'Proteins',
-      nutritionalValue: {'Calories': '364', 'Protein': '19g'},
-      quantityAvailable: 35.0,
-    ),
-    Ingredient(
-      name: 'Beef',
-      icon: FontAwesomeIcons.drumstickBite,
-      price: 400,
-      category: 'Proteins',
-      nutritionalValue: {'Calories': '250', 'Protein': '26g'},
-      quantityAvailable: 15.0,
-    ),
-    Ingredient(
-      name: 'Pork',
-      icon: FontAwesomeIcons.drumstickBite,
-      price: 350,
-      category: 'Proteins',
-      nutritionalValue: {'Calories': '242', 'Protein': '27g'},
-      quantityAvailable: 12.0,
-    ),
-    Ingredient(
-      name: 'Shrimp',
-      icon: FontAwesomeIcons.shrimp,
-      price: 450,
-      category: 'Proteins',
-      nutritionalValue: {'Calories': '99', 'Protein': '24g'},
-      quantityAvailable: 5.0,
-    ),
-    Ingredient(
-      name: 'Almonds',
-      icon: FontAwesomeIcons.seedling,
-      price: 600,
-      category: 'Proteins',
-      nutritionalValue: {'Calories': '579', 'Protein': '21g'},
-      quantityAvailable: 2.0,
-    ),
-
-    // Dairy
-    Ingredient(
-      name: 'Milk',
-      icon: FontAwesomeIcons.mugHot,
-      price: 50,
-      category: 'Dairy',
-      nutritionalValue: {'Calories': '42', 'Protein': '3.4g'},
-      quantityAvailable: 100.0,
-    ),
-    Ingredient(
-      name: 'Cheese',
-      icon: FontAwesomeIcons.cheese,
-      price: 200,
-      category: 'Dairy',
-      nutritionalValue: {'Calories': '402', 'Protein': '25g'},
-      quantityAvailable: 5.0,
-    ),
-    Ingredient(
-      name: 'Yogurt',
-      icon: FontAwesomeIcons.bowlFood,
-      price: 70,
-      category: 'Dairy',
-      nutritionalValue: {'Calories': '59', 'Protein': '10g'},
-      quantityAvailable: 20.0,
-    ),
-    Ingredient(
-      name: 'Butter',
-      icon: FontAwesomeIcons.solidHand,
-      price: 150,
-      category: 'Dairy',
-      nutritionalValue: {'Calories': '717', 'Protein': '0.9g'},
-      quantityAvailable: 3.0,
-    ),
-    Ingredient(
-      name: 'Cream',
-      icon: FontAwesomeIcons.solidHand,
-      price: 180,
-      category: 'Dairy',
-      nutritionalValue: {'Calories': '205', 'Protein': '2.1g'},
-      quantityAvailable: 5.0,
-    ),
-    Ingredient(
-      name: 'Paneer',
-      icon: FontAwesomeIcons.cube,
-      price: 220,
-      category: 'Dairy',
-      nutritionalValue: {'Calories': '265', 'Protein': '18g'},
-      quantityAvailable: 15.0,
-    ),
-    Ingredient(
-      name: 'Ghee',
-      icon: FontAwesomeIcons.solidHand,
-      price: 300,
-      category: 'Dairy',
-      nutritionalValue: {'Calories': '900', 'Protein': '0g'},
-      quantityAvailable: 2.0,
-    ),
-    Ingredient(
-      name: 'Buttermilk',
-      icon: FontAwesomeIcons.mugHot,
-      price: 40,
-      category: 'Dairy',
-      nutritionalValue: {'Calories': '40', 'Protein': '3.3g'},
-      quantityAvailable: 10.0,
-    ),
-    Ingredient(
-      name: 'Sour Cream',
-      icon: FontAwesomeIcons.solidHand,
-      price: 160,
-      category: 'Dairy',
-      nutritionalValue: {'Calories': '198', 'Protein': '2.4g'},
-      quantityAvailable: 1.0,
-    ),
-    Ingredient(
-      name: 'Cottage Cheese',
-      icon: FontAwesomeIcons.cheese,
-      price: 180,
-      category: 'Dairy',
-      nutritionalValue: {'Calories': '98', 'Protein': '11g'},
-      quantityAvailable: 8.0,
-    ),
-
-    // Spices
-    Ingredient(
-      name: 'Turmeric',
-      icon: FontAwesomeIcons.mortarPestle,
-      price: 50,
-      category: 'Spices',
-      nutritionalValue: {'Calories': '354', 'Protein': '8g'},
-      quantityAvailable: 1.0,
-    ),
-    Ingredient(
-      name: 'Cumin',
-      icon: FontAwesomeIcons.mortarPestle,
-      price: 70,
-      category: 'Spices',
-      nutritionalValue: {'Calories': '375', 'Protein': '18g'},
-      quantityAvailable: 0.8,
-    ),
-    Ingredient(
-      name: 'Coriander',
-      icon: FontAwesomeIcons.mortarPestle,
-      price: 60,
-      category: 'Spices',
-      nutritionalValue: {'Calories': '298', 'Protein': '12g'},
-      quantityAvailable: 1.2,
-    ),
-    Ingredient(
-      name: 'Chili Powder',
-      icon: FontAwesomeIcons.pepperHot,
-      price: 80,
-      category: 'Spices',
-      nutritionalValue: {'Calories': '282', 'Protein': '13g'},
-      quantityAvailable: 0.5,
-    ),
-    Ingredient(
-      name: 'Ginger',
-      icon: FontAwesomeIcons.mortarPestle,
-      price: 40,
-      category: 'Spices',
-      nutritionalValue: {'Calories': '80', 'Protein': '1.8g'},
-      quantityAvailable: 2.5,
-    ),
-    Ingredient(
-      name: 'Cinnamon',
-      icon: FontAwesomeIcons.mortarPestle,
-      price: 100,
-      category: 'Spices',
-      nutritionalValue: {'Calories': '247', 'Protein': '4g'},
-      quantityAvailable: 0.3,
-    ),
-    Ingredient(
-      name: 'Cloves',
-      icon: FontAwesomeIcons.mortarPestle,
-      price: 120,
-      category: 'Spices',
-      nutritionalValue: {'Calories': '274', 'Protein': '6g'},
-      quantityAvailable: 0.1,
-    ),
-    Ingredient(
-      name: 'Cardamom',
-      icon: FontAwesomeIcons.mortarPestle,
-      price: 200,
-      category: 'Spices',
-      nutritionalValue: {'Calories': '311', 'Protein': '11g'},
-      quantityAvailable: 0.2,
-    ),
-    Ingredient(
-      name: 'Black Pepper',
-      icon: FontAwesomeIcons.mortarPestle,
-      price: 90,
-      category: 'Spices',
-      nutritionalValue: {'Calories': '251', 'Protein': '10g'},
-      quantityAvailable: 0.4,
-    ),
-    Ingredient(
-      name: 'Mustard Seeds',
-      icon: FontAwesomeIcons.seedling,
-      price: 50,
-      category: 'Spices',
-      nutritionalValue: {'Calories': '508', 'Protein': '26g'},
-      quantityAvailable: 1.5,
-    ),
-  ];
-
-  List<Ingredient> _filteredIngredients = [];
   final TextEditingController _searchController = TextEditingController();
-  Map<String, bool> _expandedCategories = {};
+  final Map<String, bool> _expandedCategories = {};
+  final IngredientService _ingredientService = IngredientService();
+  String _searchQuery = "";
+  bool _isLoading = false;
+  
+  // For user side selection
+  final Map<String, bool> _selectedIngredients = {};
+  
+  // For restaurant side - add new ingredient
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _priceController = TextEditingController();
+  final TextEditingController _caloriesController = TextEditingController();
+  final TextEditingController _proteinController = TextEditingController();
+  final TextEditingController _quantityController = TextEditingController();
+  String _selectedCategory = 'Vegetables';
+  String _selectedUnit = 'kg';
+  String _selectedIcon = 'carrot';
+
+  // Icon mapping
+  IconData _getIconData(String iconName) {
+    final iconMap = <String, IconData>{
+      'bowl_rice': FontAwesomeIcons.bowlRice,
+      'bowl_food': FontAwesomeIcons.bowlFood,
+      'drumstick_bite': FontAwesomeIcons.drumstickBite,
+      'cube': FontAwesomeIcons.cube,
+      'pepper_hot': FontAwesomeIcons.pepperHot,
+      'seedling': FontAwesomeIcons.seedling,
+      'carrot': FontAwesomeIcons.carrot,
+      'leaf': FontAwesomeIcons.leaf,
+      'apple_whole': FontAwesomeIcons.appleWhole,
+      'wheat_awn': FontAwesomeIcons.wheatAwn,
+      'fish': FontAwesomeIcons.fish,
+      'egg': FontAwesomeIcons.egg,
+      'shrimp': FontAwesomeIcons.shrimp,
+      'mug_hot': FontAwesomeIcons.mugHot,
+      'cheese': FontAwesomeIcons.cheese,
+      'mortar_pestle': FontAwesomeIcons.mortarPestle,
+    };
+    return iconMap[iconName] ?? FontAwesomeIcons.seedling;
+  }
 
   @override
   void initState() {
     super.initState();
-    _filteredIngredients = _ingredients;
-    _searchController.addListener(_filterIngredients);
-    _expandedCategories = {
-      for (var category in _ingredients.map((e) => e.category).toSet())
-        category: true,
-    };
-  }
-
-  // Inventory service used to keep the dashboard low-stock list in sync
-  final InventoryService _inventoryService = InventoryService();
-
-  // --- Real-Time Update Logic (Add/Remove) ---
-  void _updateQuantity(Ingredient ingredient, double amount) {
-    setState(() {
-      final index = _ingredients.indexWhere((i) => i.name == ingredient.name);
-
-      if (index != -1) {
-        final currentIngredient = _ingredients[index];
-
-        // Calculate the new quantity, ensuring it doesn't go below zero
-        final newQuantity = (currentIngredient.quantityAvailable + amount)
-            .clamp(0.0, double.infinity);
-
-        // Use copyWith to replace the old Ingredient object with a new one
-        _ingredients[index] = currentIngredient.copyWith(
-          quantityAvailable: newQuantity,
-        );
-
-        _filterIngredients();
-        // Mirror the change to the shared inventory service so the
-        // Low Stock dashboard updates immediately.
-        _inventoryService.updateQuantity(currentIngredient.name, newQuantity);
+    _searchController.addListener(() {
+      setState(() {
+        _searchQuery = _searchController.text.toLowerCase();
+      });
+    });
+    
+    // Initialize selected ingredients for user side
+    if (!widget.isRestaurantSide && widget.initiallySelectedIngredients != null) {
+      for (final ingredient in widget.initiallySelectedIngredients!) {
+        _selectedIngredients[ingredient.id] = true;
       }
-    });
-  }
-
-  void _filterIngredients() {
-    final query = _searchController.text.toLowerCase();
-    setState(() {
-      _filteredIngredients = _ingredients.where((ingredient) {
-        return ingredient.name.toLowerCase().contains(query);
-      }).toList();
-    });
+    }
   }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _nameController.dispose();
+    _priceController.dispose();
+    _caloriesController.dispose();
+    _proteinController.dispose();
+    _quantityController.dispose();
     super.dispose();
   }
 
-  Map<String, List<Ingredient>> _groupIngredientsByCategory(
-    List<Ingredient> ingredients,
+  // Update quantity in Firebase (Restaurant side)
+  Future<void> _updateQuantity(IngredientModel ingredient, double amount) async {
+    try {
+      final newQuantity = (ingredient.quantityAvailable + amount).clamp(0.0, double.infinity);
+      await _ingredientService.updateIngredientQuantity(ingredient.id, newQuantity);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${ingredient.name} quantity updated to ${newQuantity.toStringAsFixed(1)} ${ingredient.unit}'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error updating quantity: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  // Add new ingredient (Restaurant side)
+  Future<void> _addNewIngredient() async {
+    if (_nameController.text.isEmpty || _priceController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please fill in name and price'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      final newIngredient = IngredientModel(
+        id: '', // Will be generated by Firestore
+        name: _nameController.text,
+        category: _selectedCategory,
+        price: double.parse(_priceController.text),
+        calories: double.parse(_caloriesController.text.isEmpty ? '0' : _caloriesController.text),
+        protein: double.parse(_proteinController.text.isEmpty ? '0' : _proteinController.text),
+        unit: _selectedUnit,
+        quantityAvailable: double.parse(_quantityController.text.isEmpty ? '0' : _quantityController.text),
+        iconName: _selectedIcon,
+        restaurantId: FirebaseAuth.instance.currentUser!.uid,
+        createdAt: DateTime.now(),
+      );
+
+      await _ingredientService.addIngredient(newIngredient);
+      
+      // Clear form
+      _nameController.clear();
+      _priceController.clear();
+      _caloriesController.clear();
+      _proteinController.clear();
+      _quantityController.clear();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Ingredient added successfully!')),
+        );
+        Navigator.of(context).pop(); // Close dialog
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error adding ingredient: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  // Show add ingredient dialog (Restaurant side)
+  void _showAddIngredientDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            title: Text(
+              'Add New Ingredient',
+              style: GoogleFonts.lato(fontWeight: FontWeight.bold),
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: _nameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Ingredient Name',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          value: _selectedCategory,
+                          decoration: const InputDecoration(
+                            labelText: 'Category',
+                            border: OutlineInputBorder(),
+                          ),
+                          items: const [
+                            DropdownMenuItem(value: 'Vegetables', child: Text('Vegetables')),
+                            DropdownMenuItem(value: 'Fruits', child: Text('Fruits')),
+                            DropdownMenuItem(value: 'Meat', child: Text('Meat')),
+                            DropdownMenuItem(value: 'Dairy', child: Text('Dairy')),
+                            DropdownMenuItem(value: 'Grains', child: Text('Grains')),
+                            DropdownMenuItem(value: 'Spices', child: Text('Spices')),
+                            DropdownMenuItem(value: 'Seafood', child: Text('Seafood')),
+                            DropdownMenuItem(value: 'Others', child: Text('Others')),
+                          ],
+                          onChanged: (value) {
+                            setDialogState(() {
+                              _selectedCategory = value!;
+                            });
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          value: _selectedUnit,
+                          decoration: const InputDecoration(
+                            labelText: 'Unit',
+                            border: OutlineInputBorder(),
+                          ),
+                          items: const [
+                            DropdownMenuItem(value: 'kg', child: Text('kg')),
+                            DropdownMenuItem(value: 'g', child: Text('g')),
+                            DropdownMenuItem(value: 'lb', child: Text('lb')),
+                            DropdownMenuItem(value: 'piece', child: Text('piece')),
+                            DropdownMenuItem(value: 'bunch', child: Text('bunch')),
+                            DropdownMenuItem(value: 'liter', child: Text('liter')),
+                            DropdownMenuItem(value: 'ml', child: Text('ml')),
+                          ],
+                          onChanged: (value) {
+                            setDialogState(() {
+                              _selectedUnit = value!;
+                            });
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _priceController,
+                    decoration: const InputDecoration(
+                      labelText: 'Price per unit',
+                      border: OutlineInputBorder(),
+                      prefixText: '₹',
+                    ),
+                    keyboardType: TextInputType.number,
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _caloriesController,
+                          decoration: const InputDecoration(
+                            labelText: 'Calories',
+                            border: OutlineInputBorder(),
+                            suffixText: 'kcal',
+                          ),
+                          keyboardType: TextInputType.number,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: _proteinController,
+                          decoration: const InputDecoration(
+                            labelText: 'Protein',
+                            border: OutlineInputBorder(),
+                            suffixText: 'g',
+                          ),
+                          keyboardType: TextInputType.number,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _quantityController,
+                    decoration: const InputDecoration(
+                      labelText: 'Initial Quantity',
+                      border: OutlineInputBorder(),
+                    ),
+                    keyboardType: TextInputType.number,
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    value: _selectedIcon,
+                    decoration: const InputDecoration(
+                      labelText: 'Icon',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: const [
+                      DropdownMenuItem(value: 'carrot', child: Text('Carrot')),
+                      DropdownMenuItem(value: 'apple_whole', child: Text('Apple')),
+                      DropdownMenuItem(value: 'drumstick_bite', child: Text('Meat')),
+                      DropdownMenuItem(value: 'fish', child: Text('Fish')),
+                      DropdownMenuItem(value: 'egg', child: Text('Egg')),
+                      DropdownMenuItem(value: 'cheese', child: Text('Cheese')),
+                      DropdownMenuItem(value: 'wheat_awn', child: Text('Grain')),
+                      DropdownMenuItem(value: 'pepper_hot', child: Text('Spice')),
+                      DropdownMenuItem(value: 'bowl_rice', child: Text('Rice')),
+                      DropdownMenuItem(value: 'mug_hot', child: Text('Liquid')),
+                    ],
+                    onChanged: (value) {
+                      setDialogState(() {
+                        _selectedIcon = value!;
+                      });
+                    },
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: _isLoading ? null : _addNewIngredient,
+                child: _isLoading 
+                    ? const SizedBox(
+                        height: 16,
+                        width: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('Add Ingredient'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  // Toggle ingredient selection (User side)
+  void _toggleIngredientSelection(IngredientModel ingredient) {
+    setState(() {
+      if (_selectedIngredients.containsKey(ingredient.id)) {
+        _selectedIngredients.remove(ingredient.id);
+      } else {
+        _selectedIngredients[ingredient.id] = true;
+      }
+    });
+  }
+
+  // Get selected ingredients (User side)
+  List<IngredientModel> _getSelectedIngredients(List<IngredientModel> allIngredients) {
+    return allIngredients.where((ingredient) => _selectedIngredients.containsKey(ingredient.id)).toList();
+  }
+
+  // Confirm selection (User side)
+  void _confirmSelection(List<IngredientModel> allIngredients) {
+    final selected = _getSelectedIngredients(allIngredients);
+    if (widget.onIngredientsSelected != null) {
+      widget.onIngredientsSelected!(selected);
+    }
+    Navigator.of(context).pop(selected);
+  }
+
+  // Seed default ingredients (run once)
+  Future<void> _seedIngredients() async {
+    setState(() => _isLoading = true);
+    try {
+      await _ingredientService.seedDefaultIngredients();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Default ingredients added successfully!')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error seeding ingredients: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Map<String, List<IngredientModel>> _groupIngredientsByCategory(
+    List<IngredientModel> ingredients,
   ) {
-    final Map<String, List<Ingredient>> grouped = {};
+    final Map<String, List<IngredientModel>> grouped = {};
     for (final ingredient in ingredients) {
       if (!grouped.containsKey(ingredient.category)) {
         grouped[ingredient.category] = [];
@@ -783,12 +414,10 @@ class _IngredientPageState extends State<IngredientPage> {
     return grouped;
   }
 
-  // --- Widget to display availability and quantity controls ---
-  Widget _buildInventoryControls(Ingredient ingredient) {
+  Widget _buildInventoryControls(IngredientModel ingredient) {
     Color statusColor;
     String statusText;
 
-    // Determine status based on quantity
     if (ingredient.quantityAvailable <= 0.1) {
       statusColor = Colors.red;
       statusText = 'OUT OF STOCK';
@@ -803,7 +432,6 @@ class _IngredientPageState extends State<IngredientPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Availability Status and Quantity Available
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -823,9 +451,8 @@ class _IngredientPageState extends State<IngredientPage> {
                 ),
               ),
             ),
-
             Text(
-              'Qty: ${ingredient.quantityAvailable.toStringAsFixed(1)} kg/L',
+              'Qty: ${ingredient.quantityAvailable.toStringAsFixed(1)} ${ingredient.unit}',
               style: GoogleFonts.lato(
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
@@ -835,28 +462,26 @@ class _IngredientPageState extends State<IngredientPage> {
           ],
         ),
         const SizedBox(height: 8),
-
-        // Add/Remove Buttons
         Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            // Remove Quantity
             IconButton(
-              icon: const Icon(
-                Icons.remove_circle_outline,
-                color: Colors.redAccent,
-              ),
+              icon: const Icon(Icons.remove_circle_outline, color: Colors.redAccent),
               iconSize: 20,
               onPressed: () => _updateQuantity(ingredient, -1.0),
-              tooltip: 'Remove 1 kg/L',
+              tooltip: 'Remove 1 unit',
             ),
-
-            // Add Quantity
             IconButton(
               icon: const Icon(Icons.add_circle_outline, color: Colors.green),
               iconSize: 20,
               onPressed: () => _updateQuantity(ingredient, 1.0),
-              tooltip: 'Add 1 kg/L',
+              tooltip: 'Add 1 unit',
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete_outline, color: Colors.grey),
+              iconSize: 20,
+              onPressed: () => _showDeleteConfirmation(ingredient),
+              tooltip: 'Delete ingredient',
             ),
           ],
         ),
@@ -864,21 +489,136 @@ class _IngredientPageState extends State<IngredientPage> {
     );
   }
 
+  void _showDeleteConfirmation(IngredientModel ingredient) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Ingredient'),
+        content: Text('Are you sure you want to delete ${ingredient.name}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _deleteIngredient(ingredient);
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _deleteIngredient(IngredientModel ingredient) async {
+    try {
+      await _ingredientService.deleteIngredient(ingredient.id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${ingredient.name} deleted successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error deleting ingredient: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Widget _buildUserSideControls(IngredientModel ingredient) {
+    final isSelected = _selectedIngredients.containsKey(ingredient.id);
+    final isOutOfStock = ingredient.quantityAvailable <= 0.1;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: isOutOfStock ? Colors.red.withOpacity(0.1) : Colors.green.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(
+                  color: isOutOfStock ? Colors.red : Colors.green,
+                  width: 0.5,
+                ),
+              ),
+              child: Text(
+                isOutOfStock ? 'OUT OF STOCK' : 'AVAILABLE',
+                style: GoogleFonts.lato(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: isOutOfStock ? Colors.red : Colors.green,
+                ),
+              ),
+            ),
+            if (!isOutOfStock)
+              IconButton(
+                icon: Icon(
+                  isSelected ? Icons.check_circle : Icons.radio_button_unchecked,
+                  color: isSelected ? Colors.green : Colors.grey,
+                ),
+                onPressed: () => _toggleIngredientSelection(ingredient),
+                tooltip: isSelected ? 'Deselect' : 'Select',
+              ),
+          ],
+        ),
+        if (isOutOfStock)
+          Padding(
+            padding: const EdgeInsets.only(top: 8.0),
+            child: Text(
+              'Currently unavailable',
+              style: GoogleFonts.lato(
+                fontSize: 12,
+                color: Colors.red,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final groupedIngredients = _groupIngredientsByCategory(
-      _filteredIngredients,
-    );
-
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Dynamic Food Inventory',
+          widget.isRestaurantSide ? 'Inventory Management' : 'Customize Ingredients',
           style: GoogleFonts.lato(fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
-        backgroundColor: Theme.of(context).primaryColor,
-        foregroundColor: Colors.white,
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        foregroundColor: Theme.of(context).colorScheme.onPrimary,
+        actions: [
+          if (widget.isRestaurantSide) ...[
+            // Add new ingredient button
+            IconButton(
+              icon: const Icon(Icons.add),
+              onPressed: _showAddIngredientDialog,
+              tooltip: 'Add New Ingredient',
+            ),
+            // Seed button (for initial setup)
+            IconButton(
+              icon: const Icon(Icons.download),
+              onPressed: _seedIngredients,
+              tooltip: 'Load Default Ingredients',
+            ),
+          ],
+        ],
       ),
       body: Column(
         children: [
@@ -900,143 +640,261 @@ class _IngredientPageState extends State<IngredientPage> {
               ),
             ),
           ),
-          // Ingredient List
-          Expanded(
-            child: ListView.builder(
-              itemCount: groupedIngredients.keys.length,
-              itemBuilder: (context, index) {
-                final category = groupedIngredients.keys.elementAt(index);
-                final ingredients = groupedIngredients[category]!;
 
-                if (ingredients.isEmpty && _searchController.text.isNotEmpty) {
-                  return const SizedBox.shrink();
-                }
-
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 8.0),
-                  child: ExpansionTile(
-                    key: PageStorageKey(category),
-                    title: Text(
-                      category,
-                      style: GoogleFonts.lato(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).primaryColor,
-                      ),
-                    ),
-                    initiallyExpanded: _expandedCategories[category] ?? true,
-                    onExpansionChanged: (isExpanded) {
-                      setState(() {
-                        _expandedCategories[category] = isExpanded;
-                      });
-                    },
-                    children: ingredients.map((ingredient) {
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                        child: Card(
-                          margin: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          elevation: 2,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                ListTile(
-                                  contentPadding: EdgeInsets.zero,
-                                  leading: FaIcon(
-                                    ingredient.icon,
-                                    color: Colors.green,
-                                  ),
-                                  title: Text(
-                                    ingredient.name,
-                                    style: GoogleFonts.lato(
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  subtitle: Text(
-                                    // Display nutritional values
-                                    '${ingredient.nutritionalValue.entries.map((e) => '${e.key}: ${e.value}').join(' | ')}',
-                                    style: GoogleFonts.lato(
-                                      fontSize: 12,
-                                      color: Colors.grey[600],
-                                    ),
-                                  ),
-                                  trailing: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    crossAxisAlignment: CrossAxisAlignment.end,
-                                    children: [
-                                      Text(
-                                        // Display the calculated price per 100g
-                                        '₹${ingredient.pricePer100g.toStringAsFixed(2)}',
-                                        style: GoogleFonts.lato(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 16,
-                                          color: Colors.redAccent,
-                                        ),
-                                      ),
-                                      Text(
-                                        '/ 100g', // Unit of measure
-                                        style: GoogleFonts.lato(
-                                          fontSize: 10,
-                                          color: Colors.grey,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const Divider(
-                                  height: 1,
-                                  indent: 16,
-                                  endIndent: 16,
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 16.0,
-                                    vertical: 8.0,
-                                  ),
-                                  child: _buildInventoryControls(ingredient),
-                                ),
-                              ],
-                            ),
+          // Selected ingredients count (User side)
+          if (!widget.isRestaurantSide && widget.onIngredientsSelected != null)
+            StreamBuilder<List<IngredientModel>>(
+              stream: _ingredientService.getRestaurantIngredients(),
+              builder: (context, snapshot) {
+                if (snapshot.hasData) {
+                  final selectedCount = _getSelectedIngredients(snapshot.data!).length;
+                  return Container(
+                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                    color: Colors.blue.withOpacity(0.1),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '$selectedCount ingredients selected',
+                          style: GoogleFonts.lato(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue,
                           ),
                         ),
-                      );
-                    }).toList(),
-                  ),
+                        ElevatedButton.icon(
+                          onPressed: () => _confirmSelection(snapshot.data!),
+                          icon: const Icon(Icons.check),
+                          label: const Text('Confirm'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            foregroundColor: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+                return const SizedBox();
+              },
+            ),
+
+          // Ingredient List (Real-time Stream)
+          Expanded(
+            child: StreamBuilder<List<IngredientModel>>(
+              stream: _ingredientService.getRestaurantIngredients(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: CircularProgressIndicator(),
+                  );
+                }
+
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Error loading ingredients',
+                          style: GoogleFonts.lato(fontSize: 16),
+                        ),
+                        Text(
+                          '${snapshot.error}',
+                          style: const TextStyle(color: Colors.red),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 16),
+                        if (widget.isRestaurantSide)
+                          ElevatedButton(
+                            onPressed: _seedIngredients,
+                            child: const Text('Load Default Ingredients'),
+                          ),
+                      ],
+                    ),
+                  );
+                }
+
+                if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.inventory_2_outlined, size: 64, color: Colors.grey),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No ingredients found',
+                          style: GoogleFonts.lato(
+                            fontSize: 18, 
+                            fontWeight: FontWeight.bold
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        if (widget.isRestaurantSide) ...[
+                          const Text('Click the download button to load defaults'),
+                          const SizedBox(height: 24),
+                          ElevatedButton.icon(
+                            onPressed: _seedIngredients,
+                            icon: const Icon(Icons.download),
+                            label: const Text('Load Default Ingredients'),
+                          ),
+                        ] else
+                          const Text('No ingredients available for customization'),
+                      ],
+                    ),
+                  );
+                }
+
+                // Filter ingredients based on search
+                final allIngredients = snapshot.data!;
+                final filteredIngredients = allIngredients.where((ingredient) {
+                  return ingredient.name.toLowerCase().contains(_searchQuery);
+                }).toList();
+
+                if (filteredIngredients.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.search_off, size: 64, color: Colors.grey),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No ingredients match "$_searchQuery"',
+                          style: GoogleFonts.lato(fontSize: 16),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                final groupedIngredients = _groupIngredientsByCategory(filteredIngredients);
+
+                // Get sorted categories for consistent ordering
+                final sortedCategories = groupedIngredients.keys.toList()..sort();
+
+                // Initialize expansion states for new categories
+                for (final category in sortedCategories) {
+                  _expandedCategories.putIfAbsent(category, () => true);
+                }
+
+                return ListView.builder(
+                  itemCount: sortedCategories.length,
+                  itemBuilder: (context, index) {
+                    final category = sortedCategories[index];
+                    final ingredients = groupedIngredients[category]!;
+
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8.0),
+                      child: ExpansionTile(
+                        key: PageStorageKey(category),
+                        title: Text(
+                          category,
+                          style: GoogleFonts.lato(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                        ),
+                        subtitle: Text(
+                          '${ingredients.length} items',
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                        initiallyExpanded: _expandedCategories[category] ?? true,
+                        onExpansionChanged: (isExpanded) {
+                          setState(() {
+                            _expandedCategories[category] = isExpanded;
+                          });
+                        },
+                        children: ingredients.map((ingredient) {
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                            child: Card(
+                              margin: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              elevation: 2,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.all(12.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    ListTile(
+                                      contentPadding: EdgeInsets.zero,
+                                      leading: FaIcon(
+                                        _getIconData(ingredient.iconName),
+                                        color: widget.isRestaurantSide 
+                                            ? Colors.green
+                                            : (_selectedIngredients.containsKey(ingredient.id) 
+                                                ? Colors.green 
+                                                : Colors.grey),
+                                        size: 24,
+                                      ),
+                                      title: Text(
+                                        ingredient.name,
+                                        style: GoogleFonts.lato(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                      subtitle: Text(
+                                        '${ingredient.calories} kcal | ${ingredient.protein}g protein',
+                                        style: GoogleFonts.lato(
+                                          fontSize: 12,
+                                          color: Colors.grey[600],
+                                        ),
+                                      ),
+                                      trailing: Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        crossAxisAlignment: CrossAxisAlignment.end,
+                                        children: [
+                                          Text(
+                                            '₹${ingredient.price.toStringAsFixed(2)}',
+                                            style: GoogleFonts.lato(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16,
+                                              color: Colors.redAccent,
+                                            ),
+                                          ),
+                                          Text(
+                                            'per ${ingredient.unit}',
+                                            style: GoogleFonts.lato(
+                                              fontSize: 10,
+                                              color: Colors.grey,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const Divider(height: 1, indent: 16, endIndent: 16),
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 16.0,
+                                        vertical: 8.0,
+                                      ),
+                                      child: widget.isRestaurantSide
+                                          ? _buildInventoryControls(ingredient)
+                                          : _buildUserSideControls(ingredient),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    );
+                  },
                 );
               },
             ),
           ),
         ],
       ),
-    );
-  }
-}
-
-// --- 3. Main Application Runner ---
-void main() {
-  runApp(const MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Food Inventory App',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        fontFamily: GoogleFonts.lato().fontFamily,
-        useMaterial3: true,
-      ),
-      home: const IngredientPage(),
     );
   }
 }
