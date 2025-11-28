@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:project/restaurent/dashboard/Dashboard.dart';
 import 'package:project/restaurent/Ingredientpage.dart';
 import 'package:project/restaurent/Orderpage.dart';
-import 'package:project/restaurent/dashboard/menupage.dart';
+import 'package:project/restaurent/dashboard/restaurent_category.dart';
 import 'package:project/restaurent/setting/settingspage.dart';
 
 class restaurent_home_page extends StatefulWidget {
