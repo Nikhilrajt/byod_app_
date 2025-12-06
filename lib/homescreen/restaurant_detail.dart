@@ -328,7 +328,7 @@ class _FoodTileWidget extends StatelessWidget {
                               child: const Text(
                                 'Add',
                                 style: TextStyle(
-                                  color: Colors.white,
+                                  color: Colors.deepOrange,
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
                                 ),
