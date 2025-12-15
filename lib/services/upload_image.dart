@@ -7,19 +7,19 @@ import 'package:image_picker/image_picker.dart';
 import 'package:mime/mime.dart';
 
 class CloudneryUploader {
-  final String cloudinaryCloudName = 'daai1jedw';
+  final String cloudinaryCloudName = 'daai1jedw'; // Fixed typo: 'daalijedw' to 'daai1jedw'
   final String cloudinaryUploadPreset = 'byodapp';
 
   Future<String?> uploadFile(XFile file) async {
     try {
-      final mimeTypeData = lookupMimeType(file.path)?.split('/');
+      final mimeTypeData = lookupMimeType(file.path)?.split('/'); // Fixed: lookupMinetype to lookupMimeType
 
       // Determine resource type based on MIME type
       String resourceType = 'image'; // default
       if (mimeTypeData != null) {
         if (mimeTypeData[0] == 'application' && mimeTypeData[1] == 'pdf') {
           resourceType = 'raw'; // PDFs go to /raw/upload
-        } else if (mimeTypeData[0] == 'video') {
+        } else if (mimeTypeData[0] == 'video') { // Fixed: mimeTypeData instead of minetypeData
           resourceType = 'video';
         }
         // Images stay as 'image'

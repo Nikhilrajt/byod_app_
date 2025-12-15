@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:dotted_border/dotted_border.dart';
 
-void main() => runApp(const MyApp());
+// void main() => runApp(const MyApp());
 
 // ================= APP =================
 class MyApp extends StatelessWidget {

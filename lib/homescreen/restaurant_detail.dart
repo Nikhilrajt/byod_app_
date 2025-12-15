@@ -293,7 +293,7 @@ class _FoodTileWidget extends StatelessWidget {
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
-                              color: Colors.deepOrange,
+                              color: Color.fromARGB(255, 94, 64, 134),
                             ),
                           ),
                           SizedBox(
@@ -328,9 +328,9 @@ class _FoodTileWidget extends StatelessWidget {
                               child: const Text(
                                 'Add',
                                 style: TextStyle(
-                                  color: Colors.white,
+                                  color: Colors.deepOrange,
                                   fontSize: 12,
-                                  fontWeight: FontWeight.w700,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
                             ),
