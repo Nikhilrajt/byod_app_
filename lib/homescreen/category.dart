@@ -2,29 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+// Import your existing state and models
 import '../state/health_mode_notifier.dart';
 import '../state/cart_notifier.dart';
 import '../customization_page.dart';
 import '../models/category_models.dart';
 import '../homescreen/cart.dart';
-
-// ---------------------------------------------------
-// CART EXTENSIONS (Keep same behavior)
-// ---------------------------------------------------
-
-extension CartNotifierItemCountExtension on CartNotifier {
-  int get itemCount {
-    try {
-      final dynamic items = this.items;
-      if (items is Iterable) return items.length;
-    } catch (_) {}
-    return 0;
-  }
-}
-
-// ---------------------------------------------------
-// CATEGORY PAGE
-// ---------------------------------------------------
 
 class CategoryPage extends StatefulWidget {
   final String categoryName;
@@ -42,8 +25,6 @@ class CategoryPage extends StatefulWidget {
 
 class _CategoryPageState extends State<CategoryPage> {
   String _currentCategoryId = "";
-  String? _selectedRestaurantId;
-  String? _selectedRestaurantName;
 
   @override
   void initState() {
@@ -52,158 +33,105 @@ class _CategoryPageState extends State<CategoryPage> {
   }
 
   // ---------------------------------------------------
-  // FETCH RESTAURANTS FROM USERS COLLECTION (role: "restaurant")
   // ---------------------------------------------------
-  Stream<List<Map<String, dynamic>>> fetchRestaurantsForCategory(
-    String categoryId,
-  ) {
-    // First, get all restaurants with role: "restaurant"
-    final restaurantsQuery = FirebaseFirestore.instance
-        .collection("users")
-        .where("role", isEqualTo: "restaurant")
-        .where("isActive", isEqualTo: true);
-
-    return restaurantsQuery.snapshots().asyncMap((snap) async {
-      final validRestaurants = <Map<String, dynamic>>[];
-
-      for (final doc in snap.docs) {
-        final restaurantData = doc.data() as Map<String, dynamic>;
-        final restaurantId = doc.id;
-        final restaurantName = restaurantData["fullName"] ?? "Restaurant";
-
-        // Check if this restaurant has items in the selected category
-        bool hasItemsInCategory = false;
-
-        if (categoryId == "all") {
-          // Check if restaurant has any items in any category
-          final itemsQuery = await FirebaseFirestore.instance
-              .collectionGroup("items")
-              .where("restaurantId", isEqualTo: restaurantId)
-              .limit(1)
-              .get();
-
-          hasItemsInCategory = itemsQuery.docs.isNotEmpty;
-        } else {
-          // Check if restaurant has items in specific category
-          final itemsQuery = await FirebaseFirestore.instance
-              .collection("categories")
-              .doc(categoryId)
-              .collection("items")
-              .where("restaurantId", isEqualTo: restaurantId)
-              .limit(1)
-              .get();
-
-          hasItemsInCategory = itemsQuery.docs.isNotEmpty;
-        }
-
-        if (hasItemsInCategory) {
-          validRestaurants.add({
-            "id": restaurantId,
-            "name": restaurantName,
-            "image":
-                restaurantData["imageUrl"] ?? restaurantData["langedit1"] ?? "",
-            "address": restaurantData["address"] ?? "",
-            "email": restaurantData["email"] ?? "",
-            "phoneNumber": restaurantData["phoneNumber"] ?? "",
-          });
-        }
-      }
-
-      return validRestaurants;
-    });
-  }
-
   // ---------------------------------------------------
-  // FETCH ITEMS FOR SELECTED RESTAURANT AND CATEGORY
+  // 1. FETCH ALL ITEMS AND PARSE CUSTOMIZATIONS
   // ---------------------------------------------------
-  Stream<List<CategoryItem>> fetchItemsByRestaurant(
-    String categoryId,
-    String restaurantId,
-    bool healthMode,
-  ) {
-    Query query;
-
-    if (categoryId == "all") {
-      // Get all items from this specific restaurant
-      query = FirebaseFirestore.instance
-          .collectionGroup("items")
-          .where("restaurantId", isEqualTo: restaurantId);
-    } else {
-      // Get items from specific category and restaurant
-      query = FirebaseFirestore.instance
-          .collection("categories")
-          .doc(categoryId)
-          .collection("items")
-          .where("restaurantId", isEqualTo: restaurantId);
-    }
+  Stream<List<CategoryItem>> fetchCategoryItems(String categoryId, bool healthMode) {
+    Query query = FirebaseFirestore.instance
+        .collection("categories")
+        .doc(categoryId)
+        .collection("items");
 
     if (healthMode) {
       query = query.where("isHealthy", isEqualTo: true);
     }
 
     return query.snapshots().asyncMap((snap) async {
-      // Get restaurant name for the items
-      final restaurantDoc = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(restaurantId)
-          .get();
+      List<CategoryItem> items = [];
 
-      final restaurantName = restaurantDoc.exists
-          ? restaurantDoc["fullName"] ?? "Restaurant"
-          : "Restaurant";
-
-      return snap.docs.map((doc) {
+      for (var doc in snap.docs) {
         final data = doc.data() as Map<String, dynamic>;
-        return CategoryItem(
-          data["name"] ?? "",
+        String restaurantName = data["restaurantName"] ?? "Unknown Restaurant";
+        num price = data["price"] ?? 0;
+
+        // ⭐ PARSE CUSTOMIZATIONS HERE
+        List<CustomizationStep> parsedSteps = [];
+        
+        if (data['variantGroups'] != null) {
+          var rawGroups = data['variantGroups'] as List;
+          
+          for (var group in rawGroups) {
+            // Check if this group is excluded by Health Mode
+            bool groupIsHealthy = group['isHealthy'] ?? false;
+            // If health mode is ON, and group is NOT healthy, skip it? 
+            // Or usually, we just show healthy options. 
+            // For now, let's map everything.
+
+            var rawOptions = group['options'] as List;
+            List<CustomizationOption> parsedOptions = rawOptions.map((opt) {
+              return CustomizationOption(
+                opt['name'] ?? '', 
+                (opt['priceModifier'] ?? 0).toInt()
+              );
+            }).toList();
+
+            bool isMultiple = group['allowMultiple'] ?? false;
+            bool isRequired = group['isRequired'] ?? false;
+
+            if (isMultiple) {
+              parsedSteps.add(CustomizationStep.multipleChoice(
+                group['name'] ?? 'Options', 
+                parsedOptions,
+                isRequired: isRequired
+              ));
+            } else {
+              parsedSteps.add(CustomizationStep.singleChoice(
+                group['name'] ?? 'Options', 
+                parsedOptions,
+                isRequired: isRequired
+              ));
+            }
+          }
+        }
+
+        items.add(CategoryItem(
+          data["name"] ?? "Unknown",
           data["imageUrl"] ?? "",
-          data["price"] ?? 0,
+          price,
           double.tryParse(data["rating"]?.toString() ?? "4.5") ?? 4.5,
-          restaurantId,
-          restaurantName, // Use actual restaurant name
-          data["categoryKey"],
-          data["description"] ?? "",
-          data["isAvailable"] ?? true,
-          data["isCustomizable"] ?? false,
-          data["isHealthy"] ?? false,
-        );
-      }).toList();
+          data["restaurantId"] ?? "",
+          restaurantName,
+          categoryKey: categoryId,
+          description: data["description"] ?? "",
+          isAvailable: data["isAvailable"] ?? true,
+          isCustomizable: data["isCustomizable"] ?? false,
+          isHealthy: data["isHealthy"] ?? false,
+          customizationSteps: parsedSteps, // ⭐ PASS THE PARSED STEPS
+        ));
+      }
+      return items;
     });
   }
 
   // ---------------------------------------------------
-  // CUSTOMIZATION TEMPLATE HANDLER
+  // 2. LOGIC TO ADD TO CART / CUSTOMIZE
   // ---------------------------------------------------
-
-  final Map<String, List<CustomizationStep>> templates = {
-    // (Your template data remains unchanged)
-  };
-
-  List<CustomizationStep>? _lookupTemplate(CategoryItem item) {
-    return templates[item.categoryKey];
-  }
-
-  void _openCustomization(CategoryItem item) {
-    final t = _lookupTemplate(item);
-    if (t == null || t.isEmpty) return;
-
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => CustomizationPage(customizableItem: item, template: t),
-      ),
-    );
-  }
-
-  // ---------------------------------------------------
-  // ADD TO CART
-  // ---------------------------------------------------
-
+  // (Assuming you have your template logic here, simplified for brevity)
   void _addToCart(CategoryItem item, CartNotifier cart) {
-    if (_lookupTemplate(item) != null) {
+    // If you have customization logic:
+    if (item.isCustomizable) {
+      // Navigate to customization or show dialog
+      // For now, adding directly or showing basic dialog
       _showAddOptionsDialog(item, cart);
     } else {
       cart.addItem(item.toCartItem());
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("${item.name} added to cart"),
+          duration: Duration(milliseconds: 500),
+        ),
+      );
     }
   }
 
@@ -214,302 +142,209 @@ class _CategoryPageState extends State<CategoryPage> {
         title: Text(item.name),
         content: Text("From: ${item.restaurantName}"),
         actions: [
+          // Option 1: Quick Add (Base Price)
           TextButton(
             onPressed: () {
-              cart.addItem(item.toCartItem());
-              Navigator.pop(context);
-            },
-            child: Text("Quick Add"),
+               cart.addItem(item.toCartItem());
+               Navigator.pop(context);
+               ScaffoldMessenger.of(context).showSnackBar(
+                 SnackBar(content: Text("${item.name} added to cart"))
+               );
+            }, 
+            child: const Text("Quick Add (Base)"),
           ),
-          if (item.isCustomizable)
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-                _openCustomization(item);
-              },
-              child: Text("Customize"),
-            ),
+          
+          // Option 2: Customize
+          // ⭐ THIS IS THE FIX
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.deepOrange),
+            onPressed: () {
+              Navigator.pop(context); // Close dialog first
+              
+              if (item.customizationSteps != null && item.customizationSteps!.isNotEmpty) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => CustomizationPage(
+                      customizableItem: item, 
+                      template: item.customizationSteps! // Pass the data we parsed
+                    ),
+                  ),
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("No customization options available"))
+                );
+              }
+            }, 
+            child: const Text("Customize", style: TextStyle(color: Colors.white)),
+          ),
         ],
       ),
     );
   }
 
   // ---------------------------------------------------
-  // RESTAURANT CARD UI
+  // 3. UI: RESTAURANT HEADER
   // ---------------------------------------------------
-
-  Widget _buildRestaurantCard(Map<String, dynamic> restaurant) {
-    return Card(
-      margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-      elevation: 2,
-      child: InkWell(
-        onTap: () {
-          setState(() {
-            _selectedRestaurantId = restaurant["id"];
-            _selectedRestaurantName = restaurant["name"];
-          });
-        },
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: EdgeInsets.all(12),
-          child: Row(
-            children: [
-              // Restaurant Image
-              Container(
-                width: 70,
-                height: 70,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(8),
-                  color: Colors.grey[200],
-                ),
-                child:
-                    restaurant["image"] != null &&
-                        restaurant["image"].isNotEmpty
-                    ? ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.network(
-                          restaurant["image"],
-                          width: 70,
-                          height: 70,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Icon(
-                              Icons.restaurant,
-                              size: 30,
-                              color: Colors.grey[400],
-                            );
-                          },
-                        ),
-                      )
-                    : Icon(Icons.restaurant, size: 30, color: Colors.grey[400]),
-              ),
-
-              SizedBox(width: 12),
-
-              // Restaurant Info
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      restaurant["name"],
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-
-                    SizedBox(height: 4),
-
-                    if (restaurant["address"] != null &&
-                        restaurant["address"].isNotEmpty)
-                      Text(
-                        restaurant["address"],
-                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-
-                    SizedBox(height: 4),
-
-                    Row(
-                      children: [
-                        Icon(Icons.phone, size: 12, color: Colors.grey[600]),
-                        SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            restaurant["phoneNumber"] ?? "No phone",
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[600],
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-
-              Icon(Icons.chevron_right, color: Colors.grey[500]),
-            ],
+  Widget _buildRestaurantHeader(String restaurantName) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 10),
+      child: Row(
+        children: [
+          Icon(Icons.restaurant_menu, color: Colors.deepOrange, size: 20),
+          SizedBox(width: 8),
+          Text(
+            restaurantName,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.deepOrange,
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
 
   // ---------------------------------------------------
-  // ITEM CARD UI
+  // 4. UI: ITEM CARD (Matches Screenshot)
   // ---------------------------------------------------
-
   Widget _buildItemCard(CategoryItem item, CartNotifier cart) {
-    return Card(
-      margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-      elevation: 2,
-      child: Padding(
-        padding: EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 10,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Image
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Image.network(
+              item.imageUrl,
+              width: 100,
+              height: 100,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => Container(
+                width: 100,
+                height: 100,
+                color: Colors.grey[200],
+                child: Icon(Icons.fastfood),
+              ),
+            ),
+          ),
+          SizedBox(width: 16),
+          // Details
+          Expanded(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Item Image
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8),
-                    color: Colors.grey[200],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Image.network(
-                      item.imageUrl,
-                      width: 80,
-                      height: 80,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Icon(
-                          Icons.fastfood,
-                          size: 30,
-                          color: Colors.grey[400],
-                        );
-                      },
-                    ),
-                  ),
-                ),
-
-                SizedBox(width: 12),
-
-                // Item Details
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
                         item.name,
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
-                        maxLines: 2,
+                        maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-
-                      SizedBox(height: 4),
-
-                      if (item.description != null &&
-                          item.description!.isNotEmpty)
-                        Text(
-                          item.description!,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
+                    ),
+                    if (item.isCustomizable)
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
                         ),
-
-                      SizedBox(height: 8),
-
-                      Row(
-                        children: [
-                          // Rating
-                          Row(
-                            children: [
-                              Icon(Icons.star, color: Colors.amber, size: 16),
-                              SizedBox(width: 4),
-                              Text(
-                                item.rating.toStringAsFixed(1),
-                                style: TextStyle(fontSize: 12),
-                              ),
-                            ],
-                          ),
-
-                          SizedBox(width: 12),
-
-                          // Price
-                          Text(
-                            "₹${item.price}",
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.deepOrange,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-
-                          Spacer(),
-
-                          // Health Indicator
-                          if (item.isHealthy)
-                            Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.green[50],
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.favorite,
-                                    size: 12,
-                                    color: Colors.green,
-                                  ),
-                                  SizedBox(width: 4),
-                                  Text(
-                                    "Healthy",
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      color: Colors.green,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                        ],
+                        decoration: BoxDecoration(
+                          color: Colors.green.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(color: Colors.green),
+                        ),
+                        child: Text(
+                          "Customizable",
+                          style: TextStyle(fontSize: 10, color: Colors.green),
+                        ),
                       ),
-                    ],
-                  ),
+                  ],
+                ),
+                SizedBox(height: 4),
+                Text(
+                  "From: ${item.restaurantName}",
+                  style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                ),
+                SizedBox(height: 8),
+                Row(
+                  children: [
+                    Icon(Icons.star, size: 14, color: Colors.amber),
+                    SizedBox(width: 4),
+                    Text(
+                      item.rating.toString(),
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      "₹${item.price}",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.deepOrange,
+                      ),
+                    ),
+                    SizedBox(
+                      height: 32,
+                      child: ElevatedButton(
+                        onPressed: item.isAvailable
+                            ? () => _addToCart(item, cart)
+                            : null,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.deepOrange,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          padding: EdgeInsets.symmetric(horizontal: 16),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.shopping_cart, size: 14),
+                            SizedBox(width: 4),
+                            Text("ADD", style: TextStyle(fontSize: 12)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-
-            SizedBox(height: 12),
-
-            // Add to Cart Button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => _addToCart(item, cart),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.deepOrange,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                ),
-                child: Text("ADD TO CART"),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
-
-  // ---------------------------------------------------
-  // BUILD UI
-  // ---------------------------------------------------
 
   @override
   Widget build(BuildContext context) {
@@ -517,23 +352,15 @@ class _CategoryPageState extends State<CategoryPage> {
     final cart = context.watch<CartNotifier>();
 
     return Scaffold(
+      backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: _selectedRestaurantId != null
-            ? Text(_selectedRestaurantName ?? "Menu")
-            : Text(widget.categoryName),
-        leading: _selectedRestaurantId != null
-            ? IconButton(
-                icon: Icon(Icons.arrow_back),
-                onPressed: () {
-                  setState(() {
-                    _selectedRestaurantId = null;
-                    _selectedRestaurantName = null;
-                  });
-                },
-              )
-            : null,
+        title: Text(widget.categoryName, style: TextStyle(color: Colors.black)),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        iconTheme: IconThemeData(color: Colors.black),
         actions: [
-          // Cart Icon with Badge
+          IconButton(icon: Icon(Icons.search), onPressed: () {}),
+          // Cart Icon
           Stack(
             children: [
               IconButton(
@@ -551,9 +378,9 @@ class _CategoryPageState extends State<CategoryPage> {
                     padding: EdgeInsets.all(2),
                     decoration: BoxDecoration(
                       color: Colors.red,
-                      borderRadius: BorderRadius.circular(10),
+                      shape: BoxShape.circle,
                     ),
-                    constraints: BoxConstraints(minWidth: 18, minHeight: 18),
+                    constraints: BoxConstraints(minWidth: 16, minHeight: 16),
                     child: Text(
                       cart.itemCount.toString(),
                       style: TextStyle(color: Colors.white, fontSize: 10),
@@ -565,284 +392,137 @@ class _CategoryPageState extends State<CategoryPage> {
           ),
         ],
       ),
-
       body: Column(
         children: [
-          // CATEGORY CHIP SELECTOR (only show when not in restaurant view)
-          if (_selectedRestaurantId == null)
-            Container(
-              padding: EdgeInsets.symmetric(vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.grey[50],
-                border: Border(
-                  bottom: BorderSide(color: Colors.grey[200] ?? Colors.grey),
-                ),
-              ),
-              child: StreamBuilder<List<Map<String, dynamic>>>(
-                stream: FirebaseFirestore.instance
-                    .collection("categories")
-                    .snapshots()
-                    .map(
-                      (snap) => snap.docs
-                          .map(
-                            (doc) => {
-                              "id": doc.id,
-                              "name": doc["name"],
-                              "image": doc["imageUrl"] ?? "",
-                            },
-                          )
-                          .toList(),
-                    ),
-                builder: (_, snapshot) {
-                  if (!snapshot.hasData) return SizedBox();
+          // --------------------------------------------
+          // HORIZONTAL CATEGORY CHIPS (Top of Screenshot)
+          // --------------------------------------------
+          Container(
+            height: 60,
+            color: Colors.white,
+            child: StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection("categories")
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) return SizedBox();
+                var docs = snapshot.data!.docs;
 
-                  final cats = snapshot.data!;
-                  // Add "All" option
-                  final allCats = [
-                    {"id": "all", "name": "All"},
-                    ...cats,
-                  ];
+                return ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  itemCount: docs.length,
+                  itemBuilder: (context, index) {
+                    var catData = docs[index].data() as Map<String, dynamic>;
+                    String id = docs[index].id;
+                    String name = catData['name'];
+                    bool isSelected = id == _currentCategoryId;
 
-                  return SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    padding: EdgeInsets.symmetric(horizontal: 16),
-                    child: Row(
-                      children: allCats.map((cat) {
-                        final isSelected = cat["id"] == _currentCategoryId;
-                        return Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 4),
-                          child: ChoiceChip(
-                            label: Text(cat["name"]),
-                            selected: isSelected,
-                            onSelected: (_) {
-                              setState(() {
-                                _currentCategoryId = cat["id"];
-                                _selectedRestaurantId = null;
-                              });
-                            },
-                            backgroundColor: Colors.white,
-                            selectedColor: Colors.deepOrange,
-                            labelStyle: TextStyle(
-                              color: isSelected ? Colors.white : Colors.black87,
-                              fontWeight: FontWeight.w500,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
-                              side: BorderSide(
-                                color: isSelected
-                                    ? Colors.deepOrange
-                                    : Colors.grey[300]!,
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8.0),
+                      child: ActionChip(
+                        label: Text(name),
+                        backgroundColor: isSelected
+                            ? Colors.deepOrange
+                            : Colors.grey[100],
+                        labelStyle: TextStyle(
+                          color: isSelected ? Colors.white : Colors.black,
+                          fontWeight: isSelected
+                              ? FontWeight.bold
+                              : FontWeight.normal,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        side: BorderSide.none,
+                        onPressed: () {
+                          // Normally navigate to new category page or setState
+                          // For now, we just update state if you want to reuse page
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => CategoryPage(
+                                categoryName: name,
+                                categoryId: id,
                               ),
                             ),
-                          ),
-                        );
-                      }).toList(),
+                          );
+                        },
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+
+          // --------------------------------------------
+          // MAIN LIST (Grouped by Restaurant)
+          // --------------------------------------------
+          Expanded(
+            child: StreamBuilder<List<CategoryItem>>(
+              stream: fetchCategoryItems(_currentCategoryId, healthMode),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Center(
+                    child: CircularProgressIndicator(color: Colors.deepOrange),
+                  );
+                }
+
+                if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.fastfood_outlined,
+                          size: 60,
+                          color: Colors.grey[300],
+                        ),
+                        Text(
+                          "No items found in this category",
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                      ],
                     ),
                   );
-                },
-              ),
+                }
+
+                // GROUPING LOGIC
+                final items = snapshot.data!;
+                Map<String, List<CategoryItem>> groupedItems = {};
+
+                for (var item in items) {
+                  if (!groupedItems.containsKey(item.restaurantName)) {
+                    groupedItems[item.restaurantName] = [];
+                  }
+                  groupedItems[item.restaurantName]!.add(item);
+                }
+
+                return ListView.builder(
+                  padding: EdgeInsets.only(bottom: 20),
+                  itemCount: groupedItems.length,
+                  itemBuilder: (context, index) {
+                    String restaurantName = groupedItems.keys.elementAt(index);
+                    List<CategoryItem> restaurantItems =
+                        groupedItems[restaurantName]!;
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildRestaurantHeader(restaurantName),
+                        ...restaurantItems
+                            .map((item) => _buildItemCard(item, cart))
+                            .toList(),
+                      ],
+                    );
+                  },
+                );
+              },
             ),
-
-          // BODY CONTENT
-          Expanded(
-            child: _selectedRestaurantId == null
-                ? StreamBuilder<List<Map<String, dynamic>>>(
-                    stream: fetchRestaurantsForCategory(_currentCategoryId),
-                    builder: (_, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return Center(child: CircularProgressIndicator());
-                      }
-
-                      if (snapshot.hasError) {
-                        return Center(
-                          child: Text(
-                            "Error loading restaurants",
-                            style: TextStyle(color: Colors.red),
-                          ),
-                        );
-                      }
-
-                      if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                        return Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.restaurant,
-                                size: 60,
-                                color: Colors.grey[400],
-                              ),
-                              SizedBox(height: 16),
-                              Text(
-                                "No restaurants available",
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  color: Colors.grey[600],
-                                ),
-                              ),
-                              SizedBox(height: 8),
-                              Text(
-                                "for this category",
-                                style: TextStyle(color: Colors.grey[500]),
-                              ),
-                            ],
-                          ),
-                        );
-                      }
-
-                      final restaurants = snapshot.data!;
-
-                      return RefreshIndicator(
-                        onRefresh: () async {
-                          setState(() {});
-                        },
-                        child: ListView(
-                          children: [
-                            Padding(
-                              padding: EdgeInsets.all(16),
-                              child: Text(
-                                "Available Restaurants",
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                            ...restaurants.map(_buildRestaurantCard).toList(),
-                            SizedBox(height: 20),
-                          ],
-                        ),
-                      );
-                    },
-                  )
-                : StreamBuilder<List<CategoryItem>>(
-                    stream: fetchItemsByRestaurant(
-                      _currentCategoryId,
-                      _selectedRestaurantId!,
-                      healthMode,
-                    ),
-                    builder: (_, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return Center(child: CircularProgressIndicator());
-                      }
-
-                      if (snapshot.hasError) {
-                        return Center(
-                          child: Text(
-                            "Error loading menu",
-                            style: TextStyle(color: Colors.red),
-                          ),
-                        );
-                      }
-
-                      final items = snapshot.data ?? [];
-
-                      if (items.isEmpty) {
-                        return Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.fastfood,
-                                size: 60,
-                                color: Colors.grey[400],
-                              ),
-                              SizedBox(height: 16),
-                              Text(
-                                "No items available",
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  color: Colors.grey[600],
-                                ),
-                              ),
-                              if (healthMode)
-                                Padding(
-                                  padding: EdgeInsets.all(16),
-                                  child: Text(
-                                    "Try turning off Health Mode for more options",
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(color: Colors.grey[500]),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        );
-                      }
-
-                      return RefreshIndicator(
-                        onRefresh: () async {
-                          setState(() {});
-                        },
-                        child: ListView(
-                          children: [
-                            Padding(
-                              padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
-                              child: Text(
-                                "Menu Items",
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                            Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 16),
-                              child: Text(
-                                "${items.length} items found",
-                                style: TextStyle(color: Colors.grey[600]),
-                              ),
-                            ),
-                            SizedBox(height: 8),
-                            ...items
-                                .map((item) => _buildItemCard(item, cart))
-                                .toList(),
-                            SizedBox(height: 20),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
           ),
         ],
       ),
     );
   }
 }
-
-// ---------------------------------------------------
-// UPDATED CATEGORY ITEM MODEL (Add these fields)
-// ---------------------------------------------------
-
-// In your category_models.dart file, update the CategoryItem class:
-
-/*
-class CategoryItem {
-  final String name;
-  final String imageUrl;
-  final int price;
-  final double rating;
-  final String restaurantId;
-  final String restaurantName;
-  final String? categoryKey;
-  final String? description;
-  final bool isAvailable;
-  final bool isCustomizable;
-  final bool isHealthy;
-
-  CategoryItem(
-    this.name,
-    this.imageUrl,
-    this.price,
-    this.rating,
-    this.restaurantId,
-    this.restaurantName, {
-    this.categoryKey,
-    this.description,
-    this.isAvailable = true,
-    this.isCustomizable = false,
-    this.isHealthy = false,
-  });
-
-  // ... rest of your model methods
-}
-*/

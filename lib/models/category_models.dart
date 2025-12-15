@@ -1,9 +1,7 @@
-// lib/models/category_models.dart
-
 class CategoryItem {
   final String name;
   final String imageUrl;
-  final int price;
+  final num price;
   final double rating;
   final String restaurantId;
   final String restaurantName;
@@ -11,7 +9,9 @@ class CategoryItem {
   final bool isCustomizable;
   final bool isHealthy;
   final String? description;
-  final String? categoryKey; // Used for customization template lookup
+  final String? categoryKey;
+
+  final List<CustomizationStep>? customizationSteps;
 
   CategoryItem(
     this.name,
@@ -19,19 +19,23 @@ class CategoryItem {
     this.price,
     this.rating,
     this.restaurantId,
-    this.restaurantName,
+    this.restaurantName, {
+    // ------------------------------------------
+    // CURLY BRACES START HERE (Named Parameters)
+    // ------------------------------------------
     this.categoryKey,
     this.description,
-    this.isAvailable,
-    this.isCustomizable,
-    this.isHealthy,
-  );
+    this.isAvailable = true, // Added default value
+    this.isCustomizable = false, // Added default value
+    this.isHealthy = false, // Added default value
+    this.customizationSteps,
+  });
 
   // Convert to CartItem for non-customizable items
   CartItem toCartItem() {
     return CartItem(
       name: name,
-      price: price,
+      price: price.toInt(),
       imageUrl: imageUrl,
       restaurantName: restaurantName,
     );
@@ -57,7 +61,6 @@ class CartItem {
 
   int get totalPrice => price * quantity;
 
-  // Create a display-friendly summary of customizations
   String get customizationSummary {
     if (customizations == null || customizations!.isEmpty) {
       return '';
@@ -66,9 +69,10 @@ class CartItem {
   }
 }
 
+// Keep your CustomizationStep classes as they were (they looked correct)
 class CustomizationStep {
   final String title;
-  final List<dynamic> options; // Can be String or CustomizationOption
+  final List<dynamic> options;
   final bool isSingleChoice;
   final bool isRequired;
 
@@ -79,7 +83,6 @@ class CustomizationStep {
     this.isRequired = false,
   });
 
-  // Factory for single-choice steps
   factory CustomizationStep.singleChoice(
     String title,
     List<dynamic> options, {
@@ -93,7 +96,6 @@ class CustomizationStep {
     );
   }
 
-  // Factory for multiple-choice steps
   factory CustomizationStep.multipleChoice(
     String title,
     List<dynamic> options, {
