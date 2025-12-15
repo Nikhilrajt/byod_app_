@@ -5,7 +5,12 @@ class CategoryItem {
   final String imageUrl;
   final int price;
   final double rating;
+  final String restaurantId;
   final String restaurantName;
+  final bool isAvailable;
+  final bool isCustomizable;
+  final bool isHealthy;
+  final String? description;
   final String? categoryKey; // Used for customization template lookup
 
   CategoryItem(
@@ -13,9 +18,14 @@ class CategoryItem {
     this.imageUrl,
     this.price,
     this.rating,
-    this.restaurantName, {
+    this.restaurantId,
+    this.restaurantName,
     this.categoryKey,
-  });
+    this.description,
+    this.isAvailable,
+    this.isCustomizable,
+    this.isHealthy,
+  );
 
   // Convert to CartItem for non-customizable items
   CartItem toCartItem() {

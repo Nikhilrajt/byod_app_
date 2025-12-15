@@ -63,6 +63,8 @@ class MenuItem {
   final String? imageUrl;
   final String? nutrition;
   final bool isAvailable;
+  final bool isHealthy; // Add this line
+
   final bool isVeg;
   final String restaurantId;
   final bool isCustomizable; // NEW: Can this item be customized?
@@ -76,6 +78,7 @@ class MenuItem {
     this.imageUrl,
     this.nutrition,
     this.isAvailable = true,
+    this.isHealthy = false, // Add this line
     this.isVeg = true,
     required this.restaurantId,
     this.isCustomizable = false,
@@ -111,7 +114,8 @@ class MenuItem {
       isVeg: map["isVeg"] ?? true,
       restaurantId: map["restaurantId"] ?? "",
       isCustomizable: map["isCustomizable"] ?? false,
-      variantGroups: (map["variantGroups"] as List<dynamic>?)
+      variantGroups:
+          (map["variantGroups"] as List<dynamic>?)
               ?.map((e) => VariantGroup.fromMap(e as Map<String, dynamic>))
               .toList() ??
           [],
@@ -123,6 +127,7 @@ class MenuItem {
 class VariantGroup {
   final String id;
   final String name; // e.g., "Size", "Toppings", "Spice Level"
+  bool isHealthy;
   final bool isRequired; // Must customer select at least one?
   final bool allowMultiple; // Can customer select multiple options?
   final int? minSelection; // Minimum selections required
@@ -136,6 +141,7 @@ class VariantGroup {
     this.allowMultiple = false,
     this.minSelection,
     this.maxSelection,
+    this.isHealthy = false,
     this.options = const [],
   });
 
@@ -147,6 +153,7 @@ class VariantGroup {
       "allowMultiple": allowMultiple,
       "minSelection": minSelection,
       "maxSelection": maxSelection,
+      "isHealthy": isHealthy,
       "options": options.map((e) => e.toMap()).toList(),
     };
   }
@@ -159,7 +166,9 @@ class VariantGroup {
       allowMultiple: map["allowMultiple"] ?? false,
       minSelection: map["minSelection"],
       maxSelection: map["maxSelection"],
-      options: (map["options"] as List<dynamic>?)
+      isHealthy: map["isHealthy"] ?? false,
+      options:
+          (map["options"] as List<dynamic>?)
               ?.map((e) => VariantOption.fromMap(e as Map<String, dynamic>))
               .toList() ??
           [],
@@ -171,7 +180,8 @@ class VariantGroup {
 class VariantOption {
   final String id;
   final String name; // e.g., "Large", "Medium", "Extra Cheese"
-  final double priceModifier; // Additional price (can be 0, positive, or negative)
+  final double
+  priceModifier; // Additional price (can be 0, positive, or negative)
   final bool isAvailable; // Is this option currently available?
 
   VariantOption({

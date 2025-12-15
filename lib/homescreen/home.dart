@@ -19,7 +19,11 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<Widget> _pages = [
     // Index 0: Category (starts empty)
     HomeContent(),
-    CategoryPage(categoryName: ''), // Index 1: Home
+    CategoryPage(
+      categoryName: "All Restaurants",
+      categoryId: "all",
+      // restaurantId: '',
+    ), // Index 1: Home
     RestaurentListScreen(), // Index 2: BYOD tab
     CartScreen(), // Index 3: Cart
     Center(child: ProfileScreen()), // Index 4: Profile
