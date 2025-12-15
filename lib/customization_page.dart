@@ -27,7 +27,7 @@ class _CustomizationPageState extends State<CustomizationPage> {
   void initState() {
     super.initState();
     _selections = {};
-    _totalPrice = widget.customizableItem.price;
+    _totalPrice = widget.customizableItem.price.toInt();
   }
 
   void _updateSelection(int stepIndex, dynamic selection, int additionalPrice) {
