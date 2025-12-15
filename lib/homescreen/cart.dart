@@ -66,7 +66,10 @@ class CartScreen extends StatelessWidget {
                     onPressed: () => Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => CategoryPage(categoryName: ''),
+                        builder: (context) => CategoryPage(categoryName: '',
+                         categoryId: '',
+                        //  restaurantId:'' ,
+                         ),
                       ),
                     ),
                     icon: const Icon(Icons.restaurant_menu),

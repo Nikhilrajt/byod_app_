@@ -270,7 +270,7 @@ class _CategoryItemsPageState extends State<CategoryItemsPage> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => AddItemPage(
+              builder: (context) => AddItemPage(
                 categoryId: widget.categoryId,
                 categoryName: widget.categoryName,
               ),
