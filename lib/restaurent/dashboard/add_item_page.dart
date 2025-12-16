@@ -366,7 +366,7 @@ class _AddItemPageState extends State<AddItemPage> {
         ),
         subtitle: const Text("Enable for Health Mode"),
         value: _isHealthy,
-        activeColor: Colors.white,
+        activeThumbColor: Colors.white,
         activeTrackColor: Colors.green,
         onChanged: (v) => setState(() => _isHealthy = v),
         contentPadding: EdgeInsets.zero,

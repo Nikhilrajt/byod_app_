@@ -66,6 +66,7 @@ class _ConfirmPasswordScreenState extends State<ConfirmPasswordScreen> {
                     if (!passwordRegex.hasMatch(value)) {
                       return 'Password must be at least 8 characters,\ninclude upper & lower case, number, and special character';
                     }
+                    return null;
                   },
                   obscureText: _obscureText1,
                 ),

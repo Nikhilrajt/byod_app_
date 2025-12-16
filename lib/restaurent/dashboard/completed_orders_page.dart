@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 
 class CompletedOrdersPage extends StatelessWidget {
@@ -7,12 +6,8 @@ class CompletedOrdersPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Completed Orders'),
-      ),
-      body: const Center(
-        child: Text('Completed Orders Page'),
-      ),
+      appBar: AppBar(title: const Text('Completed Orders')),
+      body: const Center(child: Text('Completed Orders Page')),
     );
   }
 }

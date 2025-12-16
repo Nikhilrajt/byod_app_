@@ -164,7 +164,7 @@ class RestaurantDetailPage extends StatelessWidget {
                   const SizedBox(height: 20),
                 ],
               );
-            }).toList(),
+            }),
 
             const SizedBox(height: 24),
           ],
@@ -198,27 +198,31 @@ class RestaurantDetailPage extends StatelessWidget {
         itemName.contains('spaghetti') ||
         itemName.contains('fettuccine') ||
         itemName.contains('mac & cheese') ||
-        itemName.contains('lasagna'))
+        itemName.contains('lasagna')) {
       return 'Pasta';
+    }
     if (itemName.contains('dessert') ||
         itemName.contains('cake') ||
         itemName.contains('brownie') ||
         itemName.contains('cheesecake') ||
         itemName.contains('tiramisu') ||
-        itemName.contains('mousse'))
+        itemName.contains('mousse')) {
       return 'Desserts';
+    }
     if (itemName.contains('juice') ||
         itemName.contains('smoothie') ||
         itemName.contains('shake') ||
-        itemName.contains('platter'))
+        itemName.contains('platter')) {
       return 'Drinks';
+    }
     if (itemName.contains('paneer') ||
         itemName.contains('dosa') ||
         itemName.contains('tikka') ||
         itemName.contains('curry') ||
         itemName.contains('wrap') ||
-        itemName.contains('veg'))
+        itemName.contains('veg')) {
       return 'Vegetarian';
+    }
     if (itemName.contains('shawarma')) return 'Shawarma';
 
     return 'Other';

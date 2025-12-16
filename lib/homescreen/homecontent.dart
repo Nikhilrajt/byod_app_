@@ -2,7 +2,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
-import 'package:project/homescreen/cart_itme.dart';
 import 'package:project/models/cart_item.dart';
 import 'package:provider/provider.dart';
 import '../state/health_mode_notifier.dart';

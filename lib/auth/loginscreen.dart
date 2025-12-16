@@ -957,8 +957,8 @@ class RoleLoginDialog extends StatefulWidget {
     required this.role,
     required this.title,
     required this.destination,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   State<RoleLoginDialog> createState() => _RoleLoginDialogState();

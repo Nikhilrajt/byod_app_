@@ -112,10 +112,12 @@ class _FeedbackpageState extends State<Feedbackpage> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: List.generate(5, (i) {
-        if (i < full)
+        if (i < full) {
           return const Icon(Icons.star, size: 16, color: Colors.amber);
-        if (i == full && half)
+        }
+        if (i == full && half) {
           return const Icon(Icons.star_half, size: 16, color: Colors.amber);
+        }
         return const Icon(Icons.star_border, size: 16, color: Colors.amber);
       }),
     );
@@ -144,7 +146,7 @@ class _FeedbackpageState extends State<Feedbackpage> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          '${fb.customerName}',
+                          fb.customerName,
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -301,10 +303,12 @@ class _FeedbackpageState extends State<Feedbackpage> {
                       ),
                       trailing: PopupMenuButton<String>(
                         onSelected: (v) {
-                          if (v == 'resolve')
+                          if (v == 'resolve') {
                             _updateStatus(fb, FeedbackStatus.Resolved);
-                          if (v == 'review')
+                          }
+                          if (v == 'review') {
                             _updateStatus(fb, FeedbackStatus.Reviewed);
+                          }
                           if (v == 'delete') _deleteFeedback(fb);
                         },
                         itemBuilder: (context) => [
