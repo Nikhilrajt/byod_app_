@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:project/homescreen/category.dart';
+import 'package:project/models/cart_item.dart';
 import 'package:provider/provider.dart';
 import '../state/cart_notifier.dart';
 import '../models/category_models.dart';

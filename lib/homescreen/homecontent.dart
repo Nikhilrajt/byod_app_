@@ -2,6 +2,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
+import 'package:project/homescreen/HomeBannerCarousel.dart';
 import 'package:project/homescreen/cart_itme.dart';
 import 'package:project/models/cart_item.dart';
 import 'package:provider/provider.dart';
@@ -14,59 +15,6 @@ class HomeContent extends StatefulWidget {
 
   @override
   State<HomeContent> createState() => _HomeContentState();
-}
-// ---------------- FIRESTORE DYNAMIC CATEGORIES ----------------
-
-Widget _buildDynamicCategories() {
-  return SizedBox(
-    height: 95,
-    child: StreamBuilder(
-      stream: FirebaseFirestore.instance
-          .collection("categories")
-          .orderBy("createdAt", descending: false)
-          .snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return const Center(child: Text("No categories found"));
-        }
-
-        final docs = snapshot.data!.docs;
-
-        return ListView.separated(
-          scrollDirection: Axis.horizontal,
-          itemCount: docs.length,
-          separatorBuilder: (_, __) => const SizedBox(width: 16),
-          itemBuilder: (_, i) {
-            final data = docs[i].data();
-            final categoryId = docs[i].id;
-            final name = data["name"] ?? "";
-            final imageUrl = data["imageUrl"];
-
-            return CategoryCircle(
-              title: name,
-              image: imageUrl ?? "",
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => CategoryPage(
-                      categoryName: name,
-                      categoryId: categoryId,
-                      // restaurantId: restaurant.uid, // 🔥 pass id
-                    ),
-                  ),
-                );
-              },
-            );
-          },
-        );
-      },
-    ),
-  );
 }
 
 class _HomeContentState extends State<HomeContent> {
@@ -89,7 +37,7 @@ class _HomeContentState extends State<HomeContent> {
     'assets/images/1.png',
     'assets/images/2.png',
     'assets/images/3.png',
-    'assets/images/4.png', // ✅ Tap on this to toggle Health Mode
+    'assets/images/4.png',
   ];
 
   /// Health mode banners
@@ -176,8 +124,6 @@ class _HomeContentState extends State<HomeContent> {
     ),
   ];
 
-  /// Restaurants List with Food Items
-
   List<_Category> getActiveCategories(bool healthMode) =>
       healthMode ? healthCategories : normalCategories;
   List<_Food> getActiveNewArrivals(bool healthMode) =>
@@ -189,7 +135,6 @@ class _HomeContentState extends State<HomeContent> {
   List<CategoryItem> _getFoodItemsForRestaurant(String restaurantName) {
     final List<CategoryItem> allItems = [];
 
-    // Add items from each category that match this restaurant
     if (restaurantName == 'Planet Cafe') {
       allItems.addAll([
         CategoryItem(
@@ -533,6 +478,95 @@ class _HomeContentState extends State<HomeContent> {
     return allItems;
   }
 
+  // ---------------- FIRESTORE DYNAMIC CATEGORIES ----------------
+  Widget _buildDynamicCategories(bool healthMode) {
+    return SizedBox(
+      height: 95,
+      child: StreamBuilder(
+        stream: FirebaseFirestore.instance
+            .collection("categories")
+            .orderBy("createdAt", descending: false)
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return const Center(child: Text("No categories found"));
+          }
+
+          final docs = snapshot.data!.docs;
+
+          // 🔥 FILTER CATEGORIES BASED ON HEALTH MODE
+          final filteredDocs = docs.where((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            final isHealthy = data['isHealthy'] ?? false;
+
+            // If health mode is ON, show only healthy categories
+            // If health mode is OFF, show only non-healthy categories
+            if (healthMode) {
+              return isHealthy == true;
+            } else {
+              return isHealthy == false || isHealthy == null;
+            }
+          }).toList();
+
+          // Show message if no categories match the current mode
+          if (filteredDocs.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    healthMode ? Icons.spa : Icons.restaurant_menu,
+                    color: Colors.grey.shade400,
+                    size: 32,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    healthMode
+                        ? "No healthy categories available"
+                        : "No regular categories available",
+                    style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          return ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: filteredDocs.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 16),
+            itemBuilder: (_, i) {
+              final data = filteredDocs[i].data() as Map<String, dynamic>;
+              final categoryId = filteredDocs[i].id;
+              final name = data["name"] ?? "";
+              final imageUrl = data["imageUrl"];
+
+              return CategoryCircle(
+                title: name,
+                image: imageUrl ?? "",
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => CategoryPage(
+                        categoryName: name,
+                        categoryId: categoryId,
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final healthMode = context.watch<HealthModeNotifier>().isOn;
@@ -542,9 +576,6 @@ class _HomeContentState extends State<HomeContent> {
     // Filtered lists used only when _query is not empty
     final filteredCats = cats.where((c) => _matches(c.title)).toList();
     final filteredItems = items.where((f) => _matches(f.name)).toList();
-    // final filteredRestaurants = restaurants
-    //     .where((r) => _matches(r.name) || _matches(r.data))
-    //     .toList();
 
     return Scaffold(
       body: SafeArea(
@@ -640,35 +671,22 @@ class _HomeContentState extends State<HomeContent> {
                         const SizedBox(height: 20),
                       ],
 
-                      // if (filteredRestaurants.isNotEmpty) ...[
-                      //   _buildSection(context, 'Restaurants'),
-                      //   const SizedBox(height: 10),
-                      //   Column(
-                      //     children: List.generate(
-                      //       filteredRestaurants.length,
-                      //       (i) => Padding(
-                      //         padding: const EdgeInsets.only(bottom: 12),
-                      //         child: RestaurantCard(
-                      //           item: filteredRestaurants[i],
-                      //         ),
-                      //       ),
-                      //     ),
-                      //   ),
-                      // ],
-
-                      // if (filteredCats.isEmpty &&
-                      //     filteredItems.isEmpty &&
-                      //     filteredRestaurants.isEmpty)
-                      const Padding(
-                        padding: EdgeInsets.only(top: 20),
-                        child: Text('No results found.'),
-                      ),
+                      if (filteredCats.isEmpty && filteredItems.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.only(top: 20),
+                          child: Text('No results found.'),
+                        ),
                     ],
                   ),
                 ),
               ] else ...[
                 // ORIGINAL home when there's no query
-                _buildCarousel(context, healthMode),
+                // _buildCarousel(context, healthMode),
+                // 🔥 REPLACING _buildCarousel with the new isolated widget
+                HomeBannerCarousel(
+                  banners: getActiveBanners(healthMode),
+                  healthMode: healthMode,
+                ),
 
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -678,7 +696,9 @@ class _HomeContentState extends State<HomeContent> {
                       const SizedBox(height: 22),
                       _buildSection(context, 'craving for something?'),
                       const SizedBox(height: 12),
-                      _buildDynamicCategories(),
+
+                      // 🔥 PASS healthMode PARAMETER HERE
+                      _buildDynamicCategories(healthMode),
 
                       const SizedBox(height: 24),
                       _buildSection(
@@ -687,12 +707,10 @@ class _HomeContentState extends State<HomeContent> {
                       ),
                       const SizedBox(height: 12),
 
-                      // _buildMostPreferredRestaurants(),
                       const SizedBox(height: 24),
                       _buildSection(context, 'Restaurants'),
                       const SizedBox(height: 12),
 
-                      // _buildRestaurantList(),
                       const SizedBox(height: 28),
                     ],
                   ),
@@ -706,7 +724,6 @@ class _HomeContentState extends State<HomeContent> {
   }
 
   // ---------------- CAROUSEL ----------------
-
   Widget _buildCarousel(BuildContext context, bool healthMode) {
     final banners = getActiveBanners(healthMode);
     final w = MediaQuery.of(context).size.width;
@@ -725,7 +742,6 @@ class _HomeContentState extends State<HomeContent> {
           itemBuilder: (_, i, __) {
             return GestureDetector(
               onTap: () {
-                // ✅ Toggle health mode when tapping 'assets/images/4.png'
                 if (banners[i] == 'assets/images/4.png') {
                   context.read<HealthModeNotifier>().toggle();
                   final enabled = context.read<HealthModeNotifier>().isOn;
@@ -781,19 +797,11 @@ class _HomeContentState extends State<HomeContent> {
           title,
           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
         ),
-        // const Text(
-        //   '  ',
-        //   style: TextStyle(
-        //     color: Colors.blue,
-        //     decoration: TextDecoration.underline,
-        //   ),
-        // ),
       ],
     );
   }
 
   // ---------------- CATEGORIES ----------------
-
   Widget _buildCategories(List<_Category> cats) {
     return SizedBox(
       height: 95,
@@ -810,8 +818,7 @@ class _HomeContentState extends State<HomeContent> {
               MaterialPageRoute(
                 builder: (context) => CategoryPage(
                   categoryName: cats[i].title,
-                  categoryId: "all", // No dynamic ID for static categories
-                  // restaurantId:'', // No ID for static categories
+                  categoryId: "all",
                 ),
               ),
             );
@@ -822,7 +829,6 @@ class _HomeContentState extends State<HomeContent> {
   }
 
   // ---------------- NEW ARRIVALS ----------------
-
   Widget _buildNewArrivals(List<_Food> items) {
     return SizedBox(
       height: 210,
@@ -834,42 +840,6 @@ class _HomeContentState extends State<HomeContent> {
       ),
     );
   }
-
-  // ---------------- MOST PREFERRED RESTAURANTS ----------------
-
-  // Widget _buildMostPreferredRestaurants() {
-  //   // Filter restaurants with rating >= 4.5
-  //   // final preferredRestaurants = restaurants
-  //   //     .where((restaurant) => restaurant.rating >= 4.5)
-  //   //     .toList();
-
-  //   // return SizedBox(
-  //   //   height: 220,
-  //   //   child: ListView.separated(
-  //   //     scrollDirection: Axis.horizontal,
-  //   //     itemCount: preferredRestaurants.length,
-  //   //     separatorBuilder: (_, __) => const SizedBox(width: 12),
-  //   //     itemBuilder: (_, index) => SizedBox(
-  //   //       width: 160,
-  //   //       child: _RestaurantCardVertical(item: preferredRestaurants[index]),
-  //   //     ),
-  //   //   ),
-  //   // );
-  // }
-
-  // ---------------- RESTAURANTS ----------------
-
-  // Widget _buildRestaurantList() {
-  //   return Column(
-  //     children: List.generate(
-  //       restaurants.length,
-  //       (index) => Padding(
-  //         padding: const EdgeInsets.only(bottom: 12),
-  //         child: RestaurantCard(item: restaurants[index]),
-  //       ),
-  //     ),
-  //   );
-  // }
 }
 
 // ---------------- SMALL COMPONENTS ----------------
