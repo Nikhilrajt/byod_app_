@@ -337,7 +337,7 @@ class DashboardCard extends StatelessWidget {
         trailing: const Icon(
           Icons.arrow_forward_ios,
           size: 16,
-          color: Colors.grey,
+          color: Color.fromARGB(255, 197, 190, 190),
         ),
       ),
     );
