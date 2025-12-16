@@ -153,8 +153,8 @@ class LanguageSelector extends StatefulWidget {
     required this.selectedLanguage,
     required this.selectedCountry,
     required this.onSelected,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   State<LanguageSelector> createState() => _LanguageSelectorState();
@@ -181,7 +181,7 @@ class _LanguageSelectorState extends State<LanguageSelector> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) {
-        return Container(
+        return SizedBox(
           height: MediaQuery.of(context).size.height * 0.5,
           child: ListView(
             children: languages.map((lang) {
@@ -436,7 +436,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       pushNotifications = value;
                     });
                   },
-                  activeColor: Colors.deepPurple,
+                  activeThumbColor: Colors.deepPurple,
                 ),
 
                 // 7. Promotional Notifications Switch
@@ -452,7 +452,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       promotionalNotifications = value;
                     });
                   },
-                  activeColor: Colors.deepPurple,
+                  activeThumbColor: Colors.deepPurple,
                 ),
 
                 // Divider

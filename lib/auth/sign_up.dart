@@ -309,7 +309,6 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:project/auth/firebase/fibase_serviece.dart';
 import 'package:project/auth/loginscreen.dart';
-import 'package:project/homescreen/home.dart';
 
 class SignUp extends StatefulWidget {
   const SignUp({super.key});

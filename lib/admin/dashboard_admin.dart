@@ -5,7 +5,6 @@ import 'package:project/admin/restaurant_admin.dart';
 import 'package:project/admin/settings_admin.dart';
 import 'package:project/admin/user_admin.dart';
 import 'package:project/admin/review_page.dart';
-import 'package:project/restaurent/dashboard/category_items_page.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});

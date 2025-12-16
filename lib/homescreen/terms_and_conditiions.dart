@@ -48,12 +48,12 @@ class _TermsAndConditiionsState extends State<TermsAndConditiions> {
                   Expanded(
                     child: OutlinedButton(
                       onPressed: () {},
-                      child: Text('Decline'),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.deepPurple,
                         side: BorderSide(color: Colors.deepPurple),
                         padding: EdgeInsets.symmetric(vertical: 16),
                       ),
+                      child: Text('Decline'),
                     ),
                   ),
                   SizedBox(width: 16),
@@ -62,12 +62,12 @@ class _TermsAndConditiionsState extends State<TermsAndConditiions> {
                       onPressed: () {
                         Navigator.pop(context);
                       },
-                      child: Text('Accept'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.deepPurple,
                         foregroundColor: Colors.white,
                         padding: EdgeInsets.symmetric(vertical: 16),
                       ),
+                      child: Text('Accept'),
                     ),
                   ),
                 ],

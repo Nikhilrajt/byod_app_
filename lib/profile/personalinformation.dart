@@ -319,7 +319,7 @@ class _PersonalinformationState extends State<Personalinformation> {
                 ),
                 const SizedBox(height: 8),
                 DropdownButtonFormField<String>(
-                  value: _selectedCountry,
+                  initialValue: _selectedCountry,
                   decoration: InputDecoration(
                     border: OutlineInputBorder(),
                     hintText: 'Country',

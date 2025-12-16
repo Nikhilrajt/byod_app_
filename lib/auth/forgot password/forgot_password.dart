@@ -1,9 +1,6 @@
-import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:project/auth/firebase/fibase_serviece.dart';
-import 'package:project/auth/forgot%20password/confirm.dart';
-import 'package:project/auth/forgot%20password/otp.dart';
 
 class ForgotPassword extends StatefulWidget {
   const ForgotPassword({super.key});

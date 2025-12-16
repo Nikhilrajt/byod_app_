@@ -514,7 +514,7 @@ class _CategoryPageState extends State<CategoryPage> {
                         _buildRestaurantHeader(restaurantName),
                         ...restaurantItems
                             .map((item) => _buildItemCard(item, cart))
-                            .toList(),
+                            ,
                       ],
                     );
                   },
