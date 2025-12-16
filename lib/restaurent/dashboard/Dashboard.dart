@@ -685,7 +685,6 @@ class _DashboardPageState extends State<DashboardPage>
     );
   }
 }
-<<<<<<< HEAD
 
 // Reverted DashboardCard widget (single ListTile model)
 class DashboardCard extends StatelessWidget {
@@ -727,5 +726,5 @@ class DashboardCard extends StatelessWidget {
     );
   }
 }
-=======
->>>>>>> 96183b5272987a1d7b88690b7a0a205449e19694
+
+
