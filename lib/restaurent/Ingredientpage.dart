@@ -205,7 +205,7 @@ class _IngredientPageState extends State<IngredientPage> {
                     children: [
                       Expanded(
                         child: DropdownButtonFormField<String>(
-                          value: _selectedCategory,
+                          initialValue: _selectedCategory,
                           decoration: const InputDecoration(
                             labelText: 'Category',
                             border: OutlineInputBorder(),
@@ -230,7 +230,7 @@ class _IngredientPageState extends State<IngredientPage> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: DropdownButtonFormField<String>(
-                          value: _selectedUnit,
+                          initialValue: _selectedUnit,
                           decoration: const InputDecoration(
                             labelText: 'Unit',
                             border: OutlineInputBorder(),
@@ -302,7 +302,7 @@ class _IngredientPageState extends State<IngredientPage> {
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
-                    value: _selectedIcon,
+                    initialValue: _selectedIcon,
                     decoration: const InputDecoration(
                       labelText: 'Icon',
                       border: OutlineInputBorder(),

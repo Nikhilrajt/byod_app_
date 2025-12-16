@@ -304,8 +304,9 @@ class _ManageIngredientsPageState extends State<ManageIngredientsPage> {
                             ),
                             PopupMenuButton<String>(
                               onSelected: (v) {
-                                if (v == 'edit')
+                                if (v == 'edit') {
                                   _showEditDialog(item: it, index: i);
+                                }
                                 if (v == 'delete') _deleteItem(i);
                               },
                               itemBuilder: (context) => const [
@@ -332,8 +333,8 @@ class _ManageIngredientsPageState extends State<ManageIngredientsPage> {
             ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showEditDialog(),
-        child: const Icon(Icons.add),
         tooltip: 'Add ingredient',
+        child: const Icon(Icons.add),
       ),
     );
   }

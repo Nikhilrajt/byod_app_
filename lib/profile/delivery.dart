@@ -23,7 +23,7 @@ class _DeliveryState extends State<Delivery>
 
   // countdown timer for the accept CTA (example from mock)
   late AnimationController _countdownController;
-  Duration _countdown = const Duration(seconds: 45);
+  final Duration _countdown = const Duration(seconds: 45);
 
   // Mannarkkad, Palakkad, Kerala (approximate)
   String _pickup = 'Getting current location...';
@@ -37,7 +37,7 @@ class _DeliveryState extends State<Delivery>
   LatLng _dropLatLng = LatLng(10.8550, 76.6050);
   late LatLng _riderLatLng;
   final MapController _mapController = MapController();
-  double _zoom = 14.0;
+  final double _zoom = 14.0;
   bool? _tilesAvailable;
 
   final TextEditingController _searchController = TextEditingController();

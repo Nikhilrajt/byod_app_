@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 class ChangePassword extends StatefulWidget {
+  const ChangePassword({super.key});
+
   @override
   // ignore: library_private_types_in_public_api
   _ChangePasswordPageState createState() => _ChangePasswordPageState();
@@ -76,8 +78,9 @@ class _ChangePasswordPageState extends State<ChangePassword> {
                   ),
                 ),
                 validator: (value) {
-                  if (value == null || value.isEmpty)
+                  if (value == null || value.isEmpty) {
                     return "Enter your old password";
+                  }
                   return null;
                 },
               ),
@@ -98,10 +101,12 @@ class _ChangePasswordPageState extends State<ChangePassword> {
                   ),
                 ),
                 validator: (value) {
-                  if (value == null || value.isEmpty)
+                  if (value == null || value.isEmpty) {
                     return "Enter a new password";
-                  if (value.length < 6)
+                  }
+                  if (value.length < 6) {
                     return "Password must be at least 6 characters";
+                  }
                   return null;
                 },
               ),
@@ -123,8 +128,9 @@ class _ChangePasswordPageState extends State<ChangePassword> {
                   ),
                 ),
                 validator: (value) {
-                  if (value != newPasswordController.text)
+                  if (value != newPasswordController.text) {
                     return "Passwords do not match";
+                  }
                   return null;
                 },
               ),

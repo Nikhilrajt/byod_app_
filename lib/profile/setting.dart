@@ -197,7 +197,7 @@ class _SettingPageState extends State<SettingPage> {
                         _notificationsEnabled = value;
                       });
                     },
-                    activeColor: Colors.deepPurple,
+                    activeThumbColor: Colors.deepPurple,
                   ),
                 ],
               ),
