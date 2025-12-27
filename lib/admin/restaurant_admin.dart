@@ -15,6 +15,93 @@ class _AdminUserPageState extends State<AdminRestaurantPage> {
   String _searchQuery = '';
   String _selectedFilter = 'All';
 
+  final List<Map<String, dynamic>> _defaultIngredients = [
+    {
+      "name": "Steamed Rice",
+      "category": "Bases",
+      "unit": "100 g",
+      "cal": 130,
+      "protein": 2,
+      "carbs": 28,
+      "fat": 0,
+      "price": 5,
+      "source": "restaurant",
+      "isHealthy": true,
+    },
+    {
+      "name": "Grilled Chicken",
+      "category": "Proteins",
+      "unit": "50 g",
+      "cal": 82,
+      "protein": 15,
+      "carbs": 0,
+      "fat": 2,
+      "price": 10,
+      "source": "restaurant",
+      "isHealthy": true,
+    },
+    {
+      "name": "Paneer Cubes",
+      "category": "Proteins",
+      "unit": "50 g",
+      "cal": 132,
+      "protein": 9,
+      "carbs": 3,
+      "fat": 10,
+      "price": 8,
+      "source": "restaurant",
+      "isHealthy": false,
+    },
+    {
+      "name": "Broccoli",
+      "category": "Veggies",
+      "unit": "50 g",
+      "cal": 17,
+      "protein": 2,
+      "carbs": 3,
+      "fat": 0,
+      "price": 5,
+      "source": "restaurant",
+      "isHealthy": true,
+    },
+    {
+      "name": "Tomato Basil Sauce",
+      "category": "Sauces",
+      "unit": "1 tbsp",
+      "cal": 15,
+      "protein": 0,
+      "carbs": 3,
+      "fat": 0,
+      "price": 2,
+      "source": "restaurant",
+      "isHealthy": true,
+    },
+    {
+      "name": "Cheddar Cheese",
+      "category": "Toppings",
+      "unit": "15 g",
+      "cal": 60,
+      "protein": 3,
+      "carbs": 1,
+      "fat": 5,
+      "price": 6,
+      "source": "restaurant",
+      "isHealthy": false,
+    },
+    {
+      "name": "Gulab Jamun",
+      "category": "Extras",
+      "unit": "1 pc",
+      "cal": 150,
+      "protein": 2,
+      "carbs": 25,
+      "fat": 5,
+      "price": 8,
+      "source": "restaurant",
+      "isHealthy": false,
+    },
+  ];
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -27,6 +114,11 @@ class _AdminUserPageState extends State<AdminRestaurantPage> {
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.playlist_add_check, color: Colors.white),
+            tooltip: "Seed Default Ingredients",
+            onPressed: _seedIngredientsToAllRestaurants,
+          ),
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white),
             onPressed: () {
@@ -162,7 +254,7 @@ class _AdminUserPageState extends State<AdminRestaurantPage> {
                   final isActive = userData['isActive'] ?? true;
 
                   // Search filter
-                  final matchesSearch = 
+                  final matchesSearch =
                       _searchQuery.isEmpty ||
                       name.contains(_searchQuery) ||
                       email.contains(_searchQuery) ||
@@ -444,6 +536,31 @@ class _AdminUserPageState extends State<AdminRestaurantPage> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
+                ),
+                // More Actions Menu
+                PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_vert, color: Colors.grey),
+                  onSelected: (value) {
+                    if (value == 'seed') {
+                      _seedIngredientsForSingleRestaurant(uid, name);
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    const PopupMenuItem(
+                      value: 'seed',
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.playlist_add,
+                            color: Colors.deepPurple,
+                            size: 20,
+                          ),
+                          SizedBox(width: 8),
+                          Text('Seed Ingredients'),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -801,5 +918,117 @@ class _AdminUserPageState extends State<AdminRestaurantPage> {
         );
       }
     }
+  }
+
+  Future<void> _seedIngredientsToAllRestaurants() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Seed Default Ingredients"),
+        content: const Text(
+          "This will add a default set of ingredients (Rice, Chicken, Veggies, etc.) "
+          "to ALL restaurants that have an empty ingredients list.\n\n"
+          "This ensures the BYOD feature works immediately for them.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.deepPurple),
+            child: const Text("Seed Ingredients"),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      final restaurants = await _firestore
+          .collection('users')
+          .where('role', isEqualTo: 'restaurant')
+          .get();
+
+      int updatedCount = 0;
+
+      for (var doc in restaurants.docs) {
+        final ingredientsRef = doc.reference.collection('ingredients');
+        final snapshot = await ingredientsRef.limit(1).get();
+
+        if (snapshot.docs.isEmpty) {
+          final batch = _firestore.batch();
+          for (var item in _defaultIngredients) {
+            final newDoc = ingredientsRef.doc();
+            batch.set(newDoc, {
+              ...item,
+              'createdAt': FieldValue.serverTimestamp(),
+            });
+          }
+          await batch.commit();
+          updatedCount++;
+        }
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Seeded ingredients for $updatedCount restaurants."),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  Future<void> _seedIngredientsForSingleRestaurant(
+    String uid,
+    String name,
+  ) async {
+    try {
+      final ingredientsRef = _firestore
+          .collection('users')
+          .doc(uid)
+          .collection('ingredients');
+      final snapshot = await ingredientsRef.limit(1).get();
+
+      if (snapshot.docs.isNotEmpty) {
+        _showSnackBar(
+          "Restaurant '$name' already has ingredients.",
+          Colors.orange,
+        );
+        return;
+      }
+
+      final batch = _firestore.batch();
+      for (var item in _defaultIngredients) {
+        final newDoc = ingredientsRef.doc();
+        batch.set(newDoc, {...item, 'createdAt': FieldValue.serverTimestamp()});
+      }
+      await batch.commit();
+
+      if (mounted) {
+        _showSnackBar(
+          "Ingredients added to '$name' successfully!",
+          Colors.green,
+        );
+      }
+    } catch (e) {
+      if (mounted) _showSnackBar("Error: $e", Colors.red);
+    }
+  }
+
+  void _showSnackBar(String message, Color color) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message), backgroundColor: color));
   }
 }

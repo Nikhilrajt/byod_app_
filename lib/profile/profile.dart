@@ -1,6 +1,10 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:project/auth/firebase/fibase_serviece.dart';
 import 'package:project/auth/loginscreen.dart';
+import 'package:project/homescreen/my_orders.dart';
 import 'package:project/profile/delivery.dart';
 import 'package:project/profile/personalinformation.dart';
 import 'package:project/profile/setting.dart';
@@ -30,115 +34,6 @@ class TermsAndConditiions extends StatelessWidget {
 //     );
 //   }
 // }
-
-// -----------------------------------------------------------------
-// NEW ORDERS PAGE WIDGET
-// -----------------------------------------------------------------
-
-class OrdersPage extends StatelessWidget {
-  const OrdersPage({super.key});
-
-  // Helper to determine status color
-  Color _getStatusColor(String status) {
-    switch (status) {
-      case 'Delivered':
-        return Colors.green.shade700;
-      case 'Cancelled':
-        return Colors.red.shade700;
-      default:
-        return Colors.deepPurple;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    // Mock list of recent orders
-    final List<Map<String, String>> mockOrders = const [
-      {
-        'id': 'BYOD-10521',
-        'date': 'Today, 4:30 PM',
-        'status': 'Delivered',
-        'total': '₹450',
-      },
-      {
-        'id': 'BYOD-10502',
-        'date': 'Yesterday, 8:15 PM',
-        'status': 'Cancelled',
-        'total': '₹720',
-      },
-      {
-        'id': 'BYOD-10488',
-        'date': 'Oct 09, 1:00 PM',
-        'status': 'Delivered',
-        'total': '₹300',
-      },
-      {
-        'id': 'BYOD-10450',
-        'date': 'Oct 05, 7:00 PM',
-        'status': 'Delivered',
-        'total': '₹999',
-      },
-    ];
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('My Orders'),
-        backgroundColor: Colors.deepPurple,
-        foregroundColor: Colors.white,
-      ),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(8.0),
-        itemCount: mockOrders.length,
-        itemBuilder: (context, index) {
-          final order = mockOrders[index];
-          return Card(
-            elevation: 2,
-            margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: ListTile(
-              contentPadding: const EdgeInsets.all(12),
-              leading: const CircleAvatar(
-                backgroundColor: Colors.deepPurple,
-                child: Icon(Icons.receipt_long, color: Colors.white),
-              ),
-              title: Text(
-                'Order ${order['id']}',
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              subtitle: Text('${order['date']}\nTotal: ${order['total']}'),
-              trailing: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    order['status']!,
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: _getStatusColor(order['status']!),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  const Icon(
-                    Icons.arrow_forward_ios,
-                    size: 16,
-                    color: Colors.grey,
-                  ),
-                ],
-              ),
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Viewing details for ${order['id']}')),
-                );
-              },
-            ),
-          );
-        },
-      ),
-    );
-  }
-}
 
 // -----------------------------------------------------------------
 // LANGUAGE SELECTOR WIDGET
@@ -341,7 +236,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const OrdersPage(),
+                        builder: (context) => const MyOrdersPage(),
                       ),
                     );
                   },

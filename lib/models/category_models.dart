@@ -10,6 +10,7 @@ class CategoryItem {
   final bool isHealthy;
   final String? description;
   final String? categoryKey;
+  final String? calories;
 
   final List<CustomizationStep>? customizationSteps;
 
@@ -29,6 +30,7 @@ class CategoryItem {
     this.isCustomizable = false, // Added default value
     this.isHealthy = false, // Added default value
     this.customizationSteps,
+    this.calories,
   });
 
   // Convert to CartItem for non-customizable items
@@ -38,6 +40,7 @@ class CategoryItem {
       price: price.toInt(),
       imageUrl: imageUrl,
       restaurantName: restaurantName,
+      restaurantId: restaurantId,
     );
   }
 }
@@ -47,7 +50,9 @@ class CartItem {
   final int price;
   final String imageUrl;
   final String restaurantName;
+  final String restaurantId;
   final List<String>? customizations;
+  final bool isHealthy;
   int quantity;
 
   CartItem({
@@ -55,7 +60,9 @@ class CartItem {
     required this.price,
     required this.imageUrl,
     required this.restaurantName,
+    required this.restaurantId,
     this.customizations,
+    this.isHealthy = false,
     this.quantity = 1,
   });
 
@@ -66,6 +73,33 @@ class CartItem {
       return '';
     }
     return customizations!.join(' • ');
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'name': name,
+      'price': price,
+      'imageUrl': imageUrl,
+      'restaurantName': restaurantName,
+      'restaurantId': restaurantId,
+      'customizations': customizations,
+      'isHealthy': isHealthy,
+      'quantity': quantity,
+    };
+  }
+
+  factory CartItem.fromJson(Map<String, dynamic> json) {
+    return CartItem(
+      name: json['name'] ?? 'Unknown',
+      price: (json['price'] as num?)?.toInt() ?? 0,
+      imageUrl: json['imageUrl'] ?? '',
+      restaurantName: json['restaurantName'] ?? 'Unknown Restaurant',
+      restaurantId: json['restaurantId'] ?? '',
+      customizations: (json['customizations'] as List<dynamic>?)
+          ?.cast<String>(),
+      isHealthy: json['isHealthy'] ?? false,
+      quantity: json['quantity'] ?? 1,
+    );
   }
 }
 

@@ -56,6 +56,12 @@ dependencies:
   cloud_firestore: ^6.1.0
   http: ^1.6.0
   cached_network_image: ^3.4.1
+  razorpay_flutter: ^1.4.0
+  url_launcher: ^6.3.2
+  firebase_storage: ^13.0.5
+  uuid: ^4.4.0
+  fl_chart: ^0.68.0
+
 
 
 dev_dependencies:

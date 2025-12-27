@@ -15,6 +15,8 @@ class MenuItem {
   final String? restaurantName;
   final bool isCustomizable;
   final List<VariantGroup> variantGroups;
+  final String categoryId;
+  final String categoryName;
 
   MenuItem({
     required this.id,
@@ -30,6 +32,8 @@ class MenuItem {
     this.restaurantName,
     this.isCustomizable = false,
     this.variantGroups = const [],
+    this.categoryId = "",
+    this.categoryName = "",
   });
 
   Map<String, dynamic> toMap() {
@@ -48,6 +52,8 @@ class MenuItem {
       "restaurantName": restaurantName, // ⭐ This will now be saved
       "isCustomizable": isCustomizable,
       "variantGroups": variantGroups.map((e) => e.toMap()).toList(),
+      "categoryId": categoryId,
+      "categoryName": categoryName,
     };
   }
 
@@ -70,8 +76,13 @@ class MenuItem {
               ?.map((e) => VariantGroup.fromMap(e as Map<String, dynamic>))
               .toList() ??
           [],
+      categoryId: map["categoryId"] ?? "",
+      categoryName: map["categoryName"] ?? "",
     );
   }
+
+  bool get byod => isCustomizable;
+  bool get health => isHealthy;
 }
 
 // Variant Group (e.g., "Size", "Add-ons", "Spice Level")

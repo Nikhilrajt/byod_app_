@@ -3,14 +3,16 @@ import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:project/state/health_mode_notifier.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class HomeBannerCarousel extends StatefulWidget {
-  final List<String> banners;
+  final List<String>
+  banners; // Kept for compatibility, but Firestore data is preferred
   final bool healthMode;
 
   const HomeBannerCarousel({
     super.key,
-    required this.banners,
+    this.banners = const [], // Made optional
     required this.healthMode,
   });
 
@@ -36,7 +38,9 @@ class _HomeBannerCarouselState extends State<HomeBannerCarousel> {
             height: isWide ? 320 : 240,
             autoPlay: true,
             enlargeCenterPage: true,
-            onPageChanged: (i, _) => setState(() => _currentOffer = i), // 🔥 This setState only rebuilds this widget!
+            onPageChanged: (i, _) => setState(
+              () => _currentOffer = i,
+            ), // 🔥 This setState only rebuilds this widget!
           ),
           itemBuilder: (_, i, __) {
             return GestureDetector(

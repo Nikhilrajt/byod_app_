@@ -254,7 +254,7 @@ class _AdminCategoryPageState extends State<AdminCategoryPage> {
         crossAxisCount: 2,
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
-        childAspectRatio: 0.8,
+        childAspectRatio: 0.7,
       ),
       itemCount: docs.length,
       itemBuilder: (context, index) => _buildCategoryCard(docs[index]),

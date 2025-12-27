@@ -86,6 +86,7 @@ class _CustomizationPageState extends State<CustomizationPage> {
       imageUrl: widget.customizableItem.imageUrl,
       restaurantName: widget.customizableItem.restaurantName,
       customizations: customizations,
+      restaurantId: widget.customizableItem.restaurantId,
     );
 
     cart.addItem(cartItem);

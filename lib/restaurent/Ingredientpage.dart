@@ -6,6 +6,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:project/models/ingredient_model.dart';
 import 'package:project/services/ingredient_service.dart';
 
+// ================= COLORS =================
+const Color kPrimary = Color(0xFF3F2B96);
+const Color kPrimaryLight = Color(0xFF5F5AA2);
+const Color kBackground = Color(0xFFF6F7FB);
+const Color kCard = Colors.white;
+
 class IngredientPage extends StatefulWidget {
   final bool isRestaurantSide;
   final Function(List<IngredientModel>)? onIngredientsSelected;
@@ -23,405 +29,107 @@ class IngredientPage extends StatefulWidget {
 }
 
 class _IngredientPageState extends State<IngredientPage> {
-  final TextEditingController _searchController = TextEditingController();
-  final Map<String, bool> _expandedCategories = {};
   final IngredientService _ingredientService = IngredientService();
-  String _searchQuery = "";
-  bool _isLoading = false;
-  
-  // For user side selection
-  final Map<String, bool> _selectedIngredients = {};
-  
-  // For restaurant side - add new ingredient
-  final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _priceController = TextEditingController();
-  final TextEditingController _caloriesController = TextEditingController();
-  final TextEditingController _proteinController = TextEditingController();
-  final TextEditingController _quantityController = TextEditingController();
-  String _selectedCategory = 'Vegetables';
-  String _selectedUnit = 'kg';
-  String _selectedIcon = 'carrot';
+  final TextEditingController _searchController = TextEditingController();
 
-  // Icon mapping
-  IconData _getIconData(String iconName) {
-    final iconMap = <String, IconData>{
-      'bowl_rice': FontAwesomeIcons.bowlRice,
-      'bowl_food': FontAwesomeIcons.bowlFood,
-      'drumstick_bite': FontAwesomeIcons.drumstickBite,
-      'cube': FontAwesomeIcons.cube,
-      'pepper_hot': FontAwesomeIcons.pepperHot,
-      'seedling': FontAwesomeIcons.seedling,
-      'carrot': FontAwesomeIcons.carrot,
-      'leaf': FontAwesomeIcons.leaf,
-      'apple_whole': FontAwesomeIcons.appleWhole,
-      'wheat_awn': FontAwesomeIcons.wheatAwn,
-      'fish': FontAwesomeIcons.fish,
-      'egg': FontAwesomeIcons.egg,
-      'shrimp': FontAwesomeIcons.shrimp,
-      'mug_hot': FontAwesomeIcons.mugHot,
-      'cheese': FontAwesomeIcons.cheese,
-      'mortar_pestle': FontAwesomeIcons.mortarPestle,
-    };
-    return iconMap[iconName] ?? FontAwesomeIcons.seedling;
-  }
+  final Map<String, bool> _expandedCategories = {};
+  final Map<String, bool> _selectedIngredients = {};
+
+  String _searchQuery = "";
+
+  final Map<String, IconData> _iconMap = const {
+    'seedling': FontAwesomeIcons.seedling,
+    'carrot': FontAwesomeIcons.carrot,
+    'apple_whole': FontAwesomeIcons.appleWhole,
+    'drumstick_bite': FontAwesomeIcons.drumstickBite,
+    'fish': FontAwesomeIcons.fish,
+    'egg': FontAwesomeIcons.egg,
+    'cheese': FontAwesomeIcons.cheese,
+    'wheat_awn': FontAwesomeIcons.wheatAwn,
+    'pepper_hot': FontAwesomeIcons.pepperHot,
+    'bowl_rice': FontAwesomeIcons.bowlRice,
+    'mug_hot': FontAwesomeIcons.mugHot,
+  };
+
+  final List<String> _unitOptions = [
+    'kg',
+    '100 g',
+    '50 g',
+    'liter',
+    'ml',
+    '100 ml',
+    '50 ml',
+    'piece',
+    'pack',
+    'bottle',
+  ];
 
   @override
   void initState() {
     super.initState();
     _searchController.addListener(() {
-      setState(() {
-        _searchQuery = _searchController.text.toLowerCase();
-      });
+      setState(() => _searchQuery = _searchController.text.toLowerCase());
     });
-    
-    // Initialize selected ingredients for user side
-    if (!widget.isRestaurantSide && widget.initiallySelectedIngredients != null) {
-      for (final ingredient in widget.initiallySelectedIngredients!) {
-        _selectedIngredients[ingredient.id] = true;
+
+    if (!widget.isRestaurantSide &&
+        widget.initiallySelectedIngredients != null) {
+      for (final ing in widget.initiallySelectedIngredients!) {
+        _selectedIngredients[ing.id] = true;
       }
     }
   }
 
-  @override
-  void dispose() {
-    _searchController.dispose();
-    _nameController.dispose();
-    _priceController.dispose();
-    _caloriesController.dispose();
-    _proteinController.dispose();
-    _quantityController.dispose();
-    super.dispose();
+  // ================= ICON MAP =================
+
+  IconData _getIconData(String iconName) {
+    final map = <String, IconData>{
+      // This is now redundant but kept for safety
+      'carrot': FontAwesomeIcons.carrot,
+      'apple_whole': FontAwesomeIcons.appleWhole,
+      'drumstick_bite': FontAwesomeIcons.drumstickBite,
+      'fish': FontAwesomeIcons.fish,
+      'egg': FontAwesomeIcons.egg,
+      'cheese': FontAwesomeIcons.cheese,
+      'wheat_awn': FontAwesomeIcons.wheatAwn,
+      'pepper_hot': FontAwesomeIcons.pepperHot,
+      'bowl_rice': FontAwesomeIcons.bowlRice,
+      'mug_hot': FontAwesomeIcons.mugHot,
+    };
+    return _iconMap[iconName] ?? FontAwesomeIcons.seedling;
   }
 
-  // Update quantity in Firebase (Restaurant side)
-  Future<void> _updateQuantity(IngredientModel ingredient, double amount) async {
-    try {
-      final newQuantity = (ingredient.quantityAvailable + amount).clamp(0.0, double.infinity);
-      await _ingredientService.updateIngredientQuantity(ingredient.id, newQuantity);
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${ingredient.name} quantity updated to ${newQuantity.toStringAsFixed(1)} ${ingredient.unit}'),
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error updating quantity: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
+  // ================= DATA HELPERS =================
 
-  // Add new ingredient (Restaurant side)
-  Future<void> _addNewIngredient() async {
-    if (_nameController.text.isEmpty || _priceController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please fill in name and price'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    setState(() => _isLoading = true);
-    try {
-      final newIngredient = IngredientModel(
-        id: '', // Will be generated by Firestore
-        name: _nameController.text,
-        category: _selectedCategory,
-        price: double.parse(_priceController.text),
-        calories: double.parse(_caloriesController.text.isEmpty ? '0' : _caloriesController.text),
-        protein: double.parse(_proteinController.text.isEmpty ? '0' : _proteinController.text),
-        unit: _selectedUnit,
-        quantityAvailable: double.parse(_quantityController.text.isEmpty ? '0' : _quantityController.text),
-        iconName: _selectedIcon,
-        restaurantId: FirebaseAuth.instance.currentUser!.uid,
-        createdAt: DateTime.now(),
-      );
-
-      await _ingredientService.addIngredient(newIngredient);
-      
-      // Clear form
-      _nameController.clear();
-      _priceController.clear();
-      _caloriesController.clear();
-      _proteinController.clear();
-      _quantityController.clear();
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Ingredient added successfully!')),
-        );
-        Navigator.of(context).pop(); // Close dialog
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error adding ingredient: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
-  }
-
-  // Show add ingredient dialog (Restaurant side)
-  void _showAddIngredientDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) {
-          return AlertDialog(
-            title: Text(
-              'Add New Ingredient',
-              style: GoogleFonts.lato(fontWeight: FontWeight.bold),
-            ),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: _nameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Ingredient Name',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: DropdownButtonFormField<String>(
-                          initialValue: _selectedCategory,
-                          decoration: const InputDecoration(
-                            labelText: 'Category',
-                            border: OutlineInputBorder(),
-                          ),
-                          items: const [
-                            DropdownMenuItem(value: 'Vegetables', child: Text('Vegetables')),
-                            DropdownMenuItem(value: 'Fruits', child: Text('Fruits')),
-                            DropdownMenuItem(value: 'Meat', child: Text('Meat')),
-                            DropdownMenuItem(value: 'Dairy', child: Text('Dairy')),
-                            DropdownMenuItem(value: 'Grains', child: Text('Grains')),
-                            DropdownMenuItem(value: 'Spices', child: Text('Spices')),
-                            DropdownMenuItem(value: 'Seafood', child: Text('Seafood')),
-                            DropdownMenuItem(value: 'Others', child: Text('Others')),
-                          ],
-                          onChanged: (value) {
-                            setDialogState(() {
-                              _selectedCategory = value!;
-                            });
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: DropdownButtonFormField<String>(
-                          initialValue: _selectedUnit,
-                          decoration: const InputDecoration(
-                            labelText: 'Unit',
-                            border: OutlineInputBorder(),
-                          ),
-                          items: const [
-                            DropdownMenuItem(value: 'kg', child: Text('kg')),
-                            DropdownMenuItem(value: 'g', child: Text('g')),
-                            DropdownMenuItem(value: 'lb', child: Text('lb')),
-                            DropdownMenuItem(value: 'piece', child: Text('piece')),
-                            DropdownMenuItem(value: 'bunch', child: Text('bunch')),
-                            DropdownMenuItem(value: 'liter', child: Text('liter')),
-                            DropdownMenuItem(value: 'ml', child: Text('ml')),
-                          ],
-                          onChanged: (value) {
-                            setDialogState(() {
-                              _selectedUnit = value!;
-                            });
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _priceController,
-                    decoration: const InputDecoration(
-                      labelText: 'Price per unit',
-                      border: OutlineInputBorder(),
-                      prefixText: '₹',
-                    ),
-                    keyboardType: TextInputType.number,
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _caloriesController,
-                          decoration: const InputDecoration(
-                            labelText: 'Calories',
-                            border: OutlineInputBorder(),
-                            suffixText: 'kcal',
-                          ),
-                          keyboardType: TextInputType.number,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: TextField(
-                          controller: _proteinController,
-                          decoration: const InputDecoration(
-                            labelText: 'Protein',
-                            border: OutlineInputBorder(),
-                            suffixText: 'g',
-                          ),
-                          keyboardType: TextInputType.number,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _quantityController,
-                    decoration: const InputDecoration(
-                      labelText: 'Initial Quantity',
-                      border: OutlineInputBorder(),
-                    ),
-                    keyboardType: TextInputType.number,
-                  ),
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<String>(
-                    initialValue: _selectedIcon,
-                    decoration: const InputDecoration(
-                      labelText: 'Icon',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: const [
-                      DropdownMenuItem(value: 'carrot', child: Text('Carrot')),
-                      DropdownMenuItem(value: 'apple_whole', child: Text('Apple')),
-                      DropdownMenuItem(value: 'drumstick_bite', child: Text('Meat')),
-                      DropdownMenuItem(value: 'fish', child: Text('Fish')),
-                      DropdownMenuItem(value: 'egg', child: Text('Egg')),
-                      DropdownMenuItem(value: 'cheese', child: Text('Cheese')),
-                      DropdownMenuItem(value: 'wheat_awn', child: Text('Grain')),
-                      DropdownMenuItem(value: 'pepper_hot', child: Text('Spice')),
-                      DropdownMenuItem(value: 'bowl_rice', child: Text('Rice')),
-                      DropdownMenuItem(value: 'mug_hot', child: Text('Liquid')),
-                    ],
-                    onChanged: (value) {
-                      setDialogState(() {
-                        _selectedIcon = value!;
-                      });
-                    },
-                  ),
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Cancel'),
-              ),
-              ElevatedButton(
-                onPressed: _isLoading ? null : _addNewIngredient,
-                child: _isLoading 
-                    ? const SizedBox(
-                        height: 16,
-                        width: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text('Add Ingredient'),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-
-  // Toggle ingredient selection (User side)
   void _toggleIngredientSelection(IngredientModel ingredient) {
     setState(() {
-      if (_selectedIngredients.containsKey(ingredient.id)) {
-        _selectedIngredients.remove(ingredient.id);
-      } else {
-        _selectedIngredients[ingredient.id] = true;
-      }
+      _selectedIngredients.containsKey(ingredient.id)
+          ? _selectedIngredients.remove(ingredient.id)
+          : _selectedIngredients[ingredient.id] = true;
     });
   }
 
-  // Get selected ingredients (User side)
-  List<IngredientModel> _getSelectedIngredients(List<IngredientModel> allIngredients) {
-    return allIngredients.where((ingredient) => _selectedIngredients.containsKey(ingredient.id)).toList();
+  // ================= INVENTORY CONTROLS =================
+
+  Future<void> _updateQuantity(IngredientModel ingredient, double delta) async {
+    final newQty = (ingredient.quantityAvailable + delta).clamp(
+      0.0,
+      double.infinity,
+    );
+    await _ingredientService.updateIngredientQuantity(ingredient.id, newQty);
   }
 
-  // Confirm selection (User side)
-  void _confirmSelection(List<IngredientModel> allIngredients) {
-    final selected = _getSelectedIngredients(allIngredients);
-    if (widget.onIngredientsSelected != null) {
-      widget.onIngredientsSelected!(selected);
-    }
-    Navigator.of(context).pop(selected);
+  Future<void> _deleteIngredient(IngredientModel ingredient) async {
+    await _ingredientService.deleteIngredient(ingredient.id);
   }
 
-  // Seed default ingredients (run once)
-  Future<void> _seedIngredients() async {
-    setState(() => _isLoading = true);
-    try {
-      await _ingredientService.seedDefaultIngredients();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Default ingredients added successfully!')),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error seeding ingredients: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
-  }
-
-  Map<String, List<IngredientModel>> _groupIngredientsByCategory(
-    List<IngredientModel> ingredients,
-  ) {
-    final Map<String, List<IngredientModel>> grouped = {};
-    for (final ingredient in ingredients) {
-      if (!grouped.containsKey(ingredient.category)) {
-        grouped[ingredient.category] = [];
-      }
-      grouped[ingredient.category]!.add(ingredient);
-    }
-    return grouped;
-  }
-
-  Widget _buildInventoryControls(IngredientModel ingredient) {
+  Widget _inventoryControls(IngredientModel ingredient) {
     Color statusColor;
     String statusText;
 
-    if (ingredient.quantityAvailable <= 0.1) {
+    if (ingredient.quantityAvailable <= 0) {
       statusColor = Colors.red;
       statusText = 'OUT OF STOCK';
-    } else if (ingredient.quantityAvailable <= 5.0) {
+    } else if (ingredient.quantityAvailable <= 5) {
       statusColor = Colors.orange;
       statusText = 'LOW STOCK';
     } else {
@@ -436,52 +144,52 @@ class _IngredientPageState extends State<IngredientPage> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                color: statusColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(color: statusColor, width: 0.5),
+                color: statusColor.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: statusColor),
               ),
               child: Text(
                 statusText,
                 style: GoogleFonts.lato(
-                  fontSize: 10,
+                  fontSize: 11,
                   fontWeight: FontWeight.bold,
                   color: statusColor,
                 ),
               ),
             ),
             Text(
-              'Qty: ${ingredient.quantityAvailable.toStringAsFixed(1)} ${ingredient.unit}',
+              '${ingredient.quantityAvailable.toStringAsFixed(1)} ${ingredient.unit}',
               style: GoogleFonts.lato(
-                fontSize: 14,
                 fontWeight: FontWeight.bold,
                 color: Colors.blueGrey,
               ),
             ),
           ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
             IconButton(
-              icon: const Icon(Icons.remove_circle_outline, color: Colors.redAccent),
-              iconSize: 20,
-              onPressed: () => _updateQuantity(ingredient, -1.0),
-              tooltip: 'Remove 1 unit',
+              icon: const Icon(Icons.remove_circle_outline, color: Colors.red),
+              onPressed: () => _updateQuantity(ingredient, -1),
             ),
             IconButton(
               icon: const Icon(Icons.add_circle_outline, color: Colors.green),
-              iconSize: 20,
-              onPressed: () => _updateQuantity(ingredient, 1.0),
-              tooltip: 'Add 1 unit',
+              onPressed: () => _updateQuantity(ingredient, 1),
+            ),
+            IconButton(
+              icon: const Icon(Icons.edit_outlined, color: Colors.blueGrey),
+              onPressed: () => _showAddIngredientDialog(
+                ingredient.category,
+                ingredient: ingredient,
+              ),
             ),
             IconButton(
               icon: const Icon(Icons.delete_outline, color: Colors.grey),
-              iconSize: 20,
-              onPressed: () => _showDeleteConfirmation(ingredient),
-              tooltip: 'Delete ingredient',
+              onPressed: () => _deleteIngredient(ingredient),
             ),
           ],
         ),
@@ -489,411 +197,439 @@ class _IngredientPageState extends State<IngredientPage> {
     );
   }
 
-  void _showDeleteConfirmation(IngredientModel ingredient) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Ingredient'),
-        content: Text('Are you sure you want to delete ${ingredient.name}?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _deleteIngredient(ingredient);
-            },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _deleteIngredient(IngredientModel ingredient) async {
-    try {
-      await _ingredientService.deleteIngredient(ingredient.id);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${ingredient.name} deleted successfully'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error deleting ingredient: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  Widget _buildUserSideControls(IngredientModel ingredient) {
-    final isSelected = _selectedIngredients.containsKey(ingredient.id);
-    final isOutOfStock = ingredient.quantityAvailable <= 0.1;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(
-                color: isOutOfStock ? Colors.red.withOpacity(0.1) : Colors.green.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(
-                  color: isOutOfStock ? Colors.red : Colors.green,
-                  width: 0.5,
-                ),
-              ),
-              child: Text(
-                isOutOfStock ? 'OUT OF STOCK' : 'AVAILABLE',
-                style: GoogleFonts.lato(
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  color: isOutOfStock ? Colors.red : Colors.green,
-                ),
-              ),
-            ),
-            if (!isOutOfStock)
-              IconButton(
-                icon: Icon(
-                  isSelected ? Icons.check_circle : Icons.radio_button_unchecked,
-                  color: isSelected ? Colors.green : Colors.grey,
-                ),
-                onPressed: () => _toggleIngredientSelection(ingredient),
-                tooltip: isSelected ? 'Deselect' : 'Select',
-              ),
-          ],
-        ),
-        if (isOutOfStock)
-          Padding(
-            padding: const EdgeInsets.only(top: 8.0),
-            child: Text(
-              'Currently unavailable',
-              style: GoogleFonts.lato(
-                fontSize: 12,
-                color: Colors.red,
-                fontStyle: FontStyle.italic,
-              ),
-            ),
-          ),
-      ],
-    );
-  }
+  // ================= UI =================
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: kBackground,
       appBar: AppBar(
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        flexibleSpace: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [kPrimary, kPrimaryLight],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
         title: Text(
-          widget.isRestaurantSide ? 'Inventory Management' : 'Customize Ingredients',
-          style: GoogleFonts.lato(fontWeight: FontWeight.bold),
+          widget.isRestaurantSide
+              ? 'Inventory Management'
+              : 'Customize Ingredients',
+          style: GoogleFonts.lato(
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
         ),
         centerTitle: true,
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Theme.of(context).colorScheme.onPrimary,
-        actions: [
-          if (widget.isRestaurantSide) ...[
-            // Add new ingredient button
-            IconButton(
-              icon: const Icon(Icons.add),
-              onPressed: _showAddIngredientDialog,
-              tooltip: 'Add New Ingredient',
-            ),
-            // Seed button (for initial setup)
-            IconButton(
-              icon: const Icon(Icons.download),
-              onPressed: _seedIngredients,
-              tooltip: 'Load Default Ingredients',
-            ),
-          ],
-        ],
+        foregroundColor: Colors.white,
       ),
       body: Column(
         children: [
-          // Search Bar
-          Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Search Ingredients...',
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  vertical: 10.0,
-                  horizontal: 15.0,
+          _searchBar(),
+          Expanded(child: _ingredientList()),
+        ],
+      ),
+    );
+  }
+
+  Widget _searchBar() {
+    return Padding(
+      padding: const EdgeInsets.all(12),
+      child: TextField(
+        controller: _searchController,
+        decoration: InputDecoration(
+          hintText: 'Search Ingredients...',
+          prefixIcon: const Icon(Icons.search, color: kPrimary),
+          filled: true,
+          fillColor: Colors.white,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(30),
+            borderSide: BorderSide(color: Colors.grey.shade300),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(30),
+            borderSide: BorderSide(color: Colors.grey.shade300),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(30),
+            borderSide: const BorderSide(color: kPrimary),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _ingredientList() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('ingredient_collections')
+          .orderBy('createdAt', descending: true)
+          .snapshots(),
+      builder: (context, collectionSnapshot) {
+        if (!collectionSnapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final collections = collectionSnapshot.data!.docs;
+
+        return StreamBuilder<List<IngredientModel>>(
+          stream: _ingredientService.getRestaurantIngredients(),
+          builder: (context, ingredientSnapshot) {
+            if (!ingredientSnapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            final allIngredients = ingredientSnapshot.data!;
+            final filteredIngredients = allIngredients
+                .where((i) => i.name.toLowerCase().contains(_searchQuery))
+                .toList();
+
+            if (collections.isEmpty) {
+              return const Center(child: Text("No collections found."));
+            }
+
+            return ListView.builder(
+              padding: const EdgeInsets.only(bottom: 16),
+              itemCount: collections.length,
+              itemBuilder: (context, index) {
+                final collectionData =
+                    collections[index].data() as Map<String, dynamic>;
+                final collectionName =
+                    collectionData['name'] ?? 'Uncategorized';
+                final collectionImage = collectionData['imageUrl'] ?? '';
+
+                final items = filteredIngredients
+                    .where((i) => i.category == collectionName)
+                    .toList();
+
+                return _buildCollectionSection(
+                  collectionName,
+                  collectionImage,
+                  items,
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildCollectionSection(
+    String title,
+    String imageUrl,
+    List<IngredientModel> items,
+  ) {
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 2,
+      child: ExpansionTile(
+        initiallyExpanded: true,
+        leading: CircleAvatar(
+          backgroundColor: kPrimary.withOpacity(0.1),
+          backgroundImage: imageUrl.isNotEmpty ? NetworkImage(imageUrl) : null,
+          child: imageUrl.isEmpty
+              ? const Icon(Icons.category, color: kPrimary)
+              : null,
+        ),
+        title: Text(
+          title,
+          style: GoogleFonts.lato(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: kPrimary,
+          ),
+        ),
+        children: [
+          if (items.isEmpty)
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Text(
+                "No items yet.",
+                style: GoogleFonts.lato(color: Colors.grey),
+              ),
+            )
+          else
+            Column(children: items.map(_ingredientCard).toList()),
+          if (widget.isRestaurantSide)
+            Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () => _showAddIngredientDialog(title),
+                  icon: const Icon(Icons.add),
+                  label: Text("Add Item to $title"),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: kPrimary,
+                    side: const BorderSide(color: kPrimary),
+                  ),
                 ),
               ),
             ),
-          ),
+        ],
+      ),
+    );
+  }
 
-          // Selected ingredients count (User side)
-          if (!widget.isRestaurantSide && widget.onIngredientsSelected != null)
-            StreamBuilder<List<IngredientModel>>(
-              stream: _ingredientService.getRestaurantIngredients(),
-              builder: (context, snapshot) {
-                if (snapshot.hasData) {
-                  final selectedCount = _getSelectedIngredients(snapshot.data!).length;
-                  return Container(
-                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                    color: Colors.blue.withOpacity(0.1),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  void _showAddIngredientDialog(
+    String category, {
+    IngredientModel? ingredient,
+  }) {
+    final isEdit = ingredient != null;
+
+    final nameCtrl = TextEditingController(text: ingredient?.name ?? '');
+    final priceCtrl = TextEditingController(
+      text: ingredient?.price.toString() ?? '',
+    );
+    String selectedUnit = ingredient?.unit ?? 'kg';
+    final calCtrl = TextEditingController(
+      text: ingredient?.calories.toString() ?? '',
+    );
+    final protCtrl = TextEditingController(
+      text: ingredient?.protein.toString() ?? '',
+    );
+    final initialQtyCtrl = TextEditingController(
+      text: ingredient?.quantityAvailable.toString() ?? '',
+    );
+    String selectedIcon = ingredient?.iconName ?? 'seedling';
+
+    if (!_unitOptions.contains(selectedUnit)) {
+      selectedUnit = 'kg';
+    }
+    if (!_iconMap.containsKey(selectedIcon)) {
+      selectedIcon = 'seedling';
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: Text(
+                isEdit ? 'Edit ${ingredient!.name}' : 'Add to $category',
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildTextField(nameCtrl, 'Name'),
+                    const SizedBox(height: 12),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          '$selectedCount ingredients selected',
-                          style: GoogleFonts.lato(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.blue,
+                        Expanded(
+                          child: _buildTextField(
+                            priceCtrl,
+                            'Price',
+                            keyboardType: TextInputType.number,
                           ),
                         ),
-                        ElevatedButton.icon(
-                          onPressed: () => _confirmSelection(snapshot.data!),
-                          icon: const Icon(Icons.check),
-                          label: const Text('Confirm'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green,
-                            foregroundColor: Colors.white,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-                return const SizedBox();
-              },
-            ),
-
-          // Ingredient List (Real-time Stream)
-          Expanded(
-            child: StreamBuilder<List<IngredientModel>>(
-              stream: _ingredientService.getRestaurantIngredients(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(
-                    child: CircularProgressIndicator(),
-                  );
-                }
-
-                if (snapshot.hasError) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.error_outline, size: 48, color: Colors.red),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Error loading ingredients',
-                          style: GoogleFonts.lato(fontSize: 16),
-                        ),
-                        Text(
-                          '${snapshot.error}',
-                          style: const TextStyle(color: Colors.red),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 16),
-                        if (widget.isRestaurantSide)
-                          ElevatedButton(
-                            onPressed: _seedIngredients,
-                            child: const Text('Load Default Ingredients'),
-                          ),
-                      ],
-                    ),
-                  );
-                }
-
-                if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.inventory_2_outlined, size: 64, color: Colors.grey),
-                        const SizedBox(height: 16),
-                        Text(
-                          'No ingredients found',
-                          style: GoogleFonts.lato(
-                            fontSize: 18, 
-                            fontWeight: FontWeight.bold
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        if (widget.isRestaurantSide) ...[
-                          const Text('Click the download button to load defaults'),
-                          const SizedBox(height: 24),
-                          ElevatedButton.icon(
-                            onPressed: _seedIngredients,
-                            icon: const Icon(Icons.download),
-                            label: const Text('Load Default Ingredients'),
-                          ),
-                        ] else
-                          const Text('No ingredients available for customization'),
-                      ],
-                    ),
-                  );
-                }
-
-                // Filter ingredients based on search
-                final allIngredients = snapshot.data!;
-                final filteredIngredients = allIngredients.where((ingredient) {
-                  return ingredient.name.toLowerCase().contains(_searchQuery);
-                }).toList();
-
-                if (filteredIngredients.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.search_off, size: 64, color: Colors.grey),
-                        const SizedBox(height: 16),
-                        Text(
-                          'No ingredients match "$_searchQuery"',
-                          style: GoogleFonts.lato(fontSize: 16),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-
-                final groupedIngredients = _groupIngredientsByCategory(filteredIngredients);
-
-                // Get sorted categories for consistent ordering
-                final sortedCategories = groupedIngredients.keys.toList()..sort();
-
-                // Initialize expansion states for new categories
-                for (final category in sortedCategories) {
-                  _expandedCategories.putIfAbsent(category, () => true);
-                }
-
-                return ListView.builder(
-                  itemCount: sortedCategories.length,
-                  itemBuilder: (context, index) {
-                    final category = sortedCategories[index];
-                    final ingredients = groupedIngredients[category]!;
-
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 8.0),
-                      child: ExpansionTile(
-                        key: PageStorageKey(category),
-                        title: Text(
-                          category,
-                          style: GoogleFonts.lato(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                        ),
-                        subtitle: Text(
-                          '${ingredients.length} items',
-                          style: const TextStyle(fontSize: 12),
-                        ),
-                        initiallyExpanded: _expandedCategories[category] ?? true,
-                        onExpansionChanged: (isExpanded) {
-                          setState(() {
-                            _expandedCategories[category] = isExpanded;
-                          });
-                        },
-                        children: ingredients.map((ingredient) {
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                            child: Card(
-                              margin: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
-                              ),
-                              elevation: 2,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.all(12.0),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    ListTile(
-                                      contentPadding: EdgeInsets.zero,
-                                      leading: FaIcon(
-                                        _getIconData(ingredient.iconName),
-                                        color: widget.isRestaurantSide 
-                                            ? Colors.green
-                                            : (_selectedIngredients.containsKey(ingredient.id) 
-                                                ? Colors.green 
-                                                : Colors.grey),
-                                        size: 24,
-                                      ),
-                                      title: Text(
-                                        ingredient.name,
-                                        style: GoogleFonts.lato(
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 16,
-                                        ),
-                                      ),
-                                      subtitle: Text(
-                                        '${ingredient.calories} kcal | ${ingredient.protein}g protein',
-                                        style: GoogleFonts.lato(
-                                          fontSize: 12,
-                                          color: Colors.grey[600],
-                                        ),
-                                      ),
-                                      trailing: Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        crossAxisAlignment: CrossAxisAlignment.end,
-                                        children: [
-                                          Text(
-                                            '₹${ingredient.price.toStringAsFixed(2)}',
-                                            style: GoogleFonts.lato(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 16,
-                                              color: Colors.redAccent,
-                                            ),
-                                          ),
-                                          Text(
-                                            'per ${ingredient.unit}',
-                                            style: GoogleFonts.lato(
-                                              fontSize: 10,
-                                              color: Colors.grey,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    const Divider(height: 1, indent: 16, endIndent: 16),
-                                    Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 16.0,
-                                        vertical: 8.0,
-                                      ),
-                                      child: widget.isRestaurantSide
-                                          ? _buildInventoryControls(ingredient)
-                                          : _buildUserSideControls(ingredient),
-                                    ),
-                                  ],
-                                ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: DropdownButtonFormField<String>(
+                            value: selectedUnit,
+                            decoration: const InputDecoration(
+                              labelText: 'Unit',
+                              border: OutlineInputBorder(),
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 16,
                               ),
                             ),
-                          );
-                        }).toList(),
+                            items: _unitOptions.map((String value) {
+                              return DropdownMenuItem<String>(
+                                value: value,
+                                child: Text(value),
+                              );
+                            }).toList(),
+                            onChanged: (newValue) {
+                              if (newValue != null) {
+                                setState(() => selectedUnit = newValue);
+                              }
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    _buildTextField(
+                      initialQtyCtrl,
+                      isEdit ? 'Available Quantity' : 'Initial Quantity',
+                      keyboardType: TextInputType.number,
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildTextField(
+                            calCtrl,
+                            'Calories',
+                            keyboardType: TextInputType.number,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _buildTextField(
+                            protCtrl,
+                            'Protein',
+                            keyboardType: TextInputType.number,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      value: selectedIcon,
+                      decoration: const InputDecoration(
+                        labelText: 'Icon',
+                        border: OutlineInputBorder(),
                       ),
+                      items: _iconMap.keys.map((String key) {
+                        return DropdownMenuItem<String>(
+                          value: key,
+                          child: Row(
+                            children: [
+                              FaIcon(_iconMap[key]!, size: 18),
+                              const SizedBox(width: 10),
+                              Text(key),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (newValue) {
+                        if (newValue != null) {
+                          setState(() => selectedIcon = newValue);
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    if (nameCtrl.text.isEmpty) return;
+
+                    final model = IngredientModel(
+                      id:
+                          ingredient?.id ??
+                          '', // Use existing id or empty for new
+                      name: nameCtrl.text,
+                      category: category,
+                      price: double.tryParse(priceCtrl.text) ?? 0,
+                      calories: double.tryParse(calCtrl.text) ?? 0,
+                      protein: double.tryParse(protCtrl.text) ?? 0,
+                      unit: selectedUnit,
+                      quantityAvailable:
+                          double.tryParse(initialQtyCtrl.text) ?? 0,
+                      iconName: selectedIcon,
+                      restaurantId: FirebaseAuth.instance.currentUser!.uid,
+                      createdAt: ingredient?.createdAt ?? DateTime.now(),
                     );
+
+                    if (isEdit) {
+                      await _ingredientService.updateIngredient(model);
+                    } else {
+                      await _ingredientService.addIngredient(model);
+                    }
+                    if (mounted) Navigator.pop(context);
                   },
-                );
-              },
+                  child: Text(isEdit ? 'Update' : 'Add'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildTextField(
+    TextEditingController controller,
+    String label, {
+    TextInputType keyboardType = TextInputType.text,
+  }) {
+    return TextField(
+      controller: controller,
+      decoration: InputDecoration(
+        labelText: label,
+        border: const OutlineInputBorder(),
+      ),
+      keyboardType: keyboardType,
+    );
+  }
+
+  Widget _ingredientCard(IngredientModel ingredient) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      child: Container(
+        decoration: BoxDecoration(
+          color: kCard,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: const [
+            BoxShadow(
+              blurRadius: 16,
+              offset: Offset(0, 6),
+              color: Color(0x14000000),
             ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            children: [
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: FaIcon(
+                  _getIconData(ingredient.iconName),
+                  color: Colors.green, // stays green
+                ),
+                title: Text(
+                  ingredient.name,
+                  style: GoogleFonts.lato(fontWeight: FontWeight.w600),
+                ),
+                subtitle: Text(
+                  '${ingredient.calories} kcal • ${ingredient.protein}g protein',
+                  style: GoogleFonts.lato(fontSize: 12),
+                ),
+                trailing: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      '₹${ingredient.price.toStringAsFixed(2)}',
+                      style: GoogleFonts.lato(
+                        fontWeight: FontWeight.bold,
+                        color: kPrimary,
+                      ),
+                    ),
+                    Text(
+                      'per ${ingredient.unit}',
+                      style: const TextStyle(fontSize: 10),
+                    ),
+                  ],
+                ),
+                onTap: widget.isRestaurantSide
+                    ? null
+                    : () => _toggleIngredientSelection(ingredient),
+              ),
+              const Divider(),
+              widget.isRestaurantSide
+                  ? _inventoryControls(ingredient)
+                  : const SizedBox(),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

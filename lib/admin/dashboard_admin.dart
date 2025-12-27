@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:project/admin/admin_category.dart';
+import 'package:project/admin/admin_ingredient.dart';
+import 'package:project/admin/admin_carousel.dart';
 import 'package:project/admin/restaurant_admin.dart';
 import 'package:project/admin/settings_admin.dart';
 import 'package:project/admin/user_admin.dart';
@@ -49,6 +51,23 @@ class _AdminDashboardState extends State<AdminDashboard> {
       'count': '456',
       'page': const AdminReviewPage(),
       'description': 'Monitor reviews',
+    },
+
+    {
+      'title': 'Collections',
+      'icon': Icons.grid_view,
+      'color': Colors.green,
+      'count': '123',
+      'page': const AdminIngredientPage(),
+      'description': 'Manage collections',
+    },
+    {
+      'title': 'Carousel',
+      'icon': Icons.view_carousel,
+      'color': Colors.teal,
+      'count': '—',
+      'page': const AdminCarouselPage(),
+      'description': 'Manage home banners',
     },
     {
       'title': 'Settings',

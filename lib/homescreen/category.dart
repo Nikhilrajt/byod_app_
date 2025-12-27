@@ -25,11 +25,47 @@ class CategoryPage extends StatefulWidget {
 
 class _CategoryPageState extends State<CategoryPage> {
   String _currentCategoryId = "";
+  String _currentCategoryName = "";
+  String _lastHealthModeState = ""; // Track health mode changes
+  bool _shouldAutoSelect = false; // Only auto-select if coming from bottom nav
+  bool _userManuallySelectedCategory = false;
+
+  // Search State
+  bool _isSearching = false;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = "";
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
     super.initState();
-    _currentCategoryId = widget.categoryId;
+
+    _searchController.addListener(() {
+      setState(() {
+        _searchQuery = _searchController.text.toLowerCase();
+      });
+    });
+
+    // Check if category was provided (coming from specific category selection)
+    // or if empty/default (coming from bottom navigation)
+    if (widget.categoryId.isEmpty || widget.categoryId == "") {
+      // Coming from bottom nav - should auto-select first category
+      _shouldAutoSelect = true;
+      _currentCategoryId = "";
+      _currentCategoryName = "";
+    } else {
+      // Coming with specific category - use it
+      _shouldAutoSelect = false;
+      _currentCategoryId = widget.categoryId;
+      _currentCategoryName = widget.categoryName;
+      _lastHealthModeState = "initialized"; // Mark as already initialized
+      _userManuallySelectedCategory = true;
+    }
   }
 
   // --- 1. FUNCTION TO CHECK IF A CATEGORY CONTAINS HEALTHY ITEMS ---
@@ -45,7 +81,38 @@ class _CategoryPageState extends State<CategoryPage> {
   }
 
   // ---------------------------------------------------
-  // 2. FETCH ITEMS WITH HEALTH MODE FILTERING
+  // 2. AUTO-SELECT FIRST CATEGORY
+  // ---------------------------------------------------
+  void _autoSelectFirstCategory(
+    List<DocumentSnapshot> docs,
+    String healthModeKey,
+  ) {
+    // Only auto-select if:
+    // 1. Should auto-select flag is true (coming from bottom nav) OR
+    // 2. Health mode has changed (different state key)
+    if (docs.isNotEmpty &&
+        _currentCategoryId.isEmpty &&
+        (_shouldAutoSelect || healthModeKey != _lastHealthModeState)) {
+      final firstDoc = docs.first;
+      final firstData = firstDoc.data() as Map<String, dynamic>;
+
+      // Use WidgetsBinding to avoid setState during build
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() {
+            _currentCategoryId = firstDoc.id;
+            _currentCategoryName = firstData['name'];
+            _lastHealthModeState = healthModeKey;
+            _shouldAutoSelect = false; // Reset after first auto-select
+            _userManuallySelectedCategory = false; // Reset manual selection
+          });
+        }
+      });
+    }
+  }
+
+  // ---------------------------------------------------
+  // 3. FETCH ITEMS WITH HEALTH MODE FILTERING
   // ---------------------------------------------------
   Stream<List<CategoryItem>> fetchCategoryItems(
     String categoryId,
@@ -56,7 +123,6 @@ class _CategoryPageState extends State<CategoryPage> {
         .doc(categoryId)
         .collection("items");
 
-    // ⭐ FIX: Apply health mode filter at the database level
     if (healthMode) {
       query = query.where("isHealthy", isEqualTo: true);
     }
@@ -112,7 +178,7 @@ class _CategoryPageState extends State<CategoryPage> {
             data["name"] ?? "Unknown",
             data["imageUrl"] ?? "",
             price,
-            double.tryParse(data["rating"]?.toString() ?? "4.5") ?? 4.5,
+            double.tryParse(data["rating"]?.toString() ?? "0") ?? 0.0,
             data["restaurantId"] ?? "",
             restaurantName,
             categoryKey: categoryId,
@@ -121,6 +187,7 @@ class _CategoryPageState extends State<CategoryPage> {
             isCustomizable: data["isCustomizable"] ?? false,
             isHealthy: data["isHealthy"] ?? false,
             customizationSteps: parsedSteps,
+            calories: data["calories"]?.toString(),
           ),
         );
       }
@@ -129,9 +196,59 @@ class _CategoryPageState extends State<CategoryPage> {
   }
 
   // ---------------------------------------------------
-  // 3. ADD TO CART LOGIC
+  // 4. ADD TO CART LOGIC
   // ---------------------------------------------------
-  void _addToCart(CategoryItem item, CartNotifier cart) {
+  bool _isDifferentRestaurant(CategoryItem item, CartNotifier cart) {
+    if (cart.items.isEmpty) return false;
+
+    // Get restaurantId of first cart item
+    final existingRestaurantId = cart.items.first.restaurantId;
+
+    return existingRestaurantId != item.restaurantId;
+  }
+
+  void _showReplaceCartDialog(CategoryItem item, CartNotifier cart) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Text(
+            "Do You Want To Replace The Items\nFrom The Previous Restaurant?",
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+
+            textAlign: TextAlign.center,
+          ),
+          actionsAlignment: MainAxisAlignment.spaceBetween,
+          actions: [
+            OutlinedButton(
+              onPressed: () {
+                Navigator.pop(context); // Close dialog
+              },
+              child: const Text("Close"),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.amber,
+                foregroundColor: Colors.black,
+              ),
+              onPressed: () {
+                cart.clearCart(); // 🔥 IMPORTANT
+                Navigator.pop(context);
+                _addItemDirectly(item, cart);
+              },
+              child: const Text("OK"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _addItemDirectly(CategoryItem item, CartNotifier cart) {
     if (item.isCustomizable) {
       _showAddOptionsDialog(item, cart);
     } else {
@@ -139,10 +256,21 @@ class _CategoryPageState extends State<CategoryPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text("${item.name} added to cart"),
-          duration: Duration(milliseconds: 500),
+          duration: const Duration(milliseconds: 500),
         ),
       );
     }
+  }
+
+  void _addToCart(CategoryItem item, CartNotifier cart) {
+    // 🔐 CHECK RESTAURANT RULE
+    if (_isDifferentRestaurant(item, cart)) {
+      _showReplaceCartDialog(item, cart);
+      return;
+    }
+
+    // Normal flow
+    _addItemDirectly(item, cart);
   }
 
   void _showAddOptionsDialog(CategoryItem item, CartNotifier cart) {
@@ -154,40 +282,35 @@ class _CategoryPageState extends State<CategoryPage> {
         actions: [
           TextButton(
             onPressed: () {
-              cart.addItem(item.toCartItem());
               Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text("${item.name} added to cart")),
-              );
+              _addToCart(item, cart); // 🔥 USE SAME RULE
             },
             child: const Text("Quick Add (Base)"),
           ),
+
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.deepOrange),
             onPressed: () {
               Navigator.pop(context);
-              if (item.customizationSteps != null &&
-                  item.customizationSteps!.isNotEmpty) {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => CustomizationPage(
-                      customizableItem: item,
-                      template: item.customizationSteps!,
-                    ),
-                  ),
-                );
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text("No customization options available"),
-                  ),
-                );
+
+              if (_isDifferentRestaurant(item, cart)) {
+                _showReplaceCartDialog(item, cart);
+                return;
               }
+
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => CustomizationPage(
+                    customizableItem: item,
+                    template: item.customizationSteps!,
+                  ),
+                ),
+              );
             },
+
             child: const Text(
               "Customize",
-              style: TextStyle(color: Colors.white),
+              style: TextStyle(color: Colors.green),
             ),
           ),
         ],
@@ -196,7 +319,7 @@ class _CategoryPageState extends State<CategoryPage> {
   }
 
   // ---------------------------------------------------
-  // 4. RESTAURANT HEADER
+  // 5. RESTAURANT HEADER
   // ---------------------------------------------------
   Widget _buildRestaurantHeader(String restaurantName) {
     return Padding(
@@ -219,7 +342,7 @@ class _CategoryPageState extends State<CategoryPage> {
   }
 
   // ---------------------------------------------------
-  // 5. ITEM CARD
+  // 6. ITEM CARD
   // ---------------------------------------------------
   Widget _buildItemCard(CategoryItem item, CartNotifier cart) {
     return Container(
@@ -239,6 +362,7 @@ class _CategoryPageState extends State<CategoryPage> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Image
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
             child: Image.network(
@@ -255,6 +379,7 @@ class _CategoryPageState extends State<CategoryPage> {
             ),
           ),
           SizedBox(width: 16),
+          // Details
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -285,32 +410,69 @@ class _CategoryPageState extends State<CategoryPage> {
                           border: Border.all(color: Colors.green),
                         ),
                         child: Text(
-                          "Customizable",
-                          style: TextStyle(fontSize: 10, color: Colors.green),
+                          "Custom",
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: Colors.green,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    if (item.isHealthy)
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        margin: EdgeInsets.only(left: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(color: Colors.green),
+                        ),
+                        child: Text(
+                          "Healthy",
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: Colors.green,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                   ],
                 ),
                 SizedBox(height: 4),
                 Text(
-                  "From: ${item.restaurantName}",
-                  style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                  item.restaurantName,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[700],
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
-                SizedBox(height: 8),
-                Row(
-                  children: [
-                    Icon(Icons.star, size: 14, color: Colors.amber),
-                    SizedBox(width: 4),
-                    Text(
-                      item.rating.toString(),
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
+                SizedBox(height: 6),
+                if (item.description?.isNotEmpty == true) ...[
+                  Text(
+                    item.description!,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[700],
+                      fontWeight: FontWeight.w500,
                     ),
-                  ],
-                ),
-                SizedBox(height: 8),
+                  ),
+                  SizedBox(height: 8),
+                ],
+                if (item.calories != null) ...[
+                  Text(
+                    "${item.calories} kcal",
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.green,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                ],
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -355,6 +517,53 @@ class _CategoryPageState extends State<CategoryPage> {
     );
   }
 
+  // ---------------------------------------------------
+  // 7. BUILD CATEGORY CHIPS
+  // ---------------------------------------------------
+  Widget _buildCategoryChips(List<DocumentSnapshot> docs, bool healthMode) {
+    // Create a unique key for the current state
+    String stateKey = "health_${healthMode}_categories_${docs.length}";
+
+    // Auto-select first category only when state changes
+    _autoSelectFirstCategory(docs, stateKey);
+
+    return ListView.builder(
+      scrollDirection: Axis.horizontal,
+      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      itemCount: docs.length,
+      itemBuilder: (context, index) {
+        var doc = docs[index];
+        var catData = doc.data() as Map<String, dynamic>;
+        String id = doc.id;
+        String name = catData['name'];
+        bool isSelected = id == _currentCategoryId;
+
+        return Padding(
+          padding: const EdgeInsets.only(right: 8.0),
+          child: ActionChip(
+            label: Text(name),
+            backgroundColor: isSelected ? Colors.deepOrange : Colors.grey[100],
+            labelStyle: TextStyle(
+              color: isSelected ? Colors.white : Colors.black,
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            side: BorderSide.none,
+            onPressed: () {
+              setState(() {
+                _userManuallySelectedCategory = true; // 🔥 IMPORTANT
+                _currentCategoryId = id;
+                _currentCategoryName = name;
+              });
+            },
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final healthMode = context.watch<HealthModeNotifier>().isOn;
@@ -363,46 +572,122 @@ class _CategoryPageState extends State<CategoryPage> {
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: Text(widget.categoryName, style: TextStyle(color: Colors.black)),
+        title: _isSearching
+            ? TextField(
+                controller: _searchController,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  hintText: 'Search items...',
+                  border: InputBorder.none,
+                ),
+                style: const TextStyle(color: Colors.black),
+              )
+            : Text(
+                _currentCategoryName,
+                style: const TextStyle(color: Colors.black),
+              ),
         backgroundColor: Colors.white,
         elevation: 0,
-        iconTheme: IconThemeData(color: Colors.black),
+        iconTheme: const IconThemeData(color: Colors.black),
+        leading: _isSearching
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () {
+                  setState(() {
+                    _isSearching = false;
+                    _searchController.clear();
+                    _searchQuery = "";
+                  });
+                },
+              )
+            : null,
         actions: [
-          IconButton(icon: Icon(Icons.search), onPressed: () {}),
-          Stack(
-            children: [
-              IconButton(
-                icon: Icon(Icons.shopping_cart_outlined),
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => CartScreen()),
-                ),
-              ),
-              if (cart.itemCount > 0)
-                Positioned(
-                  right: 8,
-                  top: 8,
-                  child: Container(
-                    padding: EdgeInsets.all(2),
-                    decoration: BoxDecoration(
-                      color: Colors.red,
-                      shape: BoxShape.circle,
-                    ),
-                    constraints: BoxConstraints(minWidth: 16, minHeight: 16),
-                    child: Text(
-                      cart.itemCount.toString(),
-                      style: TextStyle(color: Colors.white, fontSize: 10),
-                      textAlign: TextAlign.center,
+          if (_isSearching)
+            IconButton(
+              icon: const Icon(Icons.close),
+              onPressed: () {
+                if (_searchController.text.isEmpty) {
+                  setState(() {
+                    _isSearching = false;
+                  });
+                } else {
+                  _searchController.clear();
+                }
+              },
+            )
+          else
+            IconButton(
+              icon: const Icon(Icons.search),
+              onPressed: () {
+                setState(() {
+                  _isSearching = true;
+                });
+              },
+            ),
+          if (!_isSearching) ...[
+            Container(
+              padding: const EdgeInsets.all(8),
+              child: Row(
+                children: [
+                  Icon(
+                    healthMode
+                        ? Icons.health_and_safety
+                        : Icons.health_and_safety_outlined,
+                    color: healthMode ? Colors.green : Colors.grey,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    "Health",
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: healthMode ? Colors.green : Colors.grey,
                     ),
                   ),
+                ],
+              ),
+            ),
+            Stack(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.shopping_cart_outlined),
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const CartScreen()),
+                  ),
                 ),
-            ],
-          ),
+                if (cart.itemCount > 0)
+                  Positioned(
+                    right: 8,
+                    top: 8,
+                    child: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: const BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 16,
+                        minHeight: 16,
+                      ),
+                      child: Text(
+                        cart.itemCount.toString(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ],
         ],
       ),
       body: Column(
         children: [
-          // HORIZONTAL CATEGORY CHIPS - FIXED NAVIGATION
+          // HORIZONTAL CATEGORY CHIPS
           Container(
             height: 60,
             color: Colors.white,
@@ -464,11 +749,22 @@ class _CategoryPageState extends State<CategoryPage> {
                   );
                 }
 
-                if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  final noItemsText = healthMode
-                      ? "No healthy items found in ${widget.categoryName}."
-                      : "No items found in this category.";
+                final items = snapshot.data!;
+                final filteredItems = _searchQuery.isEmpty
+                    ? items
+                    : items
+                          .where(
+                            (item) =>
+                                item.name.toLowerCase().contains(_searchQuery),
+                          )
+                          .toList();
 
+                if (filteredItems.isEmpty) {
+                  final noItemsText = _searchQuery.isNotEmpty
+                      ? "No items found matching '$_searchQuery'"
+                      : (healthMode
+                            ? "No healthy items found in $_currentCategoryName."
+                            : "No items found in $_currentCategoryName.");
                   return Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -483,6 +779,7 @@ class _CategoryPageState extends State<CategoryPage> {
                           child: Text(
                             noItemsText,
                             style: TextStyle(color: Colors.grey),
+                            textAlign: TextAlign.center,
                           ),
                         ),
                       ],
@@ -490,10 +787,9 @@ class _CategoryPageState extends State<CategoryPage> {
                   );
                 }
 
-                final items = snapshot.data!;
                 Map<String, List<CategoryItem>> groupedItems = {};
 
-                for (var item in items) {
+                for (var item in filteredItems) {
                   if (!groupedItems.containsKey(item.restaurantName)) {
                     groupedItems[item.restaurantName] = [];
                   }
@@ -512,9 +808,9 @@ class _CategoryPageState extends State<CategoryPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _buildRestaurantHeader(restaurantName),
-                        ...restaurantItems
-                            .map((item) => _buildItemCard(item, cart))
-                            ,
+                        ...restaurantItems.map(
+                          (item) => _buildItemCard(item, cart),
+                        ),
                       ],
                     );
                   },
@@ -524,44 +820,6 @@ class _CategoryPageState extends State<CategoryPage> {
           ),
         ],
       ),
-    );
-  }
-
-  // FIXED: Category chips now update state instead of navigating
-  Widget _buildCategoryChips(List<DocumentSnapshot> docs, bool healthMode) {
-    return ListView.builder(
-      scrollDirection: Axis.horizontal,
-      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      itemCount: docs.length,
-      itemBuilder: (context, index) {
-        var doc = docs[index];
-        var catData = doc.data() as Map<String, dynamic>;
-        String id = doc.id;
-        String name = catData['name'];
-        bool isSelected = id == _currentCategoryId;
-
-        return Padding(
-          padding: const EdgeInsets.only(right: 8.0),
-          child: ActionChip(
-            label: Text(name),
-            backgroundColor: isSelected ? Colors.deepOrange : Colors.grey[100],
-            labelStyle: TextStyle(
-              color: isSelected ? Colors.white : Colors.black,
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-            ),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-            side: BorderSide.none,
-            onPressed: () {
-              // FIX: Update state instead of navigating to new page
-              setState(() {
-                _currentCategoryId = id;
-              });
-            },
-          ),
-        );
-      },
     );
   }
 }
