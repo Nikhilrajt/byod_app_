@@ -41,6 +41,7 @@ class CategoryItem {
       imageUrl: imageUrl,
       restaurantName: restaurantName,
       restaurantId: restaurantId,
+      isByod: false,
     );
   }
 }
@@ -54,6 +55,7 @@ class CartItem {
   final List<String>? customizations;
   final bool isHealthy;
   int quantity;
+  final bool isByod;
 
   CartItem({
     required this.name,
@@ -64,6 +66,7 @@ class CartItem {
     this.customizations,
     this.isHealthy = false,
     this.quantity = 1,
+    this.isByod = true,
   });
 
   int get totalPrice => price * quantity;
@@ -85,6 +88,7 @@ class CartItem {
       'customizations': customizations,
       'isHealthy': isHealthy,
       'quantity': quantity,
+      'isByod': isByod,
     };
   }
 
@@ -99,6 +103,7 @@ class CartItem {
           ?.cast<String>(),
       isHealthy: json['isHealthy'] ?? false,
       quantity: json['quantity'] ?? 1,
+      isByod: json['isByod'] ?? false,
     );
   }
 }

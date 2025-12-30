@@ -312,6 +312,7 @@ class _FoodTileWidget extends StatelessWidget {
                                   restaurantName: item.restaurantName,
                                   imageUrl: item.imageUrl,
                                   restaurantId: item.restaurantId,
+                                  isByod: false,
                                 );
                                 cartNotifier.addToCart(cartItem);
                                 ScaffoldMessenger.of(context).showSnackBar(

@@ -12,6 +12,7 @@ class OrderService {
     required int totalAmount,
     required String paymentMethod,
     required String paymentStatus,
+    String orderType = 'normal',
   }) async {
     if (restaurantId.isEmpty) {
       throw ArgumentError('Restaurant ID cannot be empty');
@@ -32,7 +33,7 @@ class OrderService {
       'paymentMethod': paymentMethod,
       'paymentStatus': paymentStatus,
       'orderStatus': 'pending',
-      'orderType': 'normal',
+      'orderType': orderType,
       'createdAt': FieldValue.serverTimestamp(),
     });
   }

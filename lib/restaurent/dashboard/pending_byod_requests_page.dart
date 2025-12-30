@@ -5,7 +5,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:project/restaurent/Orderpage.dart' as OP;
 import 'package:url_launcher/url_launcher.dart';
 
-
 class PendingByodRequestsPage extends StatefulWidget {
   const PendingByodRequestsPage({super.key});
 
@@ -82,45 +81,10 @@ class _PendingByodRequestsPageState extends State<PendingByodRequestsPage> {
   }
 
   Future<void> _acceptRequest(OP.Order request) async {
-    final firestore = FirebaseFirestore.instance;
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-
-    // Fetch the restaurant's name to include in the order details.
-    final restaurantDoc = await firestore.collection('users').doc(user.uid).get();
-    final restaurantData = restaurantDoc.data();
-    final restaurantName = restaurantData?['fullName'] ?? 'A Restaurant';
-
-    final orderRef = firestore.collection('orders').doc();
-
-    // Create a new order from the request data
-    await orderRef.set({
-      'orderId': orderRef.id,
-      'restaurantId': user.uid,
-      'restaurantName': restaurantName,
-      'customerName': request.customerName,
-      'userId': request.userId, // Assuming Order model has userId
-      'items': request.items.map((item) => {
-        'name': item.name,
-        'quantity': item.qty,
-        'price': item.price,
-        'customizations': item.customizations,
-        'isHealthy': item.isHealthy,
-        'imageUrl': item.imageUrl,
-      }).toList(),
-      'totalAmount': request.total,
-      'paymentMethod': 'pending',
-      'paymentStatus': 'unpaid',
-      'orderStatus': 'pending_payment', // New status for user to pay
-      'orderType': 'byod',
-      'byodRecipeName': request.byodRecipeName,
-      'byodRecipeType': request.byodRecipeType,
-      'byodRecipeContent': request.byodRecipeContent,
-      'createdAt': FieldValue.serverTimestamp(),
-    });
-
-    // Delete the original request
-    await firestore.collection('approval_requests').doc(request.id).delete();
+    await FirebaseFirestore.instance
+        .collection('approval_requests')
+        .doc(request.id)
+        .update({'status': 'accepted'});
   }
 
   void _showOrderDetails(OP.Order order) {
@@ -197,16 +161,24 @@ class _PendingByodRequestsPageState extends State<PendingByodRequestsPage> {
                               ),
                               Text(
                                 _formatCurrency(it.price * it.qty),
-                                style: const TextStyle(fontWeight: FontWeight.w600),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                             ],
                           ),
                           if (it.customizations.isNotEmpty)
                             Padding(
-                              padding: const EdgeInsets.only(top: 4.0, left: 8.0),
+                              padding: const EdgeInsets.only(
+                                top: 4.0,
+                                left: 8.0,
+                              ),
                               child: Text(
                                 it.customizations.join('\n'),
-                                style: const TextStyle(fontSize: 14, color: Colors.grey),
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey,
+                                ),
                               ),
                             ),
                         ],
@@ -349,8 +321,10 @@ class _PendingByodRequestsPageState extends State<PendingByodRequestsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("BYOD Recipe Details",
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          const Text(
+            "BYOD Recipe Details",
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
           const SizedBox(height: 12),
           contentWidget,
         ],
@@ -368,7 +342,7 @@ class _PendingByodRequestsPageState extends State<PendingByodRequestsPage> {
             onPressed: () async {
               await _acceptRequest(order);
               if (closeOnAction) Navigator.pop(context);
-            }, 
+            },
             label: const Text('Accept Order'),
           ),
         );
@@ -378,7 +352,7 @@ class _PendingByodRequestsPageState extends State<PendingByodRequestsPage> {
             onPressed: () async {
               await _updateRequestStatus(order.id, 'rejected');
               if (closeOnAction) Navigator.pop(context);
-            }, 
+            },
             label: const Text('Reject'),
             style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
           ),
@@ -387,9 +361,9 @@ class _PendingByodRequestsPageState extends State<PendingByodRequestsPage> {
       case OP.OrderStatus.Accepted:
         actions.add(
           ElevatedButton.icon(
-            icon: const Icon(Icons.kitchen),
+            icon: const Icon(Icons.payment),
             onPressed: null, // No action from here in this flow
-            label: const Text('Start Preparing'),
+            label: const Text('Waiting for Payment'),
           ),
         );
         break;
@@ -504,7 +478,7 @@ class _PendingByodRequestsPageState extends State<PendingByodRequestsPage> {
               stream: FirebaseFirestore.instance
                   .collection('approval_requests')
                   .where('restaurantId', isEqualTo: user.uid)
-                  .where('status', isEqualTo: 'pending')
+                  .where('status', whereIn: ['pending', 'accepted'])
                   // .orderBy('createdAt', descending: true) // This requires a composite index
                   .snapshots(),
               builder: (context, snapshot) {
@@ -519,8 +493,9 @@ class _PendingByodRequestsPageState extends State<PendingByodRequestsPage> {
                 }
 
                 // Create a modifiable list from the snapshot docs
-                final requestDocs =
-                    List<QueryDocumentSnapshot>.from(snapshot.data!.docs);
+                final requestDocs = List<QueryDocumentSnapshot>.from(
+                  snapshot.data!.docs,
+                );
 
                 // Sort client-side to avoid needing a composite index
                 requestDocs.sort((a, b) {
@@ -536,24 +511,33 @@ class _PendingByodRequestsPageState extends State<PendingByodRequestsPage> {
 
                 final requests = requestDocs.map((doc) {
                   final data = doc.data() as Map<String, dynamic>;
+
+                  OP.OrderStatus status = OP.OrderStatus.Pending;
+                  final statusStr = (data['status'] as String?)?.toLowerCase();
+                  if (statusStr == 'accepted') {
+                    status = OP.OrderStatus.Accepted;
+                  }
+
                   return OP.Order(
                     id: doc.id,
                     customerName: data['customerName'] ?? 'Guest',
                     createdAt: (data['createdAt'] as Timestamp).toDate(),
-                    status: OP.OrderStatus.Pending, // Treat as pending for UI
+                    status: status,
                     type: OP.OrderType.BYOD,
                     items: (data['items'] as List<dynamic>).map((item) {
                       return OP.OrderItem(
                         name: item['name'] ?? '',
                         qty: item['quantity'] ?? 1,
                         price: (item['price'] ?? 0).toDouble(),
-                        customizations: (item['customizations'] as List<dynamic>?)
+                        customizations:
+                            (item['customizations'] as List<dynamic>?)
                                 ?.map((e) => e.toString())
-                                .toList() ?? [],
+                                .toList() ??
+                            [],
                       );
                     }).toList(),
                     // Pass user ID for creating the final order
-                    userId: data['userId'], 
+                    userId: data['userId'],
                     byodRecipeName: data['byodRecipeName'],
                     byodRecipeType: data['byodRecipeType'],
                     byodRecipeContent: data['byodRecipeContent'],
@@ -637,10 +621,14 @@ class _PendingByodRequestsPageState extends State<PendingByodRequestsPage> {
               // Action buttons: show primary action only
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
-                children: _actionButtonsFor(order).map((w) => Padding(
-                  padding: const EdgeInsets.only(left: 8.0),
-                  child: w,
-                )).toList(),
+                children: _actionButtonsFor(order)
+                    .map(
+                      (w) => Padding(
+                        padding: const EdgeInsets.only(left: 8.0),
+                        child: w,
+                      ),
+                    )
+                    .toList(),
               ),
             ],
           ),

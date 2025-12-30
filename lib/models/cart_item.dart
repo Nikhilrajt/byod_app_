@@ -8,6 +8,7 @@ class CartItem {
   final String restaurantName;
   final String restaurantId;
   final List<String>? customizations;
+  final bool isByod;
 
   CartItem({
     required this.name,
@@ -17,6 +18,7 @@ class CartItem {
     required this.restaurantName,
     required this.restaurantId,
     this.customizations,
+    this.isByod = true,
   });
 
   int get totalPrice => price * quantity;
@@ -33,6 +35,7 @@ class CartItem {
       'restaurantName': restaurantName,
       'restaurantId': restaurantId,
       'customizations': customizations,
+      'isByod': isByod,
     };
   }
 
@@ -44,10 +47,10 @@ class CartItem {
       quantity: json['quantity'],
       restaurantName: json['restaurantName'],
       restaurantId: json['restaurantId'],
-      customizations:
-          json['customizations'] != null
-              ? List<String>.from(json['customizations'])
-              : null,
+      customizations: json['customizations'] != null
+          ? List<String>.from(json['customizations'])
+          : null,
+      isByod: json['isByod'] ?? false,
     );
   }
 }
