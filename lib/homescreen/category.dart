@@ -87,12 +87,13 @@ class _CategoryPageState extends State<CategoryPage> {
     List<DocumentSnapshot> docs,
     String healthModeKey,
   ) {
-    // Only auto-select if:
-    // 1. Should auto-select flag is true (coming from bottom nav) OR
-    // 2. Health mode has changed (different state key)
-    if (docs.isNotEmpty &&
-        _currentCategoryId.isEmpty &&
-        (_shouldAutoSelect || healthModeKey != _lastHealthModeState)) {
+    if (docs.isEmpty) return;
+
+    // Check if current category is valid (exists in the list)
+    bool currentCategoryExists =
+        docs.any((doc) => doc.id == _currentCategoryId);
+
+    if (_currentCategoryId.isEmpty || !currentCategoryExists) {
       final firstDoc = docs.first;
       final firstData = firstDoc.data() as Map<String, dynamic>;
 
@@ -118,6 +119,10 @@ class _CategoryPageState extends State<CategoryPage> {
     String categoryId,
     bool healthMode,
   ) {
+    if (categoryId.isEmpty) {
+      return Stream.value([]);
+    }
+
     Query query = FirebaseFirestore.instance
         .collection("categories")
         .doc(categoryId)

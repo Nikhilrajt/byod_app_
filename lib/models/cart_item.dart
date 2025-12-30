@@ -18,7 +18,7 @@ class CartItem {
     required this.restaurantName,
     required this.restaurantId,
     this.customizations,
-    this.isByod = true,
+    this.isByod = false,
   });
 
   int get totalPrice => price * quantity;
