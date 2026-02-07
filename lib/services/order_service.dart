@@ -6,7 +6,7 @@ class OrderService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  Future<void> placeOrder({
+  Future<String> placeOrder({
     required String restaurantId,
     required List<CartItem> items,
     required int totalAmount,
@@ -36,5 +36,7 @@ class OrderService {
       'orderType': orderType,
       'createdAt': FieldValue.serverTimestamp(),
     });
+
+    return orderRef.id;
   }
 }

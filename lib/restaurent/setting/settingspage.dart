@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:project/auth/firebase/fibase_serviece.dart';
 import 'package:project/auth/loginscreen.dart';
 import 'package:project/restaurent/Ingredientpage.dart';
+import 'package:project/restaurent/setting/customer_feedback.dart';
 // removed unused imports
 import 'package:project/restaurent/setting/delivery_settings_page.dart';
 import 'package:project/restaurent/setting/changepassword.dart/change.dart';
-import 'package:project/restaurent/setting/feedbackpage.dart';
 import 'package:project/restaurent/setting/manage_menu_page.dart';
 import 'package:project/restaurent/setting/restaurant_profile_page.dart';
 
@@ -91,7 +91,7 @@ class _SettingspageState extends State<Settingspage> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const Feedbackpage(),
+                  builder: (context) => const CustomerFeedbackPage(),
                 ),
               );
             },

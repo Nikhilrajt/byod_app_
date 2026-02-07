@@ -9,19 +9,28 @@ class CartItem {
   final String restaurantId;
   final List<String>? customizations;
   final bool isByod;
+  final bool isHealthy;
 
   CartItem({
     required this.name,
     required this.imageUrl,
     required this.price,
-    required this.quantity,
+    this.quantity = 1,
     required this.restaurantName,
     required this.restaurantId,
     this.customizations,
-    this.isByod = false,
+    this.isByod = true,
+    this.isHealthy = false,
   });
 
   int get totalPrice => price * quantity;
+
+  String get customizationSummary {
+    if (customizations == null || customizations!.isEmpty) {
+      return '';
+    }
+    return customizations!.join(' • ');
+  }
 
   // ============================
   // 🔥 ADDED FOR PERSISTENCE
@@ -36,6 +45,7 @@ class CartItem {
       'restaurantId': restaurantId,
       'customizations': customizations,
       'isByod': isByod,
+      'isHealthy': isHealthy,
     };
   }
 
@@ -44,13 +54,14 @@ class CartItem {
       name: json['name'],
       imageUrl: json['imageUrl'],
       price: json['price'],
-      quantity: json['quantity'],
+      quantity: json['quantity'] ?? 1,
       restaurantName: json['restaurantName'],
       restaurantId: json['restaurantId'],
       customizations: json['customizations'] != null
           ? List<String>.from(json['customizations'])
           : null,
       isByod: json['isByod'] ?? false,
+      isHealthy: json['isHealthy'] ?? false,
     );
   }
 }

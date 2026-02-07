@@ -126,7 +126,7 @@ class Order {
           )
           .toList(),
       type: _parseType(data['orderType']),
-      status: _parseStatus(data['orderStatus']),
+      status: _parseStatus(data['orderStatus'] ?? data['status']),
       byodRecipeName: data['byodRecipeName'],
       byodRecipeType: data['byodRecipeType'],
       byodRecipeContent: data['byodRecipeContent'],
@@ -141,6 +141,8 @@ class Order {
       case 'pendingpayment':
         return OrderStatus.PendingPayment;
       case 'pending':
+        return OrderStatus.Pending;
+      case 'placed':
         return OrderStatus.Pending;
       case 'accepted':
         return OrderStatus.Accepted;
@@ -194,12 +196,201 @@ class _OrderpageState extends State<Orderpage>
 
   String _formatCurrency(double amount) => _currencyFormat.format(amount);
 
-  void _updateOrderStatus(Order order, OrderStatus next) {
+  void _showOrderDetails(Order order) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.85,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        builder: (_, controller) => Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            children: [
+              Container(
+                margin: const EdgeInsets.symmetric(vertical: 12),
+                height: 4,
+                width: 40,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Expanded(
+                child: ListView(
+                  controller: controller,
+                  padding: const EdgeInsets.all(20),
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Order #${order.id.substring(0, 5).toUpperCase()}",
+                              style: const TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              _timeFormat.format(order.createdAt),
+                              style: TextStyle(color: Colors.grey[600]),
+                            ),
+                          ],
+                        ),
+                        _buildStatusBadge(order.status),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    _buildSectionTitle("Customer"),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: CircleAvatar(
+                        backgroundColor: kPrimary.withOpacity(0.1),
+                        child: const Icon(Icons.person, color: kPrimary),
+                      ),
+                      title: Text(order.customerName),
+                      subtitle: const Text("Tap to contact"),
+                    ),
+                    const Divider(height: 32),
+                    if (order.type == OrderType.BYOD) ...[
+                      _buildSectionTitle("BYOD Details"),
+                      const SizedBox(height: 8),
+                      _buildByodContent(order),
+                      const Divider(height: 32),
+                    ],
+                    _buildSectionTitle("Order Items"),
+                    ...order.items.map((item) => _buildDetailItem(item)),
+                    const Divider(height: 32),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          "Total Amount",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          _formatCurrency(order.total),
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: kPrimary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 32),
+                    if (order.status != OrderStatus.Completed &&
+                        order.status != OrderStatus.Cancelled &&
+                        order.status != OrderStatus.Rejected)
+                      _buildActionButtons(order),
+                    const SizedBox(height: 20),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Text(
+        title,
+        style: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
+          color: Colors.black87,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetailItem(OrderItem item) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.network(
+              item.imageUrl,
+              width: 50,
+              height: 50,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Container(
+                width: 50,
+                height: 50,
+                color: Colors.grey[200],
+                child: const Icon(Icons.fastfood, color: Colors.grey),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.name,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                if (item.customizations.isNotEmpty)
+                  Text(
+                    item.customizations.join(", "),
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  ),
+              ],
+            ),
+          ),
+          Text(
+            "${item.qty} x ${_formatCurrency(item.price)}",
+            style: const TextStyle(fontWeight: FontWeight.w500),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _updateOrderStatus(Order order, OrderStatus next) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      FirebaseFirestore.instance.collection('orders').doc(order.id).update({
-        'orderStatus': next.name.toLowerCase(),
-      });
+      final newStatus = next.name.toLowerCase();
+      await FirebaseFirestore.instance
+          .collection('orders')
+          .doc(order.id)
+          .update({'orderStatus': newStatus, 'status': newStatus});
+
+      // Also update any related approval_requests so user UI reflects the change
+      try {
+        final query = await FirebaseFirestore.instance
+            .collection('approval_requests')
+            .where('orderId', isEqualTo: order.id)
+            .get();
+        for (final doc in query.docs) {
+          final updateData = <String, dynamic>{'status': newStatus};
+          if (next == OrderStatus.Completed) {
+            // stamp completion time so the client can show a short-lived "Reached successfully" badge
+            updateData['completedAt'] = FieldValue.serverTimestamp();
+          }
+          await doc.reference.update(updateData);
+        }
+      } catch (e) {
+        // ignore errors here - approval_requests may not exist for this order
+      }
     }
   }
 
@@ -429,10 +620,9 @@ class _OrderpageState extends State<Orderpage>
     }
   }
 
-  Widget _buildByodDetails(Order order) {
-    if (order.type != OrderType.BYOD || order.byodRecipeName == null) {
-      return const SizedBox.shrink();
-    }
+  Widget _buildByodContent(Order order) {
+    // Used in the details modal
+    if (order.type != OrderType.BYOD) return const SizedBox.shrink();
 
     Widget contentWidget;
     final content = order.byodRecipeContent;
@@ -457,7 +647,7 @@ class _OrderpageState extends State<Orderpage>
         break;
       case 'upload':
         contentWidget = content != null
-            ? InkWell(
+            ? GestureDetector(
                 onTap: () => showDialog(
                   context: context,
                   builder: (_) => Dialog(child: Image.network(content)),
@@ -478,7 +668,7 @@ class _OrderpageState extends State<Orderpage>
         break;
       case 'link':
         contentWidget = content != null
-            ? InkWell(
+            ? GestureDetector(
                 onTap: () async {
                   final url = Uri.tryParse(content);
                   if (url != null && await canLaunchUrl(url)) {
@@ -518,44 +708,273 @@ class _OrderpageState extends State<Orderpage>
     }
 
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(16),
-      margin: const EdgeInsets.symmetric(vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF3E0), // Light Orange
+        color: Colors.orange.shade50,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.orange.shade200),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          Text(
+            order.byodRecipeName ?? "Custom Recipe",
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.deepOrange,
+            ),
+          ),
+          const SizedBox(height: 12),
+          contentWidget,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOrderCard(Order order) {
+    return Card(
+      elevation: 2,
+      shadowColor: Colors.black12,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      margin: EdgeInsets.zero,
+      child: InkWell(
+        onTap: () => _showOrderDetails(order),
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.menu_book, color: Colors.deepOrange),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  "Recipe: ${order.byodRecipeName}",
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                    color: Colors.deepOrange,
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: _statusColor(order.status).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(
+                            order.type == OrderType.BYOD
+                                ? Icons.build_circle_outlined
+                                : Icons.restaurant_menu,
+                            color: _statusColor(order.status),
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                order.customerName,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              Text(
+                                "#${order.id.substring(0, 5).toUpperCase()} • ${_timeFormat.format(order.createdAt)}",
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Flexible(child: _buildStatusBadge(order.status)),
+                ],
+              ),
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 12),
+                child: Divider(height: 1),
+              ),
+              if (order.type == OrderType.BYOD && order.byodRecipeName != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.menu_book,
+                        size: 16,
+                        color: Colors.orange,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        "Recipe: ${order.byodRecipeName}",
+                        style: const TextStyle(fontWeight: FontWeight.w500),
+                      ),
+                    ],
                   ),
                 ),
+              ...order.items
+                  .take(2)
+                  .map(
+                    (item) => Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Row(
+                        children: [
+                          Text(
+                            "${item.qty}x",
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: kPrimary,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              item.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+              if (order.items.length > 2)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    "+ ${order.items.length - 2} more items",
+                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                  ),
+                ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    _formatCurrency(order.total),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
+                  ),
+                  if (order.status == OrderStatus.Pending)
+                    Row(
+                      children: [
+                        OutlinedButton(
+                          onPressed: () =>
+                              _updateOrderStatus(order, OrderStatus.Rejected),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.red,
+                            side: const BorderSide(color: Colors.red),
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            minimumSize: const Size(0, 36),
+                          ),
+                          child: const Text("Reject"),
+                        ),
+                        const SizedBox(width: 8),
+                        ElevatedButton(
+                          onPressed: () =>
+                              _updateOrderStatus(order, OrderStatus.Accepted),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            minimumSize: const Size(0, 36),
+                          ),
+                          child: const Text("Accept"),
+                        ),
+                      ],
+                    )
+                  else
+                    _buildCardAction(order),
+                ],
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          const Text(
-            "Instructions / Content:",
-            style: TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: 12,
-              color: Colors.black54,
-            ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCardAction(Order order) {
+    switch (order.status) {
+      case OrderStatus.Accepted:
+        return ElevatedButton(
+          onPressed: () => _updateOrderStatus(order, OrderStatus.Preparing),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: kPrimary,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            minimumSize: const Size(0, 36),
           ),
-          const SizedBox(height: 6),
-          contentWidget,
-        ],
+          child: const Text("Start Preparing"),
+        );
+      case OrderStatus.Preparing:
+        return ElevatedButton(
+          onPressed: () => _updateOrderStatus(order, OrderStatus.Ready),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: kPrimary,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            minimumSize: const Size(0, 36),
+          ),
+          child: const Text("Mark Ready"),
+        );
+      case OrderStatus.Ready:
+        return ElevatedButton(
+          onPressed: () =>
+              _updateOrderStatus(order, OrderStatus.OutForDelivery),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: kPrimary,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            minimumSize: const Size(0, 36),
+          ),
+          child: const Text("Out for Delivery"),
+        );
+      case OrderStatus.OutForDelivery:
+        return ElevatedButton(
+          onPressed: () => _updateOrderStatus(order, OrderStatus.Completed),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.green,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            minimumSize: const Size(0, 36),
+          ),
+          child: const Text("Complete"),
+        );
+      default:
+        return TextButton(
+          onPressed: () => _showOrderDetails(order),
+          child: const Text("View Details"),
+        );
+    }
+  }
+
+  Widget _buildStatusBadge(OrderStatus status) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: _statusColor(status).withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _statusColor(status).withOpacity(0.2)),
+      ),
+      child: Text(
+        _statusLabel(status),
+        style: TextStyle(
+          color: _statusColor(status),
+          fontWeight: FontWeight.bold,
+          fontSize: 12,
+        ),
       ),
     );
   }
@@ -637,86 +1056,31 @@ class _OrderpageState extends State<Orderpage>
         orders.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
         if (orders.isEmpty) {
-          return const Center(
-            child: Text(
-              'No orders found',
-              style: TextStyle(color: Colors.grey),
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.assignment_outlined,
+                  size: 64,
+                  color: Colors.grey.shade300,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'No orders found',
+                  style: TextStyle(color: Colors.grey.shade600),
+                ),
+              ],
             ),
           );
         }
 
         return ListView.separated(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(16),
           itemCount: orders.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 8),
+          separatorBuilder: (_, __) => const SizedBox(height: 16),
           itemBuilder: (context, i) {
-            final order = orders[i];
-            return Card(
-              elevation: 3,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          "Order #${order.id.substring(0, 5).toUpperCase()}",
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: kPrimary,
-                          ),
-                        ),
-                        Chip(
-                          backgroundColor: _statusColor(
-                            order.status,
-                          ).withOpacity(0.15),
-                          label: Text(
-                            _statusLabel(order.status),
-                            style: TextStyle(
-                              color: _statusColor(order.status),
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      '${order.customerName} • ${_timeFormat.format(order.createdAt)}',
-                      style: const TextStyle(color: Colors.grey),
-                    ),
-                    const Divider(height: 24),
-                    _buildByodDetails(order),
-                    ...order.items.map((item) => _buildOrderItem(item)),
-                    const Divider(height: 24),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          "Total Amount",
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        Text(
-                          _formatCurrency(order.total),
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                            color: kPrimary,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    _buildActionButtons(order),
-                  ],
-                ),
-              ),
-            );
+            return _buildOrderCard(orders[i]);
           },
         );
       },

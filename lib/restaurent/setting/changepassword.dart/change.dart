@@ -142,12 +142,15 @@ class _ChangePasswordPageState extends State<ChangePassword> {
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _changePassword,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.deepOrange,
+                    backgroundColor: const Color.fromARGB(255, 58, 139, 157),
                     padding: EdgeInsets.symmetric(vertical: 14),
                   ),
                   child: _isLoading
                       ? CircularProgressIndicator(color: Colors.white)
-                      : Text("Change Password", style: TextStyle(fontSize: 16)),
+                      : Text(
+                          "Change Password",
+                          style: TextStyle(fontSize: 16, color: Colors.white),
+                        ),
                 ),
               ),
             ],

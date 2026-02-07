@@ -134,8 +134,17 @@ class _TodaysEarningsPageState extends State<TodaysEarningsPage> {
             month += amount;
           }
 
-          payment[data['paymentMethod'] ?? 'upi'] =
-              (payment[data['paymentMethod'] ?? 'upi'] ?? 0) + amount;
+          String pm = (data['paymentMethod'] ?? 'upi').toString().toLowerCase();
+          if (pm.contains('cash') || pm.contains('cod')) {
+            pm = 'cash';
+          } else if (pm.contains('card') ||
+              pm.contains('credit') ||
+              pm.contains('debit')) {
+            pm = 'card';
+          } else {
+            pm = 'upi';
+          }
+          payment[pm] = (payment[pm] ?? 0) + amount;
         }
 
         final avg = orderCount == 0 ? 0 : total / orderCount;

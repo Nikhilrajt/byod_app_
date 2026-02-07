@@ -110,7 +110,7 @@ class _AdminUserPageState extends State<AdminRestaurantPage> {
         elevation: 0,
         backgroundColor: Colors.deepPurple,
         title: const Text(
-          'Manage Users',
+          'Manage Restaurants',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         actions: [
@@ -937,8 +937,14 @@ class _AdminUserPageState extends State<AdminRestaurantPage> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.deepPurple),
-            child: const Text("Seed Ingredients"),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.deepPurple,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text(
+              "Seed Ingredients",
+              style: TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),

@@ -92,16 +92,19 @@ class MyOrdersPage extends StatelessWidget {
               stream: FirebaseFirestore.instance
                   .collection('orders')
                   .where('userId', isEqualTo: user.uid)
-                  .where('orderStatus', whereIn: [
-                'pending',
-                'accepted',
-                'preparing',
-                'ready',
-                'outfordelivery',
-                'completed',
-                'rejected',
-                'cancelled'
-              ])
+                  .where(
+                    'orderStatus',
+                    whereIn: [
+                      'pending',
+                      'accepted',
+                      'preparing',
+                      'ready',
+                      'outfordelivery',
+                      'completed',
+                      'rejected',
+                      'cancelled',
+                    ],
+                  )
                   .snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
@@ -199,8 +202,11 @@ class MyOrdersPage extends StatelessWidget {
         ? DateFormat('MMM d, yyyy • hh:mm a').format(timestamp)
         : 'Unknown Date';
 
-    final restaurantName = order['restaurantName']?.toString() ??
-        (items.isNotEmpty ? (items[0]['restaurantName']?.toString() ?? 'Restaurant') : 'Restaurant');
+    final restaurantName =
+        order['restaurantName']?.toString() ??
+        (items.isNotEmpty
+            ? (items[0]['restaurantName']?.toString() ?? 'Restaurant')
+            : 'Restaurant');
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),

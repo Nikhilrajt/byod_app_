@@ -539,7 +539,7 @@ class _ByodPageState extends State<ByodPage> {
 
     // Prepare customizations
     List<String> customizations = [];
-    
+
     String recipeType = _mode.name;
     String? recipeContent;
     if (_mode == RecipeInputType.write) {
@@ -547,14 +547,14 @@ class _ByodPageState extends State<ByodPage> {
     } else if (_mode == RecipeInputType.link) {
       recipeContent = recipeLinkController.text.trim();
     }
-    
+
     customizations.add('BYOD_NAME:$name');
     customizations.add('BYOD_TYPE:$recipeType');
     if (recipeContent != null && recipeContent.isNotEmpty) {
-       customizations.add('BYOD_CONTENT:$recipeContent');
-       if (_mode == RecipeInputType.write) {
-         customizations.add('Instructions: $recipeContent');
-       }
+      customizations.add('BYOD_CONTENT:$recipeContent');
+      if (_mode == RecipeInputType.write) {
+        customizations.add('Instructions: $recipeContent');
+      }
     }
     customizations.add('Ingredients: ${ingredientDetails.join(', ')}');
 
@@ -564,8 +564,8 @@ class _ByodPageState extends State<ByodPage> {
       quantity: 1,
       restaurantName: widget.restaurant.name,
       restaurantId: widget.restaurant.id,
-      imageUrl: '', 
-      isHealthy: false, 
+      imageUrl: '',
+      isHealthy: false,
       customizations: customizations,
     );
 
@@ -576,9 +576,9 @@ class _ByodPageState extends State<ByodPage> {
     } else {
       // Add items to cart and navigate
       cart.addToCart(byodItem);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Dish added to cart!')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Dish added to cart!')));
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => const CartScreen()),
@@ -592,7 +592,8 @@ class _ByodPageState extends State<ByodPage> {
       builder: (context) => AlertDialog(
         title: const Text("Replace cart items?"),
         content: const Text(
-            "Your cart contains items from another restaurant. Do you want to clear it and add these new items?"),
+          "Your cart contains items from another restaurant. Do you want to clear it and add these new items?",
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),

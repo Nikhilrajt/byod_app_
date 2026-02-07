@@ -35,8 +35,14 @@ class _AdminCategoryPageState extends State<AdminCategoryPage> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.deepPurple),
-            child: const Text("Fix Categories"),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.deepPurple,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text(
+              "Fix Categories",
+              style: TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),

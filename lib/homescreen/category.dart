@@ -8,6 +8,7 @@ import '../state/cart_notifier.dart';
 import '../customization_page.dart';
 import '../models/category_models.dart';
 import '../homescreen/cart.dart';
+import 'package:project/homescreen/my_orders.dart';
 
 class CategoryPage extends StatefulWidget {
   final String categoryName;
@@ -184,7 +185,7 @@ class _CategoryPageState extends State<CategoryPage> {
             data["imageUrl"] ?? "",
             price,
             double.tryParse(data["rating"]?.toString() ?? "0") ?? 0.0,
-            data["restaurantId"] ?? "",
+            data["restaurantId"] ?? data["restaurant_id"] ?? "",
             restaurantName,
             categoryKey: categoryId,
             description: data["description"] ?? "",
@@ -630,6 +631,13 @@ class _CategoryPageState extends State<CategoryPage> {
               },
             ),
           if (!_isSearching) ...[
+            IconButton(
+              icon: const Icon(Icons.receipt_long_outlined),
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const MyOrdersPage()),
+              ),
+            ),
             Container(
               padding: const EdgeInsets.all(8),
               child: Row(

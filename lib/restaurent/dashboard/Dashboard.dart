@@ -152,23 +152,43 @@ class _DashboardPageState extends State<DashboardPage>
             }
           }
 
-          return CustomScrollView(
-            slivers: [
-              SliverToBoxAdapter(
-                child: Column(
-                  children: [
-                    _buildHeaderSection(),
-                    _buildQuickStatsSection(totalOrdersToday, allTimeCompleted),
-                    _buildMainDashboardCards(
-                      totalOrdersToday,
-                      allTimeCompleted,
-                      totalEarnings,
+          return StreamBuilder<QuerySnapshot>(
+            stream: user != null
+                ? _firestore
+                      .collection('byod_requests')
+                      .where('restaurantId', isEqualTo: user.uid)
+                      .where('status', isEqualTo: 'pending')
+                      .snapshots()
+                : const Stream.empty(),
+            builder: (context, byodSnapshot) {
+              int pendingByodCount = 0;
+              if (byodSnapshot.hasData) {
+                pendingByodCount = byodSnapshot.data!.docs.length;
+              }
+
+              return CustomScrollView(
+                slivers: [
+                  SliverToBoxAdapter(
+                    child: Column(
+                      children: [
+                        _buildHeaderSection(),
+                        _buildQuickStatsSection(
+                          totalOrdersToday,
+                          allTimeCompleted,
+                        ),
+                        _buildMainDashboardCards(
+                          totalOrdersToday,
+                          allTimeCompleted,
+                          totalEarnings,
+                          pendingByodCount,
+                        ),
+                        const SizedBox(height: 20),
+                      ],
                     ),
-                    const SizedBox(height: 20),
-                  ],
-                ),
-              ),
-            ],
+                  ),
+                ],
+              );
+            },
           );
         },
       ),
@@ -407,6 +427,7 @@ class _DashboardPageState extends State<DashboardPage>
     int totalOrders,
     int completedOrders,
     double totalEarnings,
+    int pendingByodCount,
   ) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -447,7 +468,7 @@ class _DashboardPageState extends State<DashboardPage>
               Expanded(
                 child: _buildEnhancedDashboardCard(
                   title: "Pending BYOD",
-                  value: "4",
+                  value: pendingByodCount.toString(),
                   icon: Icons.fastfood,
                   color: const Color(0xFF4ECDC4),
                   onTap: () {

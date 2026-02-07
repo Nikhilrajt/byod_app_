@@ -1,3 +1,6 @@
+import 'cart_item.dart';
+export 'cart_item.dart';
+
 class CategoryItem {
   final String name;
   final String imageUrl;
@@ -37,73 +40,13 @@ class CategoryItem {
   CartItem toCartItem() {
     return CartItem(
       name: name,
-      price: price.toInt(),
       imageUrl: imageUrl,
+      price: price.toInt(),
+      quantity: 1,
       restaurantName: restaurantName,
       restaurantId: restaurantId,
       isByod: false,
-    );
-  }
-}
-
-class CartItem {
-  final String name;
-  final int price;
-  final String imageUrl;
-  final String restaurantName;
-  final String restaurantId;
-  final List<String>? customizations;
-  final bool isHealthy;
-  int quantity;
-  final bool isByod;
-
-  CartItem({
-    required this.name,
-    required this.price,
-    required this.imageUrl,
-    required this.restaurantName,
-    required this.restaurantId,
-    this.customizations,
-    this.isHealthy = false,
-    this.quantity = 1,
-    this.isByod = true,
-  });
-
-  int get totalPrice => price * quantity;
-
-  String get customizationSummary {
-    if (customizations == null || customizations!.isEmpty) {
-      return '';
-    }
-    return customizations!.join(' • ');
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'name': name,
-      'price': price,
-      'imageUrl': imageUrl,
-      'restaurantName': restaurantName,
-      'restaurantId': restaurantId,
-      'customizations': customizations,
-      'isHealthy': isHealthy,
-      'quantity': quantity,
-      'isByod': isByod,
-    };
-  }
-
-  factory CartItem.fromJson(Map<String, dynamic> json) {
-    return CartItem(
-      name: json['name'] ?? 'Unknown',
-      price: (json['price'] as num?)?.toInt() ?? 0,
-      imageUrl: json['imageUrl'] ?? '',
-      restaurantName: json['restaurantName'] ?? 'Unknown Restaurant',
-      restaurantId: json['restaurantId'] ?? '',
-      customizations: (json['customizations'] as List<dynamic>?)
-          ?.cast<String>(),
-      isHealthy: json['isHealthy'] ?? false,
-      quantity: json['quantity'] ?? 1,
-      isByod: json['isByod'] ?? false,
+      isHealthy: isHealthy,
     );
   }
 }
