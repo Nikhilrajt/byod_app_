@@ -672,24 +672,7 @@ class _HomeContentState extends State<HomeContent> {
                       // ),
                       // const SizedBox(height: 12),
                       const SizedBox(height: 24),
-                      _buildSection(
-                        context,
-                        'Restaurants',
-                        action: TextButton(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const ByodRestaurantsPage(),
-                              ),
-                            );
-                          },
-                          child: const Text(
-                            "BYOD Only",
-                            style: TextStyle(color: Colors.deepOrange),
-                          ),
-                        ),
-                      ),
+                      _buildSection(context, 'Restaurants'),
                       const SizedBox(height: 12),
                       _buildFirestoreRestaurants(context),
                       const SizedBox(height: 28),
