@@ -8,6 +8,7 @@ import 'package:project/admin/restaurant_admin.dart';
 import 'package:project/admin/settings_admin.dart';
 import 'package:project/admin/user_admin.dart';
 import 'package:project/admin/review_page.dart';
+import 'package:project/admin/restaurant_image_manager.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -34,6 +35,13 @@ class _AdminDashboardState extends State<AdminDashboard> {
       'color': Colors.orange,
       'page': const AdminRestaurantPage(),
       'description': 'Manage restaurants',
+    },
+    {
+      'title': 'Restaurant Images',
+      'icon': Icons.image,
+      'color': Colors.indigo,
+      'page': const RestaurantImageManager(),
+      'description': 'Update images',
     },
     {
       'title': 'Categories',
@@ -345,6 +353,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
       physics: const NeverScrollableScrollPhysics(),
       mainAxisSpacing: 16,
       crossAxisSpacing: 16,
+      childAspectRatio: 1.0,
       children: menuItems
           .map(
             (item) => _buildDashboardCard(
@@ -390,32 +399,36 @@ class _AdminDashboardState extends State<AdminDashboard> {
           },
           borderRadius: BorderRadius.circular(12),
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(12),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
                     color: color.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(icon, size: 36, color: color),
+                  child: Icon(icon, size: 32, color: color),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 8),
                 Text(
                   title,
                   style: const TextStyle(
-                    fontSize: 16,
+                    fontSize: 15,
                     fontWeight: FontWeight.bold,
                     color: Colors.black87,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 3),
                 Text(
                   description,
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                  style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),

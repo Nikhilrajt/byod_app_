@@ -192,6 +192,44 @@ class _OrderpageState extends State<Orderpage>
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _deleteOldOrders(); // Cleanup old orders on page load
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  /// Delete orders older than 30 days from Firestore
+  Future<void> _deleteOldOrders() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      final thirtyDaysAgo = DateTime.now().subtract(const Duration(days: 30));
+
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('orders')
+          .where('restaurantId', isEqualTo: user.uid)
+          .where('createdAt', isLessThan: Timestamp.fromDate(thirtyDaysAgo))
+          .get();
+
+      // Batch delete old orders
+      final batch = FirebaseFirestore.instance.batch();
+      for (var doc in querySnapshot.docs) {
+        batch.delete(doc.reference);
+      }
+
+      if (querySnapshot.docs.isNotEmpty) {
+        await batch.commit();
+        debugPrint(
+          'Deleted ${querySnapshot.docs.length} orders older than 30 days',
+        );
+      }
+    } catch (e) {
+      debugPrint('Error deleting old orders: $e');
+    }
   }
 
   String _formatCurrency(double amount) => _currencyFormat.format(amount);
@@ -1046,8 +1084,12 @@ class _OrderpageState extends State<Orderpage>
             .map((d) => Order.fromSnapshot(d))
             .toList();
 
-        // 2. Filter by tab type (Normal vs BYOD)
+        // 2. Filter by tab type (Normal vs BYOD) and exclude old orders (older than 30 days)
+        final thirtyDaysAgo = DateTime.now().subtract(const Duration(days: 30));
         final orders = allOrders.where((o) {
+          // Exclude orders older than 30 days
+          if (o.createdAt.isBefore(thirtyDaysAgo)) return false;
+
           if (isCompleted) return o.status == OrderStatus.Completed;
           return o.type == type && o.status != OrderStatus.Completed;
         }).toList();

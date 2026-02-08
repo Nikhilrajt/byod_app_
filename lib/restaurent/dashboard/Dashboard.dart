@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:project/restaurent/Orderpage.dart';
 import 'package:project/restaurent/dashboard/restaurent_category.dart';
 import 'package:project/restaurent/dashboard/todays_orders_page.dart';
-import 'package:project/restaurent/dashboard/pending_byod_requests_page.dart';
 import 'package:project/restaurent/dashboard/completed_orders_page.dart';
 import 'package:project/restaurent/dashboard/todays_earnings_page.dart';
 import 'package:project/restaurent/dashboard/low_stock_ingredients_page.dart';
@@ -155,9 +154,10 @@ class _DashboardPageState extends State<DashboardPage>
           return StreamBuilder<QuerySnapshot>(
             stream: user != null
                 ? _firestore
-                      .collection('byod_requests')
+                      .collection('orders')
                       .where('restaurantId', isEqualTo: user.uid)
-                      .where('status', isEqualTo: 'pending')
+                      .where('orderType', isEqualTo: 'byod')
+                      .where('orderStatus', isEqualTo: 'pending')
                       .snapshots()
                 : const Stream.empty(),
             builder: (context, byodSnapshot) {
@@ -471,14 +471,7 @@ class _DashboardPageState extends State<DashboardPage>
                   value: pendingByodCount.toString(),
                   icon: Icons.fastfood,
                   color: const Color(0xFF4ECDC4),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => PendingByodRequestsPage(),
-                      ),
-                    );
-                  },
+                  onTap: () {}, // Display only, no navigation
                 ),
               ),
             ],

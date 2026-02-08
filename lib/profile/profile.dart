@@ -13,11 +13,11 @@ import 'package:project/profile/personalinformation.dart';
 import 'package:project/profile/setting.dart';
 
 // -----------------------------------------------------------------
-// MOCK CLASSES (Required for navigation)
+// TERMS AND CONDITIONS PAGE
 // -----------------------------------------------------------------
 
-class TermsAndConditiions extends StatelessWidget {
-  const TermsAndConditiions({super.key});
+class TermsAndConditions extends StatelessWidget {
+  const TermsAndConditions({super.key});
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -480,7 +480,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const TermsAndConditiions(),
+                        builder: (context) => const TermsAndConditions(),
                       ),
                     );
                   },

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class Personalinformation extends StatefulWidget {
   const Personalinformation({super.key});
@@ -9,6 +11,7 @@ class Personalinformation extends StatefulWidget {
 
 class _PersonalinformationState extends State<Personalinformation> {
   final _formKey = GlobalKey<FormState>();
+  bool _isLoading = false;
 
   // Text editing controllers
   final _nameController = TextEditingController();
@@ -17,10 +20,211 @@ class _PersonalinformationState extends State<Personalinformation> {
   final _yearController = TextEditingController();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _addressController = TextEditingController();
 
   // Dropdown state
   String? _selectedCountry;
   String? _selectedProvince;
+
+  // List of countries
+  static const List<String> countries = [
+    'Afghanistan',
+    'Albania',
+    'Algeria',
+    'Andorra',
+    'Angola',
+    'Argentina',
+    'Armenia',
+    'Australia',
+    'Austria',
+    'Azerbaijan',
+    'Bahamas',
+    'Bahrain',
+    'Bangladesh',
+    'Barbados',
+    'Belarus',
+    'Belgium',
+    'Belize',
+    'Benin',
+    'Bhutan',
+    'Bolivia',
+    'Bosnia and Herzegovina',
+    'Botswana',
+    'Brazil',
+    'Brunei',
+    'Bulgaria',
+    'Burkina Faso',
+    'Burundi',
+    'Cambodia',
+    'Cameroon',
+    'Canada',
+    'Cape Verde',
+    'Central African Republic',
+    'Chad',
+    'Chile',
+    'China',
+    'Colombia',
+    'Comoros',
+    'Congo',
+    'Costa Rica',
+    'Croatia',
+    'Cuba',
+    'Cyprus',
+    'Czech Republic',
+    'Czechia',
+    'Denmark',
+    'Djibouti',
+    'Dominica',
+    'Dominican Republic',
+    'East Timor',
+    'Ecuador',
+    'Egypt',
+    'El Salvador',
+    'Equatorial Guinea',
+    'Eritrea',
+    'Estonia',
+    'Ethiopia',
+    'Fiji',
+    'Finland',
+    'France',
+    'Gabon',
+    'Gambia',
+    'Georgia',
+    'Germany',
+    'Ghana',
+    'Greece',
+    'Grenada',
+    'Guatemala',
+    'Guinea',
+    'Guinea-Bissau',
+    'Guyana',
+    'Haiti',
+    'Honduras',
+    'Hungary',
+    'Iceland',
+    'India',
+    'Indonesia',
+    'Iran',
+    'Iraq',
+    'Ireland',
+    'Israel',
+    'Italy',
+    'Ivory Coast',
+    'Jamaica',
+    'Japan',
+    'Jordan',
+    'Kazakhstan',
+    'Kenya',
+    'Kiribati',
+    'Korea North',
+    'Korea South',
+    'Kosovo',
+    'Kuwait',
+    'Kyrgyzstan',
+    'Laos',
+    'Latvia',
+    'Lebanon',
+    'Lesotho',
+    'Liberia',
+    'Libya',
+    'Liechtenstein',
+    'Lithuania',
+    'Luxembourg',
+    'Madagascar',
+    'Malawi',
+    'Malaysia',
+    'Maldives',
+    'Mali',
+    'Malta',
+    'Marshall Islands',
+    'Mauritania',
+    'Mauritius',
+    'Mexico',
+    'Micronesia',
+    'Moldova',
+    'Monaco',
+    'Mongolia',
+    'Montenegro',
+    'Morocco',
+    'Mozambique',
+    'Myanmar',
+    'Namibia',
+    'Nauru',
+    'Nepal',
+    'Netherlands',
+    'New Zealand',
+    'Nicaragua',
+    'Niger',
+    'Nigeria',
+    'North Macedonia',
+    'Norway',
+    'Oman',
+    'Pakistan',
+    'Palau',
+    'Palestine',
+    'Panama',
+    'Papua New Guinea',
+    'Paraguay',
+    'Peru',
+    'Philippines',
+    'Poland',
+    'Portugal',
+    'Qatar',
+    'Romania',
+    'Russia',
+    'Rwanda',
+    'Saint Kitts and Nevis',
+    'Saint Lucia',
+    'Saint Vincent and the Grenadines',
+    'Samoa',
+    'San Marino',
+    'Sao Tome and Principe',
+    'Saudi Arabia',
+    'Senegal',
+    'Serbia',
+    'Seychelles',
+    'Sierra Leone',
+    'Singapore',
+    'Slovakia',
+    'Slovenia',
+    'Solomon Islands',
+    'Somalia',
+    'South Africa',
+    'South Sudan',
+    'Spain',
+    'Sri Lanka',
+    'Sudan',
+    'Suriname',
+    'Sweden',
+    'Switzerland',
+    'Syria',
+    'Taiwan',
+    'Tajikistan',
+    'Tanzania',
+    'Thailand',
+    'Timor-Leste',
+    'Togo',
+    'Tonga',
+    'Trinidad and Tobago',
+    'Tunisia',
+    'Turkey',
+    'Turkmenistan',
+    'Tuvalu',
+    'Uganda',
+    'Ukraine',
+    'United Arab Emirates',
+    'United Kingdom',
+    'United States',
+    'Uruguay',
+    'Uzbekistan',
+    'Vanuatu',
+    'Vatican City',
+    'Venezuela',
+    'Vietnam',
+    'Yemen',
+    'Zambia',
+    'Zimbabwe',
+  ];
 
   @override
   void dispose() {
@@ -30,6 +234,7 @@ class _PersonalinformationState extends State<Personalinformation> {
     _yearController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
+    _addressController.dispose();
     super.dispose();
   }
 
@@ -41,6 +246,7 @@ class _PersonalinformationState extends State<Personalinformation> {
       _yearController.clear();
       _emailController.clear();
       _phoneController.clear();
+      _addressController.clear();
       _selectedCountry = null;
       _selectedProvince = null;
       _formKey.currentState?.reset();
@@ -56,42 +262,91 @@ class _PersonalinformationState extends State<Personalinformation> {
     }
   }
 
+  Future<void> _savePersonalInfo({
+    required String name,
+    required DateTime dateOfBirth,
+    required String email,
+    required String phone,
+    required String country,
+    required String address,
+  }) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        throw Exception('User not logged in');
+      }
+
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).update(
+        {
+          'personalInfo': {
+            'name': name,
+            'dateOfBirth': dateOfBirth,
+            'email': email,
+            'phone': phone,
+            'country': country,
+            'address': address,
+            'updatedAt': FieldValue.serverTimestamp(),
+          },
+        },
+      );
+    } catch (e) {
+      throw Exception('Failed to save personal information: $e');
+    }
+  }
+
   void _saveForm() {
     if (_formKey.currentState!.validate()) {
       // Get form values
-      // ignore: unused_local_variable
       final name = _nameController.text.trim();
       final day = int.tryParse(_dayController.text) ?? 0;
       final month = int.tryParse(_monthController.text) ?? 0;
       final year = int.tryParse(_yearController.text) ?? 0;
-      // ignore: unused_local_variable
       final email = _emailController.text.trim();
-      // ignore: unused_local_variable
       final phone = _phoneController.text.trim();
-      // ignore: unused_local_variable
       final country = _selectedCountry ?? '';
-      // ignore: unused_local_variable
-      final province = _selectedProvince ?? '';
+      final address = _addressController.text.trim();
 
       // Create date of birth
-      // ignore: unused_local_variable
       final dateOfBirth = DateTime(year, month, day);
 
-      // TODO: Save the data to your backend, database, or state management
-      // Example: await savePersonalInfo(name, dateOfBirth, email, phone, country, province);
-      // The variables above (name, email, phone, country, province, dateOfBirth) are ready to use
+      setState(() {
+        _isLoading = true;
+      });
 
-      // Show success message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Personal information saved successfully!'),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 2),
-        ),
-      );
+      _savePersonalInfo(
+            name: name,
+            dateOfBirth: dateOfBirth,
+            email: email,
+            phone: phone,
+            country: country,
+            address: address,
+          )
+          .then((_) {
+            setState(() {
+              _isLoading = false;
+            });
 
-      // You can also navigate back or perform other actions here
-      // Navigator.pop(context);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Personal information saved successfully!'),
+                backgroundColor: Colors.green,
+                duration: Duration(seconds: 2),
+              ),
+            );
+          })
+          .catchError((error) {
+            setState(() {
+              _isLoading = false;
+            });
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Error: $error'),
+                backgroundColor: Colors.red,
+                duration: const Duration(seconds: 3),
+              ),
+            );
+          });
     }
   }
 
@@ -324,7 +579,7 @@ class _PersonalinformationState extends State<Personalinformation> {
                     border: OutlineInputBorder(),
                     hintText: 'Country',
                   ),
-                  items: ['Country 1', 'Country 2', 'Country 3']
+                  items: countries
                       .map(
                         (country) => DropdownMenuItem(
                           value: country,
@@ -372,29 +627,54 @@ class _PersonalinformationState extends State<Personalinformation> {
                 //     return null;
                 //   },
                 // ),
-                TextField(
+                TextFormField(
+                  controller: _addressController,
                   decoration: InputDecoration(
                     border: OutlineInputBorder(),
                     hintText: 'Address',
                   ),
                   maxLines: 3,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Please enter your address';
+                    }
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 24),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFF2323C3),
-                      padding: EdgeInsets.symmetric(vertical: 16),
-                    ),
-                    onPressed: _saveForm,
-                    child: Text(
-                      'Save',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                      backgroundColor: Colors.deepPurple,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
+                      elevation: 8,
+                      shadowColor: Colors.deepPurple.withOpacity(0.5),
                     ),
+                    onPressed: _isLoading ? null : _saveForm,
+                    child: _isLoading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.white,
+                              ),
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : const Text(
+                            'Save',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
                   ),
                 ),
               ],
