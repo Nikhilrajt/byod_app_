@@ -59,6 +59,30 @@ class _AddItemPageState extends State<AddItemPage> {
       _isCustomizable = item.isCustomizable;
       _variantGroups = List.from(item.variantGroups);
       _isHealthy = item.isHealthy;
+    } else {
+      // NEW UPDATE: Auto-detect if the parent Category is healthy
+      _checkParentCategoryHealth();
+    }
+  }
+
+  // --- NEW FUNCTION: Checks if the Category is marked as Healthy ---
+  Future<void> _checkParentCategoryHealth() async {
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('categories')
+          .doc(widget.categoryId)
+          .get();
+
+      if (doc.exists && mounted) {
+        final data = doc.data();
+        if (data != null && data['isHealthy'] == true) {
+          setState(() {
+            _isHealthy = true; // Auto-enable healthy switch
+          });
+        }
+      }
+    } catch (e) {
+      print("Error checking category health: $e");
     }
   }
 

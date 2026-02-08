@@ -38,6 +38,18 @@ class IngredientService {
     }
   }
 
+  // Update a whole ingredient
+  Future<void> updateIngredient(IngredientModel ingredient) async {
+    try {
+      await _firestore
+          .collection('ingredients')
+          .doc(ingredient.id)
+          .update(ingredient.toFirestore());
+    } catch (e) {
+      throw Exception('Failed to update ingredient: $e');
+    }
+  }
+
   // Update ingredient quantity
   Future<void> updateIngredientQuantity(
     String ingredientId,

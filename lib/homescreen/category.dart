@@ -8,6 +8,7 @@ import '../state/cart_notifier.dart';
 import '../customization_page.dart';
 import '../models/category_models.dart';
 import '../homescreen/cart.dart';
+import 'package:project/homescreen/my_orders.dart';
 
 class CategoryPage extends StatefulWidget {
   final String categoryName;
@@ -25,19 +26,104 @@ class CategoryPage extends StatefulWidget {
 
 class _CategoryPageState extends State<CategoryPage> {
   String _currentCategoryId = "";
+  String _currentCategoryName = "";
+  String _lastHealthModeState = ""; // Track health mode changes
+  bool _shouldAutoSelect = false; // Only auto-select if coming from bottom nav
+  bool _userManuallySelectedCategory = false;
+
+  // Search State
+  bool _isSearching = false;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = "";
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
     super.initState();
-    _currentCategoryId = widget.categoryId;
+
+    _searchController.addListener(() {
+      setState(() {
+        _searchQuery = _searchController.text.toLowerCase();
+      });
+    });
+
+    // Check if category was provided (coming from specific category selection)
+    // or if empty/default (coming from bottom navigation)
+    if (widget.categoryId.isEmpty || widget.categoryId == "") {
+      // Coming from bottom nav - should auto-select first category
+      _shouldAutoSelect = true;
+      _currentCategoryId = "";
+      _currentCategoryName = "";
+    } else {
+      // Coming with specific category - use it
+      _shouldAutoSelect = false;
+      _currentCategoryId = widget.categoryId;
+      _currentCategoryName = widget.categoryName;
+      _lastHealthModeState = "initialized"; // Mark as already initialized
+      _userManuallySelectedCategory = true;
+    }
+  }
+
+  // --- 1. FUNCTION TO CHECK IF A CATEGORY CONTAINS HEALTHY ITEMS ---
+  Future<bool> _categoryHasHealthyItems(String categoryId) async {
+    final snapshot = await FirebaseFirestore.instance
+        .collection("categories")
+        .doc(categoryId)
+        .collection("items")
+        .where("isHealthy", isEqualTo: true)
+        .limit(1)
+        .get();
+    return snapshot.docs.isNotEmpty;
   }
 
   // ---------------------------------------------------
+  // 2. AUTO-SELECT FIRST CATEGORY
   // ---------------------------------------------------
+  void _autoSelectFirstCategory(
+    List<DocumentSnapshot> docs,
+    String healthModeKey,
+  ) {
+    if (docs.isEmpty) return;
+
+    // Check if current category is valid (exists in the list)
+    bool currentCategoryExists =
+        docs.any((doc) => doc.id == _currentCategoryId);
+
+    if (_currentCategoryId.isEmpty || !currentCategoryExists) {
+      final firstDoc = docs.first;
+      final firstData = firstDoc.data() as Map<String, dynamic>;
+
+      // Use WidgetsBinding to avoid setState during build
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() {
+            _currentCategoryId = firstDoc.id;
+            _currentCategoryName = firstData['name'];
+            _lastHealthModeState = healthModeKey;
+            _shouldAutoSelect = false; // Reset after first auto-select
+            _userManuallySelectedCategory = false; // Reset manual selection
+          });
+        }
+      });
+    }
+  }
+
   // ---------------------------------------------------
-  // 1. FETCH ALL ITEMS AND PARSE CUSTOMIZATIONS
+  // 3. FETCH ITEMS WITH HEALTH MODE FILTERING
   // ---------------------------------------------------
-  Stream<List<CategoryItem>> fetchCategoryItems(String categoryId, bool healthMode) {
+  Stream<List<CategoryItem>> fetchCategoryItems(
+    String categoryId,
+    bool healthMode,
+  ) {
+    if (categoryId.isEmpty) {
+      return Stream.value([]);
+    }
+
     Query query = FirebaseFirestore.instance
         .collection("categories")
         .doc(categoryId)
@@ -55,24 +141,18 @@ class _CategoryPageState extends State<CategoryPage> {
         String restaurantName = data["restaurantName"] ?? "Unknown Restaurant";
         num price = data["price"] ?? 0;
 
-        // ⭐ PARSE CUSTOMIZATIONS HERE
+        // PARSE CUSTOMIZATIONS
         List<CustomizationStep> parsedSteps = [];
-        
+
         if (data['variantGroups'] != null) {
           var rawGroups = data['variantGroups'] as List;
-          
-          for (var group in rawGroups) {
-            // Check if this group is excluded by Health Mode
-            bool groupIsHealthy = group['isHealthy'] ?? false;
-            // If health mode is ON, and group is NOT healthy, skip it? 
-            // Or usually, we just show healthy options. 
-            // For now, let's map everything.
 
+          for (var group in rawGroups) {
             var rawOptions = group['options'] as List;
             List<CustomizationOption> parsedOptions = rawOptions.map((opt) {
               return CustomizationOption(
-                opt['name'] ?? '', 
-                (opt['priceModifier'] ?? 0).toInt()
+                opt['name'] ?? '',
+                (opt['priceModifier'] ?? 0).toInt(),
               );
             }).toList();
 
@@ -80,59 +160,123 @@ class _CategoryPageState extends State<CategoryPage> {
             bool isRequired = group['isRequired'] ?? false;
 
             if (isMultiple) {
-              parsedSteps.add(CustomizationStep.multipleChoice(
-                group['name'] ?? 'Options', 
-                parsedOptions,
-                isRequired: isRequired
-              ));
+              parsedSteps.add(
+                CustomizationStep.multipleChoice(
+                  group['name'] ?? 'Options',
+                  parsedOptions,
+                  isRequired: isRequired,
+                ),
+              );
             } else {
-              parsedSteps.add(CustomizationStep.singleChoice(
-                group['name'] ?? 'Options', 
-                parsedOptions,
-                isRequired: isRequired
-              ));
+              parsedSteps.add(
+                CustomizationStep.singleChoice(
+                  group['name'] ?? 'Options',
+                  parsedOptions,
+                  isRequired: isRequired,
+                ),
+              );
             }
           }
         }
 
-        items.add(CategoryItem(
-          data["name"] ?? "Unknown",
-          data["imageUrl"] ?? "",
-          price,
-          double.tryParse(data["rating"]?.toString() ?? "4.5") ?? 4.5,
-          data["restaurantId"] ?? "",
-          restaurantName,
-          categoryKey: categoryId,
-          description: data["description"] ?? "",
-          isAvailable: data["isAvailable"] ?? true,
-          isCustomizable: data["isCustomizable"] ?? false,
-          isHealthy: data["isHealthy"] ?? false,
-          customizationSteps: parsedSteps, // ⭐ PASS THE PARSED STEPS
-        ));
+        items.add(
+          CategoryItem(
+            data["name"] ?? "Unknown",
+            data["imageUrl"] ?? "",
+            price,
+            double.tryParse(data["rating"]?.toString() ?? "0") ?? 0.0,
+            data["restaurantId"] ?? data["restaurant_id"] ?? "",
+            restaurantName,
+            categoryKey: categoryId,
+            description: data["description"] ?? "",
+            isAvailable: data["isAvailable"] ?? true,
+            isCustomizable: data["isCustomizable"] ?? false,
+            isHealthy: data["isHealthy"] ?? false,
+            customizationSteps: parsedSteps,
+            calories: data["calories"]?.toString(),
+          ),
+        );
       }
       return items;
     });
   }
 
   // ---------------------------------------------------
-  // 2. LOGIC TO ADD TO CART / CUSTOMIZE
+  // 4. ADD TO CART LOGIC
   // ---------------------------------------------------
-  // (Assuming you have your template logic here, simplified for brevity)
-  void _addToCart(CategoryItem item, CartNotifier cart) {
-    // If you have customization logic:
+  bool _isDifferentRestaurant(CategoryItem item, CartNotifier cart) {
+    if (cart.items.isEmpty) return false;
+
+    // Get restaurantId of first cart item
+    final existingRestaurantId = cart.items.first.restaurantId;
+
+    return existingRestaurantId != item.restaurantId;
+  }
+
+  void _showReplaceCartDialog(CategoryItem item, CartNotifier cart) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Text(
+            "Do You Want To Replace The Items\nFrom The Previous Restaurant?",
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+
+            textAlign: TextAlign.center,
+          ),
+          actionsAlignment: MainAxisAlignment.spaceBetween,
+          actions: [
+            OutlinedButton(
+              onPressed: () {
+                Navigator.pop(context); // Close dialog
+              },
+              child: const Text("Close"),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.amber,
+                foregroundColor: Colors.black,
+              ),
+              onPressed: () {
+                cart.clearCart(); // 🔥 IMPORTANT
+                Navigator.pop(context);
+                _addItemDirectly(item, cart);
+              },
+              child: const Text("OK"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _addItemDirectly(CategoryItem item, CartNotifier cart) {
     if (item.isCustomizable) {
-      // Navigate to customization or show dialog
-      // For now, adding directly or showing basic dialog
       _showAddOptionsDialog(item, cart);
     } else {
       cart.addItem(item.toCartItem());
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text("${item.name} added to cart"),
-          duration: Duration(milliseconds: 500),
+          duration: const Duration(milliseconds: 500),
         ),
       );
     }
+  }
+
+  void _addToCart(CategoryItem item, CartNotifier cart) {
+    // 🔐 CHECK RESTAURANT RULE
+    if (_isDifferentRestaurant(item, cart)) {
+      _showReplaceCartDialog(item, cart);
+      return;
+    }
+
+    // Normal flow
+    _addItemDirectly(item, cart);
   }
 
   void _showAddOptionsDialog(CategoryItem item, CartNotifier cart) {
@@ -142,42 +286,38 @@ class _CategoryPageState extends State<CategoryPage> {
         title: Text(item.name),
         content: Text("From: ${item.restaurantName}"),
         actions: [
-          // Option 1: Quick Add (Base Price)
           TextButton(
             onPressed: () {
-               cart.addItem(item.toCartItem());
-               Navigator.pop(context);
-               ScaffoldMessenger.of(context).showSnackBar(
-                 SnackBar(content: Text("${item.name} added to cart"))
-               );
-            }, 
+              Navigator.pop(context);
+              _addToCart(item, cart); // 🔥 USE SAME RULE
+            },
             child: const Text("Quick Add (Base)"),
           ),
-          
-          // Option 2: Customize
-          // ⭐ THIS IS THE FIX
+
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.deepOrange),
             onPressed: () {
-              Navigator.pop(context); // Close dialog first
-              
-              if (item.customizationSteps != null && item.customizationSteps!.isNotEmpty) {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => CustomizationPage(
-                      customizableItem: item, 
-                      template: item.customizationSteps! // Pass the data we parsed
-                    ),
-                  ),
-                );
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("No customization options available"))
-                );
+              Navigator.pop(context);
+
+              if (_isDifferentRestaurant(item, cart)) {
+                _showReplaceCartDialog(item, cart);
+                return;
               }
-            }, 
-            child: const Text("Customize", style: TextStyle(color: Colors.white)),
+
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => CustomizationPage(
+                    customizableItem: item,
+                    template: item.customizationSteps!,
+                  ),
+                ),
+              );
+            },
+
+            child: const Text(
+              "Customize",
+              style: TextStyle(color: Colors.green),
+            ),
           ),
         ],
       ),
@@ -185,7 +325,7 @@ class _CategoryPageState extends State<CategoryPage> {
   }
 
   // ---------------------------------------------------
-  // 3. UI: RESTAURANT HEADER
+  // 5. RESTAURANT HEADER
   // ---------------------------------------------------
   Widget _buildRestaurantHeader(String restaurantName) {
     return Padding(
@@ -208,7 +348,7 @@ class _CategoryPageState extends State<CategoryPage> {
   }
 
   // ---------------------------------------------------
-  // 4. UI: ITEM CARD (Matches Screenshot)
+  // 6. ITEM CARD
   // ---------------------------------------------------
   Widget _buildItemCard(CategoryItem item, CartNotifier cart) {
     return Container(
@@ -276,32 +416,69 @@ class _CategoryPageState extends State<CategoryPage> {
                           border: Border.all(color: Colors.green),
                         ),
                         child: Text(
-                          "Customizable",
-                          style: TextStyle(fontSize: 10, color: Colors.green),
+                          "Custom",
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: Colors.green,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    if (item.isHealthy)
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        margin: EdgeInsets.only(left: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(color: Colors.green),
+                        ),
+                        child: Text(
+                          "Healthy",
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: Colors.green,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                   ],
                 ),
                 SizedBox(height: 4),
                 Text(
-                  "From: ${item.restaurantName}",
-                  style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                  item.restaurantName,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[700],
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
-                SizedBox(height: 8),
-                Row(
-                  children: [
-                    Icon(Icons.star, size: 14, color: Colors.amber),
-                    SizedBox(width: 4),
-                    Text(
-                      item.rating.toString(),
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
+                SizedBox(height: 6),
+                if (item.description?.isNotEmpty == true) ...[
+                  Text(
+                    item.description!,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[700],
+                      fontWeight: FontWeight.w500,
                     ),
-                  ],
-                ),
-                SizedBox(height: 8),
+                  ),
+                  SizedBox(height: 8),
+                ],
+                if (item.calories != null) ...[
+                  Text(
+                    "${item.calories} kcal",
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.green,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                ],
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -346,6 +523,53 @@ class _CategoryPageState extends State<CategoryPage> {
     );
   }
 
+  // ---------------------------------------------------
+  // 7. BUILD CATEGORY CHIPS
+  // ---------------------------------------------------
+  Widget _buildCategoryChips(List<DocumentSnapshot> docs, bool healthMode) {
+    // Create a unique key for the current state
+    String stateKey = "health_${healthMode}_categories_${docs.length}";
+
+    // Auto-select first category only when state changes
+    _autoSelectFirstCategory(docs, stateKey);
+
+    return ListView.builder(
+      scrollDirection: Axis.horizontal,
+      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      itemCount: docs.length,
+      itemBuilder: (context, index) {
+        var doc = docs[index];
+        var catData = doc.data() as Map<String, dynamic>;
+        String id = doc.id;
+        String name = catData['name'];
+        bool isSelected = id == _currentCategoryId;
+
+        return Padding(
+          padding: const EdgeInsets.only(right: 8.0),
+          child: ActionChip(
+            label: Text(name),
+            backgroundColor: isSelected ? Colors.deepOrange : Colors.grey[100],
+            labelStyle: TextStyle(
+              color: isSelected ? Colors.white : Colors.black,
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            side: BorderSide.none,
+            onPressed: () {
+              setState(() {
+                _userManuallySelectedCategory = true; // 🔥 IMPORTANT
+                _currentCategoryId = id;
+                _currentCategoryName = name;
+              });
+            },
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final healthMode = context.watch<HealthModeNotifier>().isOn;
@@ -354,49 +578,129 @@ class _CategoryPageState extends State<CategoryPage> {
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: Text(widget.categoryName, style: TextStyle(color: Colors.black)),
+        title: _isSearching
+            ? TextField(
+                controller: _searchController,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  hintText: 'Search items...',
+                  border: InputBorder.none,
+                ),
+                style: const TextStyle(color: Colors.black),
+              )
+            : Text(
+                _currentCategoryName,
+                style: const TextStyle(color: Colors.black),
+              ),
         backgroundColor: Colors.white,
         elevation: 0,
-        iconTheme: IconThemeData(color: Colors.black),
+        iconTheme: const IconThemeData(color: Colors.black),
+        leading: _isSearching
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () {
+                  setState(() {
+                    _isSearching = false;
+                    _searchController.clear();
+                    _searchQuery = "";
+                  });
+                },
+              )
+            : null,
         actions: [
-          IconButton(icon: Icon(Icons.search), onPressed: () {}),
-          // Cart Icon
-          Stack(
-            children: [
-              IconButton(
-                icon: Icon(Icons.shopping_cart_outlined),
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => CartScreen()),
-                ),
+          if (_isSearching)
+            IconButton(
+              icon: const Icon(Icons.close),
+              onPressed: () {
+                if (_searchController.text.isEmpty) {
+                  setState(() {
+                    _isSearching = false;
+                  });
+                } else {
+                  _searchController.clear();
+                }
+              },
+            )
+          else
+            IconButton(
+              icon: const Icon(Icons.search),
+              onPressed: () {
+                setState(() {
+                  _isSearching = true;
+                });
+              },
+            ),
+          if (!_isSearching) ...[
+            IconButton(
+              icon: const Icon(Icons.receipt_long_outlined),
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const MyOrdersPage()),
               ),
-              if (cart.itemCount > 0)
-                Positioned(
-                  right: 8,
-                  top: 8,
-                  child: Container(
-                    padding: EdgeInsets.all(2),
-                    decoration: BoxDecoration(
-                      color: Colors.red,
-                      shape: BoxShape.circle,
-                    ),
-                    constraints: BoxConstraints(minWidth: 16, minHeight: 16),
-                    child: Text(
-                      cart.itemCount.toString(),
-                      style: TextStyle(color: Colors.white, fontSize: 10),
-                      textAlign: TextAlign.center,
+            ),
+            Container(
+              padding: const EdgeInsets.all(8),
+              child: Row(
+                children: [
+                  Icon(
+                    healthMode
+                        ? Icons.health_and_safety
+                        : Icons.health_and_safety_outlined,
+                    color: healthMode ? Colors.green : Colors.grey,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    "Health",
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: healthMode ? Colors.green : Colors.grey,
                     ),
                   ),
+                ],
+              ),
+            ),
+            Stack(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.shopping_cart_outlined),
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const CartScreen()),
+                  ),
                 ),
-            ],
-          ),
+                if (cart.itemCount > 0)
+                  Positioned(
+                    right: 8,
+                    top: 8,
+                    child: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: const BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 16,
+                        minHeight: 16,
+                      ),
+                      child: Text(
+                        cart.itemCount.toString(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ],
         ],
       ),
       body: Column(
         children: [
-          // --------------------------------------------
-          // HORIZONTAL CATEGORY CHIPS (Top of Screenshot)
-          // --------------------------------------------
+          // HORIZONTAL CATEGORY CHIPS
           Container(
             height: 60,
             color: Colors.white,
@@ -405,60 +709,49 @@ class _CategoryPageState extends State<CategoryPage> {
                   .collection("categories")
                   .snapshots(),
               builder: (context, snapshot) {
-                if (!snapshot.hasData) return SizedBox();
+                if (!snapshot.hasData) return const SizedBox();
                 var docs = snapshot.data!.docs;
 
-                return ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  itemCount: docs.length,
-                  itemBuilder: (context, index) {
-                    var catData = docs[index].data() as Map<String, dynamic>;
-                    String id = docs[index].id;
-                    String name = catData['name'];
-                    bool isSelected = id == _currentCategoryId;
+                if (healthMode) {
+                  return FutureBuilder<List<DocumentSnapshot?>>(
+                    future: Future.wait(
+                      docs.map((doc) async {
+                        if (await _categoryHasHealthyItems(doc.id)) {
+                          return doc;
+                        }
+                        return null;
+                      }),
+                    ),
+                    builder: (context, filteredSnapshot) {
+                      if (filteredSnapshot.connectionState ==
+                          ConnectionState.waiting) {
+                        return const Center(
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        );
+                      }
 
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 8.0),
-                      child: ActionChip(
-                        label: Text(name),
-                        backgroundColor: isSelected
-                            ? Colors.deepOrange
-                            : Colors.grey[100],
-                        labelStyle: TextStyle(
-                          color: isSelected ? Colors.white : Colors.black,
-                          fontWeight: isSelected
-                              ? FontWeight.bold
-                              : FontWeight.normal,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        side: BorderSide.none,
-                        onPressed: () {
-                          // Normally navigate to new category page or setState
-                          // For now, we just update state if you want to reuse page
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => CategoryPage(
-                                categoryName: name,
-                                categoryId: id,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    );
-                  },
-                );
+                      final healthyDocs = filteredSnapshot.data!
+                          .where((d) => d != null)
+                          .cast<DocumentSnapshot>()
+                          .toList();
+
+                      if (healthyDocs.isEmpty) {
+                        return const Center(
+                          child: Text("No healthy categories available"),
+                        );
+                      }
+
+                      return _buildCategoryChips(healthyDocs, healthMode);
+                    },
+                  );
+                } else {
+                  return _buildCategoryChips(docs, healthMode);
+                }
               },
             ),
           ),
 
-          // --------------------------------------------
-          // MAIN LIST (Grouped by Restaurant)
-          // --------------------------------------------
+          // MAIN ITEMS LIST
           Expanded(
             child: StreamBuilder<List<CategoryItem>>(
               stream: fetchCategoryItems(_currentCategoryId, healthMode),
@@ -469,7 +762,22 @@ class _CategoryPageState extends State<CategoryPage> {
                   );
                 }
 
-                if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                final items = snapshot.data!;
+                final filteredItems = _searchQuery.isEmpty
+                    ? items
+                    : items
+                          .where(
+                            (item) =>
+                                item.name.toLowerCase().contains(_searchQuery),
+                          )
+                          .toList();
+
+                if (filteredItems.isEmpty) {
+                  final noItemsText = _searchQuery.isNotEmpty
+                      ? "No items found matching '$_searchQuery'"
+                      : (healthMode
+                            ? "No healthy items found in $_currentCategoryName."
+                            : "No items found in $_currentCategoryName.");
                   return Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -479,20 +787,22 @@ class _CategoryPageState extends State<CategoryPage> {
                           size: 60,
                           color: Colors.grey[300],
                         ),
-                        Text(
-                          "No items found in this category",
-                          style: TextStyle(color: Colors.grey),
+                        Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Text(
+                            noItemsText,
+                            style: TextStyle(color: Colors.grey),
+                            textAlign: TextAlign.center,
+                          ),
                         ),
                       ],
                     ),
                   );
                 }
 
-                // GROUPING LOGIC
-                final items = snapshot.data!;
                 Map<String, List<CategoryItem>> groupedItems = {};
 
-                for (var item in items) {
+                for (var item in filteredItems) {
                   if (!groupedItems.containsKey(item.restaurantName)) {
                     groupedItems[item.restaurantName] = [];
                   }
@@ -511,9 +821,9 @@ class _CategoryPageState extends State<CategoryPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _buildRestaurantHeader(restaurantName),
-                        ...restaurantItems
-                            .map((item) => _buildItemCard(item, cart))
-                            ,
+                        ...restaurantItems.map(
+                          (item) => _buildItemCard(item, cart),
+                        ),
                       ],
                     );
                   },

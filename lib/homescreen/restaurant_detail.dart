@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:project/models/cart_item.dart';
-import 'package:project/models/category_models.dart' hide CategoryItem;
+import 'package:project/models/category_models.dart';
 // import 'package:project/models/cart_item.dart' show CategoryItem, CartItem;
 
 import 'package:provider/provider.dart';
@@ -257,7 +256,7 @@ class _FoodTileWidget extends StatelessWidget {
                   top: Radius.circular(8),
                 ),
                 child: Image.asset(
-                  item.image,
+                  item.imageUrl,
                   width: double.infinity,
                   height: 140,
                   fit: BoxFit.cover,
@@ -311,7 +310,9 @@ class _FoodTileWidget extends StatelessWidget {
                                   price: item.price.toInt(),
                                   // rating: item.rating,
                                   restaurantName: item.restaurantName,
-                                  imageUrl: item.image,
+                                  imageUrl: item.imageUrl,
+                                  restaurantId: item.restaurantId,
+                                  isByod: false,
                                 );
                                 cartNotifier.addToCart(cartItem);
                                 ScaffoldMessenger.of(context).showSnackBar(
@@ -332,7 +333,7 @@ class _FoodTileWidget extends StatelessWidget {
                               child: const Text(
                                 'Add',
                                 style: TextStyle(
-                                  color: Colors.deepOrange,
+                                  color: Colors.white,
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
                                 ),

@@ -13,6 +13,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:project/services/low_stock_service.dart';
 import 'dart:async';
+import 'package:intl/intl.dart';
 
 // Placeholder `items` list — do not populate here. This list is expected to
 // be filled from the app's existing menu/data sources (DB, provider, etc.).
@@ -34,9 +35,6 @@ class _DashboardPageState extends State<DashboardPage>
   String _restaurantName = "Restaurant";
   String? _restaurantImageUrl;
   late AnimationController _animationController;
-  int _totalOrders = 0;
-  int _completedOrders = 0;
-  double _totalEarnings = 0.0;
 
   @override
   void initState() {
@@ -46,7 +44,6 @@ class _DashboardPageState extends State<DashboardPage>
       vsync: this,
     );
     _loadRestaurantData();
-    _loadDailyStats();
   }
 
   @override
@@ -74,38 +71,6 @@ class _DashboardPageState extends State<DashboardPage>
       }
     } catch (e) {
       print('Error loading restaurant data: $e');
-    }
-  }
-
-  Future<void> _loadDailyStats() async {
-    final user = _auth.currentUser;
-    if (user == null) return;
-
-    try {
-      // Load today's orders count
-      final ordersSnapshot = await _firestore
-          .collection('restaurants')
-          .doc(user.uid)
-          .collection('orders')
-          .where('date', isGreaterThanOrEqualTo: DateTime.now())
-          .get();
-
-      // Load completed orders count
-      final completedSnapshot = await _firestore
-          .collection('restaurants')
-          .doc(user.uid)
-          .collection('orders')
-          .where('status', isEqualTo: 'completed')
-          .get();
-
-      if (mounted) {
-        setState(() {
-          _totalOrders = ordersSnapshot.docs.length;
-          _completedOrders = completedSnapshot.docs.length;
-        });
-      }
-    } catch (e) {
-      print('Error loading daily stats: $e');
     }
   }
 
@@ -142,22 +107,90 @@ class _DashboardPageState extends State<DashboardPage>
 
   @override
   Widget build(BuildContext context) {
+    final user = _auth.currentUser;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       appBar: _buildModernAppBar(),
-      body: CustomScrollView(
-        slivers: [
-          SliverToBoxAdapter(
-            child: Column(
-              children: [
-                _buildHeaderSection(),
-                _buildQuickStatsSection(),
-                _buildMainDashboardCards(),
-                const SizedBox(height: 20),
-              ],
-            ),
-          ),
-        ],
+      body: StreamBuilder<QuerySnapshot>(
+        stream: user != null
+            ? _firestore
+                  .collection('orders')
+                  .where('restaurantId', isEqualTo: user.uid)
+                  .snapshots()
+            : const Stream.empty(),
+        builder: (context, snapshot) {
+          int totalOrdersToday = 0;
+          int allTimeCompleted = 0;
+          double totalEarnings = 0.0;
+
+          if (snapshot.hasData) {
+            final now = DateTime.now();
+            final startOfDay = DateTime(now.year, now.month, now.day);
+
+            for (var doc in snapshot.data!.docs) {
+              final data = doc.data() as Map<String, dynamic>;
+              final createdAt = (data['createdAt'] as Timestamp?)?.toDate();
+              final status =
+                  data['orderStatus'] as String? ??
+                  data['status'] as String? ??
+                  '';
+              final amount = (data['totalAmount'] is int)
+                  ? (data['totalAmount'] as int).toDouble()
+                  : (data['totalAmount'] as double? ?? 0.0);
+
+              // Count ALL completed orders (All Time) so the number updates lively
+              if (status.toLowerCase() == 'completed') {
+                allTimeCompleted++;
+                totalEarnings += amount;
+              }
+
+              // Calculate Today's specific stats
+              if (createdAt != null && createdAt.isAfter(startOfDay)) {
+                totalOrdersToday++;
+              }
+            }
+          }
+
+          return StreamBuilder<QuerySnapshot>(
+            stream: user != null
+                ? _firestore
+                      .collection('byod_requests')
+                      .where('restaurantId', isEqualTo: user.uid)
+                      .where('status', isEqualTo: 'pending')
+                      .snapshots()
+                : const Stream.empty(),
+            builder: (context, byodSnapshot) {
+              int pendingByodCount = 0;
+              if (byodSnapshot.hasData) {
+                pendingByodCount = byodSnapshot.data!.docs.length;
+              }
+
+              return CustomScrollView(
+                slivers: [
+                  SliverToBoxAdapter(
+                    child: Column(
+                      children: [
+                        _buildHeaderSection(),
+                        _buildQuickStatsSection(
+                          totalOrdersToday,
+                          allTimeCompleted,
+                        ),
+                        _buildMainDashboardCards(
+                          totalOrdersToday,
+                          allTimeCompleted,
+                          totalEarnings,
+                          pendingByodCount,
+                        ),
+                        const SizedBox(height: 20),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            },
+          );
+        },
       ),
     );
   }
@@ -306,7 +339,7 @@ class _DashboardPageState extends State<DashboardPage>
     );
   }
 
-  Widget _buildQuickStatsSection() {
+  Widget _buildQuickStatsSection(int totalOrders, int completedOrders) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
@@ -314,7 +347,7 @@ class _DashboardPageState extends State<DashboardPage>
           Expanded(
             child: _buildStatCard(
               "Total Orders",
-              _totalOrders.toString(),
+              totalOrders.toString(),
               Icons.receipt_long,
               const LinearGradient(
                 colors: [Color(0xFFFF6B6B), Color(0xFFEE5A6F)],
@@ -325,7 +358,7 @@ class _DashboardPageState extends State<DashboardPage>
           Expanded(
             child: _buildStatCard(
               "Completed",
-              _completedOrders.toString(),
+              completedOrders.toString(),
               Icons.check_circle,
               const LinearGradient(
                 colors: [Color(0xFF4ECDC4), Color(0xFF44A08D)],
@@ -390,7 +423,12 @@ class _DashboardPageState extends State<DashboardPage>
     );
   }
 
-  Widget _buildMainDashboardCards() {
+  Widget _buildMainDashboardCards(
+    int totalOrders,
+    int completedOrders,
+    double totalEarnings,
+    int pendingByodCount,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
@@ -413,7 +451,7 @@ class _DashboardPageState extends State<DashboardPage>
               Expanded(
                 child: _buildEnhancedDashboardCard(
                   title: "Today's Orders",
-                  value: _totalOrders.toString(),
+                  value: totalOrders.toString(),
                   icon: Icons.receipt_long,
                   color: const Color(0xFFFF6B6B),
                   onTap: () {
@@ -430,14 +468,14 @@ class _DashboardPageState extends State<DashboardPage>
               Expanded(
                 child: _buildEnhancedDashboardCard(
                   title: "Pending BYOD",
-                  value: "4",
+                  value: pendingByodCount.toString(),
                   icon: Icons.fastfood,
                   color: const Color(0xFF4ECDC4),
                   onTap: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const PendingByodRequestsPage(),
+                        builder: (context) => PendingByodRequestsPage(),
                       ),
                     );
                   },
@@ -452,7 +490,7 @@ class _DashboardPageState extends State<DashboardPage>
               Expanded(
                 child: _buildEnhancedDashboardCard(
                   title: "Completed",
-                  value: _completedOrders.toString(),
+                  value: completedOrders.toString(),
                   icon: Icons.check_circle,
                   color: const Color(0xFF44A08D),
                   onTap: () {
@@ -468,8 +506,11 @@ class _DashboardPageState extends State<DashboardPage>
               const SizedBox(width: 12),
               Expanded(
                 child: _buildEnhancedDashboardCard(
-                  title: "Today's Earnings",
-                  value: "₹4,250",
+                  title: "Total Earnings",
+                  value: NumberFormat.currency(
+                    locale: 'en_IN',
+                    symbol: '₹',
+                  ).format(totalEarnings),
                   icon: Icons.attach_money,
                   color: const Color(0xFFFFB84D),
                   onTap: () {
@@ -726,5 +767,3 @@ class DashboardCard extends StatelessWidget {
     );
   }
 }
-
-

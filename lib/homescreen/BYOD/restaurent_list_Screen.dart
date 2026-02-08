@@ -3,6 +3,14 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:dotted_border/dotted_border.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
+import 'package:provider/provider.dart';
+import '../../models/category_models.dart';
+import '../../state/cart_notifier.dart';
+import '../cart.dart';
+import '../../services/upload_image.dart';
 
 // void main() => runApp(const MyApp());
 
@@ -34,6 +42,7 @@ class MyApp extends StatelessWidget {
 
 // ================= RESTAURANT MODEL & DATA =================
 class Restaurant {
+  final String id;
   final String name;
   final String imagePath; // asset image path
   final double rating;
@@ -42,6 +51,7 @@ class Restaurant {
   final String location;
   final String offer;
   const Restaurant({
+    required this.id,
     required this.name,
     required this.imagePath,
     required this.rating,
@@ -51,63 +61,6 @@ class Restaurant {
     required this.offer,
   });
 }
-
-final List<Restaurant> restaurants = [
-  const Restaurant(
-    name: 'Nigs Hut',
-    imagePath: 'assets/images/res1.jpg',
-    rating: 4.3,
-    time: '65–90 mins',
-    category: 'Restaurant',
-    location: 'Mannarkkad',
-    offer: 'ITEMS AT ₹99',
-  ),
-  const Restaurant(
-    name: 'FoodFlex',
-    imagePath: 'assets/images/res2.jpeg',
-    rating: 4.5,
-    time: '40–55 mins',
-    category: 'Healthy',
-    location: 'Palakkad',
-    offer: 'UPTO 50% OFF',
-  ),
-  const Restaurant(
-    name: 'Pizza Hut',
-    imagePath: 'assets/images/res3.png',
-    rating: 4.2,
-    time: '55–65 mins',
-    category: 'Pizzas',
-    location: 'Kavumpuram',
-    offer: 'ITEMS AT ₹99',
-  ),
-  const Restaurant(
-    name: 'Burger King',
-    imagePath: 'assets/images/res4.jpeg',
-    rating: 4.1,
-    time: '30–45 mins',
-    category: 'Burgers',
-    location: 'Ottapalam',
-    offer: 'FREE DELIVERY',
-  ),
-  const Restaurant(
-    name: 'Subway',
-    imagePath: 'assets/images/res5.jpeg',
-    rating: 4.0,
-    time: '25–35 mins',
-    category: 'Sandwiches',
-    location: 'Shornur',
-    offer: 'BUY 1 GET 1',
-  ),
-  const Restaurant(
-    name: 'The Plate',
-    imagePath: 'assets/images/res6.jpeg',
-    rating: 4.6,
-    time: '35–50 mins',
-    category: 'Multi-cuisine',
-    location: 'Cherpulassery',
-    offer: 'NEW ARRIVAL',
-  ),
-];
 
 // ================= RESTAURANT LIST =================
 class RestaurentListScreen extends StatelessWidget {
@@ -127,117 +80,166 @@ class RestaurentListScreen extends StatelessWidget {
         elevation: 1,
       ),
       backgroundColor: Colors.grey[50],
-      body: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: restaurants.length,
-        itemBuilder: (context, i) {
-          final r = restaurants[i];
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 16),
-            child: InkWell(
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => RestaurantDetailScreen(restaurant: r),
-                ),
-              ),
-              child: Card(
-                clipBehavior: Clip.antiAlias,
-                elevation: 6,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Stack(
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('users')
+            .where('role', isEqualTo: 'restaurant')
+            .where('isByodEnabled', isEqualTo: true)
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return Center(child: Text("Error: ${snapshot.error}"));
+          }
+
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return const Center(child: Text("No BYOD restaurants available"));
+          }
+
+          final docs = snapshot.data!.docs;
+
+          return ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: docs.length,
+            itemBuilder: (context, index) {
+              final data = docs[index].data() as Map<String, dynamic>;
+              final r = Restaurant(
+                id: docs[index].id,
+                name: data['fullName'] ?? data['name'] ?? 'Unknown',
+                imagePath: data['imageUrl'] ?? '',
+                rating:
+                    double.tryParse(data['rating']?.toString() ?? '0') ?? 0.0,
+                time: '30-45 mins',
+                category: 'Restaurant',
+                location: data['address'] ?? 'Unknown Location',
+                offer: 'Special Offers',
+              );
+
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: InkWell(
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => RestaurantDetailScreen(restaurant: r),
+                    ),
+                  ),
+                  child: Card(
+                    clipBehavior: Clip.antiAlias,
+                    elevation: 6,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        SizedBox(
-                          height: 150,
-                          width: double.infinity,
-                          child: Image.asset(
-                            r.imagePath,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Container(
-                              color: Colors.grey[300],
-                              child: const Center(
-                                child: Icon(Icons.image, size: 40),
+                        Stack(
+                          children: [
+                            SizedBox(
+                              height: 150,
+                              width: double.infinity,
+                              child: r.imagePath.isNotEmpty
+                                  ? Image.network(
+                                      r.imagePath,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) => Container(
+                                        color: Colors.grey[300],
+                                        child: const Center(
+                                          child: Icon(Icons.image, size: 40),
+                                        ),
+                                      ),
+                                    )
+                                  : Container(
+                                      color: Colors.grey[300],
+                                      child: const Center(
+                                        child: Icon(
+                                          Icons.restaurant,
+                                          size: 40,
+                                          color: Colors.grey,
+                                        ),
+                                      ),
+                                    ),
+                            ),
+                            Positioned(
+                              left: 12,
+                              bottom: 12,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: primary,
+                                  borderRadius: BorderRadius.circular(8),
+                                  boxShadow: const [
+                                    BoxShadow(
+                                      color: Colors.black26,
+                                      blurRadius: 4,
+                                    ),
+                                  ],
+                                ),
+                                child: Text(
+                                  r.offer,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               ),
                             ),
-                          ),
+                          ],
                         ),
-                        Positioned(
-                          left: 12,
-                          bottom: 12,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: primary,
-                              borderRadius: BorderRadius.circular(8),
-                              boxShadow: const [
-                                BoxShadow(color: Colors.black26, blurRadius: 4),
-                              ],
-                            ),
-                            child: Text(
-                              r.offer,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
+                        Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                r.name,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 20,
+                                ),
                               ),
-                            ),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  const Icon(
+                                    Icons.star,
+                                    color: Colors.green,
+                                    size: 18,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    '${r.rating} • ${r.time}',
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                r.category,
+                                style: TextStyle(color: Colors.grey[700]),
+                              ),
+                              Text(
+                                r.location,
+                                style: TextStyle(color: Colors.grey[700]),
+                              ),
+                            ],
                           ),
                         ),
                       ],
                     ),
-                    Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            r.name,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w900,
-                              fontSize: 20,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.star,
-                                color: Colors.green,
-                                size: 18,
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                '${r.rating} • ${r.time}',
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            r.category,
-                            style: TextStyle(color: Colors.grey[700]),
-                          ),
-                          Text(
-                            r.location,
-                            style: TextStyle(color: Colors.grey[700]),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
+              );
+            },
           );
         },
       ),
@@ -269,14 +271,27 @@ class RestaurantDetailScreen extends StatelessWidget {
         children: [
           AspectRatio(
             aspectRatio: 16 / 9,
-            child: Image.asset(
-              restaurant.imagePath,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(
-                color: Colors.grey[300],
-                child: const Center(child: Icon(Icons.image, size: 48)),
-              ),
-            ),
+            child: restaurant.imagePath.isNotEmpty
+                ? Image.network(
+                    restaurant.imagePath,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(
+                      color: Colors.grey[300],
+                      child: const Center(
+                        child: Icon(Icons.image, size: 48, color: Colors.grey),
+                      ),
+                    ),
+                  )
+                : Container(
+                    color: Colors.grey[300],
+                    child: const Center(
+                      child: Icon(
+                        Icons.restaurant,
+                        size: 48,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ),
           ),
           Padding(
             padding: const EdgeInsets.all(16),
@@ -344,7 +359,9 @@ class RestaurantDetailScreen extends StatelessWidget {
                   child: ElevatedButton.icon(
                     onPressed: () => Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => const ByodPage()),
+                      MaterialPageRoute(
+                        builder: (_) => ByodPage(restaurant: restaurant),
+                      ),
                     ),
                     icon: const Icon(Icons.restaurant_menu),
                     label: const Text('Build Your Own Dish'),
@@ -379,7 +396,8 @@ class RestaurantDetailScreen extends StatelessWidget {
 enum RecipeInputType { write, upload, link }
 
 class ByodPage extends StatefulWidget {
-  const ByodPage({super.key});
+  final Restaurant restaurant;
+  const ByodPage({required this.restaurant, super.key});
   @override
   State<ByodPage> createState() => _ByodPageState();
 }
@@ -391,295 +409,13 @@ class _ByodPageState extends State<ByodPage> {
   final TextEditingController searchCtrl = TextEditingController();
 
   RecipeInputType _mode = RecipeInputType.write;
-  File? _selectedImage;
+  XFile? _selectedImage;
 
-  /// Ingredient schema (low price-per-unit)
-  /// name, category, unit (per serving), cal, protein, carbs, fat, price (₹ per unit)
-  final List<Map<String, dynamic>> ingredients = const [
-    // Bases (per 100g or 1 pc)
-    {
-      "name": "Steamed Rice",
-      "category": "Bases",
-      "unit": "100 g",
-      "cal": 130,
-      "protein": 2,
-      "carbs": 28,
-      "fat": 0,
-      "price": 5,
-    },
-    {
-      "name": "Quinoa",
-      "category": "Bases",
-      "unit": "100 g",
-      "cal": 120,
-      "protein": 4,
-      "carbs": 21,
-      "fat": 2,
-      "price": 8,
-    },
-    {
-      "name": "Whole Wheat Roti",
-      "category": "Bases",
-      "unit": "1 pc",
-      "cal": 100,
-      "protein": 3,
-      "carbs": 22,
-      "fat": 1,
-      "price": 5,
-    },
-    {
-      "name": "Hakka Noodles",
-      "category": "Bases",
-      "unit": "100 g",
-      "cal": 138,
-      "protein": 4,
-      "carbs": 27,
-      "fat": 2,
-      "price": 6,
-    },
+  // Data is now fetched from Firestore
+  List<Map<String, dynamic>> ingredients = [];
+  bool _isLoadingIngredients = true;
 
-    // Proteins (per 50g or 1 pc)
-    {
-      "name": "Grilled Chicken",
-      "category": "Proteins",
-      "unit": "50 g",
-      "cal": 82,
-      "protein": 15,
-      "carbs": 0,
-      "fat": 2,
-      "price": 10,
-    },
-    {
-      "name": "Paneer Cubes",
-      "category": "Proteins",
-      "unit": "50 g",
-      "cal": 132,
-      "protein": 9,
-      "carbs": 3,
-      "fat": 10,
-      "price": 8,
-    },
-    {
-      "name": "Boiled Egg",
-      "category": "Proteins",
-      "unit": "1 pc",
-      "cal": 78,
-      "protein": 6,
-      "carbs": 1,
-      "fat": 5,
-      "price": 4,
-    },
-    {
-      "name": "Tofu",
-      "category": "Proteins",
-      "unit": "50 g",
-      "cal": 70,
-      "protein": 7,
-      "carbs": 2,
-      "fat": 4,
-      "price": 6,
-    },
-    {
-      "name": "Fish Tikka",
-      "category": "Proteins",
-      "unit": "50 g",
-      "cal": 100,
-      "protein": 13,
-      "carbs": 1,
-      "fat": 5,
-      "price": 12,
-    },
-
-    // Veggies (per 50g or 30g)
-    {
-      "name": "Bell Peppers",
-      "category": "Veggies",
-      "unit": "50 g",
-      "cal": 16,
-      "protein": 0,
-      "carbs": 3,
-      "fat": 0,
-      "price": 4,
-    },
-    {
-      "name": "Broccoli",
-      "category": "Veggies",
-      "unit": "50 g",
-      "cal": 17,
-      "protein": 2,
-      "carbs": 3,
-      "fat": 0,
-      "price": 5,
-    },
-    {
-      "name": "Onion",
-      "category": "Veggies",
-      "unit": "30 g",
-      "cal": 12,
-      "protein": 0,
-      "carbs": 3,
-      "fat": 0,
-      "price": 2,
-    },
-    {
-      "name": "Tomato",
-      "category": "Veggies",
-      "unit": "50 g",
-      "cal": 9,
-      "protein": 0,
-      "carbs": 2,
-      "fat": 0,
-      "price": 2,
-    },
-    {
-      "name": "Mushroom",
-      "category": "Veggies",
-      "unit": "50 g",
-      "cal": 11,
-      "protein": 1,
-      "carbs": 1,
-      "fat": 0,
-      "price": 4,
-    },
-    {
-      "name": "Spinach",
-      "category": "Veggies",
-      "unit": "50 g",
-      "cal": 5,
-      "protein": 1,
-      "carbs": 1,
-      "fat": 0,
-      "price": 3,
-    },
-    {
-      "name": "Sweet Corn",
-      "category": "Veggies",
-      "unit": "40 g",
-      "cal": 26,
-      "protein": 1,
-      "carbs": 6,
-      "fat": 1,
-      "price": 3,
-    },
-
-    // Sauces (per tbsp)
-    {
-      "name": "Tomato Basil",
-      "category": "Sauces",
-      "unit": "1 tbsp",
-      "cal": 15,
-      "protein": 0,
-      "carbs": 3,
-      "fat": 0,
-      "price": 2,
-    },
-    {
-      "name": "Butter Masala",
-      "category": "Sauces",
-      "unit": "1 tbsp",
-      "cal": 55,
-      "protein": 1,
-      "carbs": 2,
-      "fat": 6,
-      "price": 3,
-    },
-    {
-      "name": "Mint Chutney",
-      "category": "Sauces",
-      "unit": "1 tbsp",
-      "cal": 12,
-      "protein": 1,
-      "carbs": 2,
-      "fat": 0,
-      "price": 2,
-    },
-    {
-      "name": "Teriyaki",
-      "category": "Sauces",
-      "unit": "1 tbsp",
-      "cal": 20,
-      "protein": 1,
-      "carbs": 5,
-      "fat": 0,
-      "price": 3,
-    },
-
-    // Toppings (per 10–15g / tbsp)
-    {
-      "name": "Cheddar Cheese",
-      "category": "Toppings",
-      "unit": "15 g",
-      "cal": 60,
-      "protein": 3,
-      "carbs": 1,
-      "fat": 5,
-      "price": 6,
-    },
-    {
-      "name": "Olives",
-      "category": "Toppings",
-      "unit": "10 g",
-      "cal": 15,
-      "protein": 0,
-      "carbs": 0,
-      "fat": 2,
-      "price": 4,
-    },
-    {
-      "name": "Crushed Peanuts",
-      "category": "Toppings",
-      "unit": "1 tbsp",
-      "cal": 26,
-      "protein": 1,
-      "carbs": 1,
-      "fat": 2,
-      "price": 2,
-    },
-    {
-      "name": "Fried Onions",
-      "category": "Toppings",
-      "unit": "1 tbsp",
-      "cal": 22,
-      "protein": 0,
-      "carbs": 1,
-      "fat": 1,
-      "price": 2,
-    },
-
-    // Extras (per piece / 50g)
-    {
-      "name": "Papad",
-      "category": "Extras",
-      "unit": "1 pc",
-      "cal": 38,
-      "protein": 2,
-      "carbs": 5,
-      "fat": 1,
-      "price": 3,
-    },
-    {
-      "name": "Raita",
-      "category": "Extras",
-      "unit": "50 g",
-      "cal": 30,
-      "protein": 2,
-      "carbs": 2,
-      "fat": 1,
-      "price": 6,
-    },
-    {
-      "name": "Gulab Jamun",
-      "category": "Extras",
-      "unit": "1 pc",
-      "cal": 150,
-      "protein": 2,
-      "carbs": 25,
-      "fat": 5,
-      "price": 8,
-    },
-  ];
-
-  late final Map<String, List<int>> categorized;
+  Map<String, List<int>> categorized = {};
   late List<int> quantities; // quantity per ingredient (0 = not selected)
 
   final Map<String, bool> expand = {};
@@ -692,13 +428,48 @@ class _ByodPageState extends State<ByodPage> {
   @override
   void initState() {
     super.initState();
-    categorized = {};
-    for (int i = 0; i < ingredients.length; i++) {
-      final c = ingredients[i]['category'] as String;
-      categorized.putIfAbsent(c, () => []).add(i);
-      expand[c] = true;
+    quantities = [];
+    _fetchIngredients();
+  }
+
+  Future<void> _fetchIngredients() async {
+    if (!mounted) return;
+    try {
+      // Fetch ingredients from the global collection, filtered by restaurant ID
+      final snapshot = await FirebaseFirestore.instance
+          .collection('ingredients')
+          .where('restaurantId', isEqualTo: widget.restaurant.id)
+          .get();
+
+      final fetchedIngredients = snapshot.docs
+          .map((doc) => doc.data())
+          .toList();
+
+      // Group ingredients by their 'category' field
+      final newCategorized = <String, List<int>>{};
+      for (int i = 0; i < fetchedIngredients.length; i++) {
+        final c =
+            fetchedIngredients[i]['category'] as String? ?? 'Uncategorized';
+        newCategorized.putIfAbsent(c, () => []).add(i);
+        expand.putIfAbsent(c, () => true);
+      }
+
+      if (mounted) {
+        setState(() {
+          ingredients = fetchedIngredients;
+          categorized = newCategorized;
+          quantities = List<int>.filled(ingredients.length, 0);
+          _isLoadingIngredients = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoadingIngredients = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load ingredients: $e')),
+        );
+      }
     }
-    quantities = List<int>.filled(ingredients.length, 0);
   }
 
   @override
@@ -715,11 +486,11 @@ class _ByodPageState extends State<ByodPage> {
     for (int i = 0; i < ingredients.length; i++) {
       final q = quantities[i];
       if (q > 0) {
-        cal += ((ingredients[i]['cal'] as num) * q).round();
-        pro += ((ingredients[i]['protein'] as num) * q).round();
-        carb += ((ingredients[i]['carbs'] as num) * q).round();
-        fat += ((ingredients[i]['fat'] as num) * q).round();
-        price += ((ingredients[i]['price'] as num) * q).round();
+        cal += (((ingredients[i]['calories'] ?? 0) as num) * q).round();
+        pro += (((ingredients[i]['protein'] ?? 0) as num) * q).round();
+        carb += (((ingredients[i]['carbs'] ?? 0) as num) * q).round();
+        fat += (((ingredients[i]['fat'] ?? 0) as num) * q).round();
+        price += (((ingredients[i]['price'] ?? 0) as num) * q).round();
       }
     }
     setState(() {
@@ -734,82 +505,113 @@ class _ByodPageState extends State<ByodPage> {
   Future<void> _pickImage(ImageSource source) async {
     final picker = ImagePicker();
     final picked = await picker.pickImage(source: source, imageQuality: 85);
-    if (picked != null) setState(() => _selectedImage = File(picked.path));
+    if (picked != null) setState(() => _selectedImage = picked);
   }
 
   void _submit() {
+    final cart = context.read<CartNotifier>();
     final name = recipeNameController.text.trim();
-    final link = recipeLinkController.text.trim();
+
     if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a recipe name.')),
+        const SnackBar(content: Text('Please give your dish a name.')),
       );
       return;
     }
-    final chosen = <String>[];
+
+    // Collect ingredient details
+    List<String> ingredientDetails = [];
     for (int i = 0; i < ingredients.length; i++) {
       final q = quantities[i];
-      if (q > 0) chosen.add('${ingredients[i]['name']} × $q');
+      if (q > 0) {
+        final ing = ingredients[i];
+        final ingName = ing['name'] ?? 'Unnamed';
+        ingredientDetails.add('$ingName x$q');
+      }
     }
-    if (chosen.isEmpty) {
+
+    if (ingredientDetails.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Pick at least one ingredient.')),
       );
       return;
     }
-    if (_mode == RecipeInputType.link) {
-      final ok = Uri.tryParse(link)?.hasAbsolutePath ?? false;
-      if (!ok) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please paste a valid link.')),
-        );
-        return;
-      }
+
+    // Prepare customizations
+    List<String> customizations = [];
+
+    String recipeType = _mode.name;
+    String? recipeContent;
+    if (_mode == RecipeInputType.write) {
+      recipeContent = recipeStepsController.text.trim();
+    } else if (_mode == RecipeInputType.link) {
+      recipeContent = recipeLinkController.text.trim();
     }
 
+    customizations.add('BYOD_NAME:$name');
+    customizations.add('BYOD_TYPE:$recipeType');
+    if (recipeContent != null && recipeContent.isNotEmpty) {
+      customizations.add('BYOD_CONTENT:$recipeContent');
+      if (_mode == RecipeInputType.write) {
+        customizations.add('Instructions: $recipeContent');
+      }
+    }
+    customizations.add('Ingredients: ${ingredientDetails.join(', ')}');
+
+    final byodItem = CartItem(
+      name: name,
+      price: totalPrice, // Use the calculated total price from state
+      quantity: 1,
+      restaurantName: widget.restaurant.name,
+      restaurantId: widget.restaurant.id,
+      imageUrl: '',
+      isHealthy: false,
+      customizations: customizations,
+    );
+
+    // Check if cart has items from another restaurant
+    if (cart.items.isNotEmpty &&
+        cart.items.first.restaurantId != widget.restaurant.id) {
+      _showReplaceCartDialog(cart, [byodItem]);
+    } else {
+      // Add items to cart and navigate
+      cart.addToCart(byodItem);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Dish added to cart!')));
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const CartScreen()),
+      );
+    }
+  }
+
+  void _showReplaceCartDialog(CartNotifier cart, List<CartItem> newItems) {
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Send to kitchen?'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Recipe: $name'),
-            const SizedBox(height: 8),
-            Text('Items (${chosen.length}):\n• ${chosen.join('\n• ')}'),
-            const SizedBox(height: 12),
-            Text(
-              'Totals: $totalCalories kcal • $totalProtein g P • '
-              '$totalCarbs g C • $totalFat g F • ₹$totalPrice',
-            ),
-          ],
+      builder: (context) => AlertDialog(
+        title: const Text("Replace cart items?"),
+        content: const Text(
+          "Your cart contains items from another restaurant. Do you want to clear it and add these new items?",
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: const Text("Cancel"),
           ),
           ElevatedButton(
             onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Recipe sent 👩‍🍳')),
+              cart.clearCart();
+              for (var item in newItems) {
+                cart.addToCart(item);
+              }
+              Navigator.pop(context); // pop dialog
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const CartScreen()),
               );
-              setState(() {
-                recipeNameController.clear();
-                recipeStepsController.clear();
-                recipeLinkController.clear();
-                _selectedImage = null;
-                quantities = List<int>.filled(ingredients.length, 0);
-                _recalculate();
-              });
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Theme.of(context).primaryColor,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Confirm'),
+            child: const Text("Replace"),
           ),
         ],
       ),
@@ -943,7 +745,15 @@ class _ByodPageState extends State<ByodPage> {
               ),
             ),
             const SizedBox(height: 12),
-            ..._categoryBlocks(primary),
+            if (_isLoadingIngredients)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(32.0),
+                  child: CircularProgressIndicator(),
+                ),
+              )
+            else
+              ..._categoryBlocks(primary),
 
             const SizedBox(height: 16),
 
@@ -1048,7 +858,10 @@ class _ByodPageState extends State<ByodPage> {
                   child: _selectedImage != null
                       ? ClipRRect(
                           borderRadius: BorderRadius.circular(12),
-                          child: Image.file(_selectedImage!, fit: BoxFit.cover),
+                          child: Image.file(
+                            File(_selectedImage!.path),
+                            fit: BoxFit.cover,
+                          ),
                         )
                       : const Center(
                           child: Column(
@@ -1131,7 +944,9 @@ class _ByodPageState extends State<ByodPage> {
       final idxs = categorized[cat]!;
       final filtered = idxs.where((i) {
         if (q.isEmpty) return true;
-        return (ingredients[i]['name'] as String).toLowerCase().contains(q);
+        return (ingredients[i]['name'] as String? ?? '').toLowerCase().contains(
+          q,
+        );
       }).toList();
 
       final selectedCount = idxs.where((i) => quantities[i] > 0).length;
@@ -1236,16 +1051,16 @@ class _ByodPageState extends State<ByodPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  ing['name'] as String,
+                  ing['name'] as String? ?? 'Unnamed',
                   style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 4),
                 Wrap(
                   spacing: 6,
                   children: [
-                    _chip(ing['unit'] as String),
-                    _chip('${ing['cal']} kcal'),
-                    _chip('₹${ing['price']}'),
+                    _chip(ing['unit'] as String? ?? '-'),
+                    _chip('${ing['calories'] ?? 0} kcal'),
+                    _chip('${ing['protein'] ?? 0}g protein'),
                   ],
                 ),
               ],

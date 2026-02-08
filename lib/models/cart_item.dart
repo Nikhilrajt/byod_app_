@@ -1,23 +1,67 @@
-// TODO Implement this library.
 // lib/models/cart_item.dart
 
-
-
-// Dummy model for the CategoryItem your widget uses
-class CategoryItem {
-  final String id;
+class CartItem {
   final String name;
-  final String image;
-  final double price;
-  final double rating;
+  final String imageUrl;
+  final int price;
+  int quantity;
   final String restaurantName;
+  final String restaurantId;
+  final List<String>? customizations;
+  final bool isByod;
+  final bool isHealthy;
 
-  CategoryItem({
-    required this.id,
+  CartItem({
     required this.name,
-    required this.image,
+    required this.imageUrl,
     required this.price,
-    required this.rating,
+    this.quantity = 1,
     required this.restaurantName,
+    required this.restaurantId,
+    this.customizations,
+    this.isByod = true,
+    this.isHealthy = false,
   });
+
+  int get totalPrice => price * quantity;
+
+  String get customizationSummary {
+    if (customizations == null || customizations!.isEmpty) {
+      return '';
+    }
+    return customizations!.join(' • ');
+  }
+
+  // ============================
+  // 🔥 ADDED FOR PERSISTENCE
+  // ============================
+  Map<String, dynamic> toJson() {
+    return {
+      'name': name,
+      'imageUrl': imageUrl,
+      'price': price,
+      'quantity': quantity,
+      'restaurantName': restaurantName,
+      'restaurantId': restaurantId,
+      'customizations': customizations,
+      'isByod': isByod,
+      'isHealthy': isHealthy,
+    };
+  }
+
+  factory CartItem.fromJson(Map<String, dynamic> json) {
+    return CartItem(
+      name: json['name'],
+      imageUrl: json['imageUrl'],
+      price: json['price'],
+      quantity: json['quantity'] ?? 1,
+      restaurantName: json['restaurantName'],
+      restaurantId: json['restaurantId'],
+      customizations: json['customizations'] != null
+          ? List<String>.from(json['customizations'])
+          : null,
+      isByod: json['isByod'] ?? false,
+      isHealthy: json['isHealthy'] ?? false,
+    );
+  }
 }

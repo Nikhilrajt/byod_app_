@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:project/restaurent/Orderpage.dart' as OP;
+import 'package:url_launcher/url_launcher.dart';
 
 class PendingByodRequestsPage extends StatefulWidget {
   const PendingByodRequestsPage({super.key});
@@ -11,125 +14,12 @@ class PendingByodRequestsPage extends StatefulWidget {
 }
 
 class _PendingByodRequestsPageState extends State<PendingByodRequestsPage> {
-  List<OP.Order> orders = [];
-  List<OP.Order> completedOrders = [];
-  bool loading = false;
-
   final DateFormat _timeFormat = DateFormat('hh:mm a, MMM d');
   final NumberFormat _currencyFormat = NumberFormat.currency(
     locale: 'en_IN',
     symbol: '₹',
     decimalDigits: 2,
   );
-
-  @override
-  void initState() {
-    super.initState();
-    _loadMockOrders();
-  }
-
-  void _loadMockOrders() {
-    // Recreate the same mock orders used elsewhere but keep local to admin
-    orders = [
-      // Pending order — admin should see Accept/Reject
-      OP.Order(
-        id: 'ORD-1010',
-        customerName: 'Asha Patel',
-        createdAt: DateTime.now().subtract(const Duration(minutes: 10)),
-        status: OP.OrderStatus.Pending,
-        type: OP.OrderType.BYOD,
-        items: [
-          OP.OrderItem(name: 'Glass Bottle (BYOD)', qty: 1, price: 0.00),
-          OP.OrderItem(name: 'Caesar Salad', qty: 1, price: 220.00),
-        ],
-      ),
-      // Recently accepted — next action should be Start Preparing
-      OP.Order(
-        id: 'ORD-1006',
-        customerName: 'Rahul K',
-        createdAt: DateTime.now().subtract(const Duration(minutes: 22)),
-        status: OP.OrderStatus.Accepted,
-        type: OP.OrderType.BYOD,
-        items: [
-          OP.OrderItem(name: 'Paneer Wrap (BYOD)', qty: 2, price: 140.00),
-        ],
-      ),
-      // Preparing — next action Mark Ready
-      OP.Order(
-        id: 'ORD-1002',
-        customerName: 'Mohammed Ali',
-        createdAt: DateTime.now().subtract(const Duration(minutes: 30)),
-        status: OP.OrderStatus.Preparing,
-        type: OP.OrderType.BYOD,
-        items: [
-          OP.OrderItem(name: 'MSG Smash Burgers (BYOD)', qty: 1, price: 380.50),
-          OP.OrderItem(name: 'Fries', qty: 1, price: 150.00),
-        ],
-      ),
-      // Ready (Packing) — next action Picked Up / Complete
-      OP.Order(
-        id: 'ORD-1008',
-        customerName: 'Sana M',
-        createdAt: DateTime.now().subtract(
-          const Duration(hours: 1, minutes: 12),
-        ),
-        status: OP.OrderStatus.Ready,
-        type: OP.OrderType.BYOD,
-        items: [
-          OP.OrderItem(name: 'Grilled Sandwich (BYOD)', qty: 1, price: 180.00),
-          OP.OrderItem(name: 'Orange Juice', qty: 1, price: 85.00),
-        ],
-      ),
-      // Out for delivery — next step Complete Delivery
-      OP.Order(
-        id: 'ORD-1009',
-        customerName: 'Vikram S',
-        createdAt: DateTime.now().subtract(const Duration(hours: 3)),
-        status: OP.OrderStatus.OutForDelivery,
-        type: OP.OrderType.BYOD,
-        items: [
-          OP.OrderItem(name: 'Family Pack (BYOD)', qty: 1, price: 1250.00),
-        ],
-      ),
-      // (completed orders are kept separately)
-      // Rejected example
-      OP.Order(
-        id: 'ORD-1005',
-        customerName: 'John Doe',
-        createdAt: DateTime.now().subtract(const Duration(hours: 5)),
-        status: OP.OrderStatus.Rejected,
-        type: OP.OrderType.BYOD,
-        items: [
-          OP.OrderItem(name: 'Container 1 (BYOD)', qty: 3, price: 200.00),
-        ],
-      ),
-    ];
-
-    // Completed / historical (kept separate so pending list doesn't show them)
-    completedOrders = [
-      OP.Order(
-        id: 'ORD-1011',
-        customerName: 'Guest',
-        createdAt: DateTime.now().subtract(const Duration(days: 1)),
-        status: OP.OrderStatus.Completed,
-        type: OP.OrderType.BYOD,
-        items: [
-          OP.OrderItem(name: 'Container 1 (BYOD)', qty: 2, price: 200.00),
-          OP.OrderItem(name: 'Salad', qty: 1, price: 120.00),
-        ],
-      ),
-    ];
-
-    orders.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-    setState(() {});
-  }
-
-  Future<void> _refresh() async {
-    setState(() => loading = true);
-    await Future.delayed(const Duration(milliseconds: 700));
-    _loadMockOrders();
-    setState(() => loading = false);
-  }
 
   String _formatCurrency(double amount) => _currencyFormat.format(amount);
 
@@ -149,6 +39,12 @@ class _PendingByodRequestsPageState extends State<PendingByodRequestsPage> {
         return 'Completed';
       case OP.OrderStatus.Rejected:
         return 'Rejected';
+      case OP.OrderStatus.Cancelled:
+        return 'Cancelled';
+      case OP.OrderStatus.AwaitingApproval:
+        return 'Awaiting Approval';
+      case OP.OrderStatus.PendingPayment:
+        return 'Pending Payment';
     }
   }
 
@@ -168,18 +64,27 @@ class _PendingByodRequestsPageState extends State<PendingByodRequestsPage> {
         return Colors.grey;
       case OP.OrderStatus.Rejected:
         return Colors.red;
+      case OP.OrderStatus.Cancelled:
+        return Colors.red;
+      case OP.OrderStatus.AwaitingApproval:
+        return Colors.blueGrey;
+      case OP.OrderStatus.PendingPayment:
+        return Colors.purple;
     }
   }
 
-  void _updateOrderStatus(OP.Order order, OP.OrderStatus next) {
-    setState(() {
-      order.status = next;
-      if (next == OP.OrderStatus.Completed) {
-        // move to completed list and remove from pending list
-        orders.removeWhere((o) => o.id == order.id);
-        completedOrders.insert(0, order);
-      }
-    });
+  Future<void> _updateRequestStatus(String requestId, String newStatus) async {
+    await FirebaseFirestore.instance
+        .collection('approval_requests')
+        .doc(requestId)
+        .update({'status': newStatus});
+  }
+
+  Future<void> _acceptRequest(OP.Order request) async {
+    await FirebaseFirestore.instance
+        .collection('approval_requests')
+        .doc(request.id)
+        .update({'status': 'accepted'});
   }
 
   void _showOrderDetails(OP.Order order) {
@@ -242,19 +147,40 @@ class _PendingByodRequestsPageState extends State<PendingByodRequestsPage> {
                   ...order.items.map(
                     (it) => Padding(
                       padding: const EdgeInsets.symmetric(vertical: 4.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Flexible(
-                            child: Text(
-                              '${it.name} x${it.qty}',
-                              style: const TextStyle(fontSize: 16),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  '${it.name} x${it.qty}',
+                                  style: const TextStyle(fontSize: 16),
+                                ),
+                              ),
+                              Text(
+                                _formatCurrency(it.price * it.qty),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (it.customizations.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(
+                                top: 4.0,
+                                left: 8.0,
+                              ),
+                              child: Text(
+                                it.customizations.join('\n'),
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey,
+                                ),
+                              ),
                             ),
-                          ),
-                          Text(
-                            _formatCurrency(it.price * it.qty),
-                            style: const TextStyle(fontWeight: FontWeight.w600),
-                          ),
                         ],
                       ),
                     ),
@@ -284,7 +210,7 @@ class _PendingByodRequestsPageState extends State<PendingByodRequestsPage> {
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
-                    children: _actionButtonsFor(order).take(1).toList(),
+                    children: _actionButtonsFor(order, closeOnAction: true),
                   ),
                   const SizedBox(height: 40),
                 ],
@@ -296,6 +222,116 @@ class _PendingByodRequestsPageState extends State<PendingByodRequestsPage> {
     );
   }
 
+  Widget _buildByodDetails(OP.Order order) {
+    if (order.type != OP.OrderType.BYOD || order.byodRecipeName == null) {
+      return const SizedBox.shrink();
+    }
+
+    Widget contentWidget;
+    final content = order.byodRecipeContent;
+
+    switch (order.byodRecipeType) {
+      case 'write':
+        contentWidget = Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.grey.shade200),
+          ),
+          child: Text(
+            content != null && content.isNotEmpty
+                ? content
+                : 'No instructions provided.',
+            style: const TextStyle(fontSize: 14, height: 1.4),
+          ),
+        );
+        break;
+      case 'upload':
+        contentWidget = content != null && content.isNotEmpty
+            ? InkWell(
+                onTap: () => showDialog(
+                  context: context,
+                  builder: (_) => Dialog(child: Image.network(content)),
+                ),
+                child: Container(
+                  height: 150,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    image: DecorationImage(
+                      image: NetworkImage(content),
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+              )
+            : const Text('No image uploaded.');
+        break;
+      case 'link':
+        contentWidget = content != null && content.isNotEmpty
+            ? InkWell(
+                onTap: () async {
+                  final url = Uri.tryParse(content);
+                  if (url != null && await canLaunchUrl(url)) {
+                    await launchUrl(url, mode: LaunchMode.externalApplication);
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.blue.shade200),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.link, color: Colors.blue),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          content,
+                          style: const TextStyle(
+                            color: Colors.blue,
+                            decoration: TextDecoration.underline,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            : const Text('No link provided.');
+        break;
+      default:
+        contentWidget = const SizedBox.shrink();
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.symmetric(vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF3E0), // Light Orange
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.orange.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "BYOD Recipe Details",
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+          const SizedBox(height: 12),
+          contentWidget,
+        ],
+      ),
+    );
+  }
+
   List<Widget> _actionButtonsFor(OP.Order order, {bool closeOnAction = false}) {
     List<Widget> actions = [];
     switch (order.status) {
@@ -303,8 +339,8 @@ class _PendingByodRequestsPageState extends State<PendingByodRequestsPage> {
         actions.add(
           ElevatedButton.icon(
             icon: const Icon(Icons.check),
-            onPressed: () {
-              _updateOrderStatus(order, OP.OrderStatus.Accepted);
+            onPressed: () async {
+              await _acceptRequest(order);
               if (closeOnAction) Navigator.pop(context);
             },
             label: const Text('Accept Order'),
@@ -313,8 +349,8 @@ class _PendingByodRequestsPageState extends State<PendingByodRequestsPage> {
         actions.add(
           OutlinedButton.icon(
             icon: const Icon(Icons.close),
-            onPressed: () {
-              _updateOrderStatus(order, OP.OrderStatus.Rejected);
+            onPressed: () async {
+              await _updateRequestStatus(order.id, 'rejected');
               if (closeOnAction) Navigator.pop(context);
             },
             label: const Text('Reject'),
@@ -325,12 +361,9 @@ class _PendingByodRequestsPageState extends State<PendingByodRequestsPage> {
       case OP.OrderStatus.Accepted:
         actions.add(
           ElevatedButton.icon(
-            icon: const Icon(Icons.kitchen),
-            onPressed: () {
-              _updateOrderStatus(order, OP.OrderStatus.Preparing);
-              if (closeOnAction) Navigator.pop(context);
-            },
-            label: const Text('Start Preparing'),
+            icon: const Icon(Icons.payment),
+            onPressed: null, // No action from here in this flow
+            label: const Text('Waiting for Payment'),
           ),
         );
         break;
@@ -338,10 +371,7 @@ class _PendingByodRequestsPageState extends State<PendingByodRequestsPage> {
         actions.add(
           ElevatedButton.icon(
             icon: const Icon(Icons.local_dining),
-            onPressed: () {
-              _updateOrderStatus(order, OP.OrderStatus.Ready);
-              if (closeOnAction) Navigator.pop(context);
-            },
+            onPressed: null,
             label: const Text('Mark Ready'),
           ),
         );
@@ -350,10 +380,7 @@ class _PendingByodRequestsPageState extends State<PendingByodRequestsPage> {
         actions.add(
           ElevatedButton.icon(
             icon: const Icon(Icons.shopping_bag),
-            onPressed: () {
-              _updateOrderStatus(order, OP.OrderStatus.Completed);
-              if (closeOnAction) Navigator.pop(context);
-            },
+            onPressed: null,
             label: const Text('Mark Picked Up'),
           ),
         );
@@ -362,10 +389,7 @@ class _PendingByodRequestsPageState extends State<PendingByodRequestsPage> {
         actions.add(
           ElevatedButton.icon(
             icon: const Icon(Icons.done_all),
-            onPressed: () {
-              _updateOrderStatus(order, OP.OrderStatus.Completed);
-              if (closeOnAction) Navigator.pop(context);
-            },
+            onPressed: null,
             label: const Text('Complete Delivery'),
           ),
         );
@@ -378,6 +402,11 @@ class _PendingByodRequestsPageState extends State<PendingByodRequestsPage> {
             style: TextStyle(color: Colors.grey),
           ),
         );
+        break;
+      case OP.OrderStatus.Cancelled:
+      case OP.OrderStatus.AwaitingApproval:
+      case OP.OrderStatus.PendingPayment:
+        actions.add(const SizedBox.shrink());
         break;
     }
     return actions;
@@ -439,38 +468,92 @@ class _PendingByodRequestsPageState extends State<PendingByodRequestsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final byodOrders = orders
-        .where(
-          (o) =>
-              o.type == OP.OrderType.BYOD &&
-              o.status != OP.OrderStatus.Completed,
-        )
-        .toList();
+    final user = FirebaseAuth.instance.currentUser;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Pending BYOD Requests')),
-      body: RefreshIndicator(
-        onRefresh: _refresh,
-        child: loading
-            ? const Center(child: CircularProgressIndicator())
-            : byodOrders.isEmpty
-            ? ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                children: const [
-                  SizedBox(height: 120),
-                  Center(child: Text('No BYOD orders yet.')),
-                ],
-              )
-            : ListView.separated(
-                padding: const EdgeInsets.all(12),
-                itemCount: byodOrders.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 8),
-                itemBuilder: (context, i) {
-                  final order = byodOrders[i];
-                  return _buildOrderCard(order);
-                },
-              ),
-      ),
+      body: user == null
+          ? const Center(child: Text("Please login"))
+          : StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('approval_requests')
+                  .where('restaurantId', isEqualTo: user.uid)
+                  .where('status', whereIn: ['pending', 'accepted'])
+                  // .orderBy('createdAt', descending: true) // This requires a composite index
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return Center(child: Text("Error: ${snapshot.error}"));
+                }
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return const Center(child: Text("No pending requests."));
+                }
+
+                // Create a modifiable list from the snapshot docs
+                final requestDocs = List<QueryDocumentSnapshot>.from(
+                  snapshot.data!.docs,
+                );
+
+                // Sort client-side to avoid needing a composite index
+                requestDocs.sort((a, b) {
+                  final aData = a.data() as Map<String, dynamic>;
+                  final bData = b.data() as Map<String, dynamic>;
+                  final aTime = aData['createdAt'] as Timestamp?;
+                  final bTime = bData['createdAt'] as Timestamp?;
+                  if (aTime == null && bTime == null) return 0;
+                  if (aTime == null) return 1; // push nulls to the end
+                  if (bTime == null) return -1;
+                  return bTime.compareTo(aTime); // descending
+                });
+
+                final requests = requestDocs.map((doc) {
+                  final data = doc.data() as Map<String, dynamic>;
+
+                  OP.OrderStatus status = OP.OrderStatus.Pending;
+                  final statusStr = (data['status'] as String?)?.toLowerCase();
+                  if (statusStr == 'accepted') {
+                    status = OP.OrderStatus.Accepted;
+                  }
+
+                  return OP.Order(
+                    id: doc.id,
+                    customerName: data['customerName'] ?? 'Guest',
+                    createdAt: (data['createdAt'] as Timestamp).toDate(),
+                    status: status,
+                    type: OP.OrderType.BYOD,
+                    items: (data['items'] as List<dynamic>).map((item) {
+                      return OP.OrderItem(
+                        name: item['name'] ?? '',
+                        qty: item['quantity'] ?? 1,
+                        price: (item['price'] ?? 0).toDouble(),
+                        customizations:
+                            (item['customizations'] as List<dynamic>?)
+                                ?.map((e) => e.toString())
+                                .toList() ??
+                            [],
+                      );
+                    }).toList(),
+                    // Pass user ID for creating the final order
+                    userId: data['userId'],
+                    byodRecipeName: data['byodRecipeName'],
+                    byodRecipeType: data['byodRecipeType'],
+                    byodRecipeContent: data['byodRecipeContent'],
+                  );
+                }).toList();
+
+                return ListView.separated(
+                  padding: const EdgeInsets.all(12),
+                  itemCount: requests.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 8),
+                  itemBuilder: (context, i) {
+                    return _buildOrderCard(requests[i]);
+                  },
+                );
+              },
+            ),
     );
   }
 
@@ -533,16 +616,16 @@ class _PendingByodRequestsPageState extends State<PendingByodRequestsPage> {
               ),
               const SizedBox(height: 8),
               _buildStatusProgress(order),
+              _buildByodDetails(order),
               const Divider(height: 20),
               // Action buttons: show primary action only
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: _actionButtonsFor(order)
-                    .take(1)
                     .map(
                       (w) => Padding(
                         padding: const EdgeInsets.only(left: 8.0),
-                        child: FittedBox(child: w),
+                        child: w,
                       ),
                     )
                     .toList(),

@@ -1,3 +1,6 @@
+import 'cart_item.dart';
+export 'cart_item.dart';
+
 class CategoryItem {
   final String name;
   final String imageUrl;
@@ -10,6 +13,7 @@ class CategoryItem {
   final bool isHealthy;
   final String? description;
   final String? categoryKey;
+  final String? calories;
 
   final List<CustomizationStep>? customizationSteps;
 
@@ -29,43 +33,21 @@ class CategoryItem {
     this.isCustomizable = false, // Added default value
     this.isHealthy = false, // Added default value
     this.customizationSteps,
+    this.calories,
   });
 
   // Convert to CartItem for non-customizable items
   CartItem toCartItem() {
     return CartItem(
       name: name,
-      price: price.toInt(),
       imageUrl: imageUrl,
+      price: price.toInt(),
+      quantity: 1,
       restaurantName: restaurantName,
+      restaurantId: restaurantId,
+      isByod: false,
+      isHealthy: isHealthy,
     );
-  }
-}
-
-class CartItem {
-  final String name;
-  final int price;
-  final String imageUrl;
-  final String restaurantName;
-  final List<String>? customizations;
-  int quantity;
-
-  CartItem({
-    required this.name,
-    required this.price,
-    required this.imageUrl,
-    required this.restaurantName,
-    this.customizations,
-    this.quantity = 1,
-  });
-
-  int get totalPrice => price * quantity;
-
-  String get customizationSummary {
-    if (customizations == null || customizations!.isEmpty) {
-      return '';
-    }
-    return customizations!.join(' • ');
   }
 }
 
