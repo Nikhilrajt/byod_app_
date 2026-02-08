@@ -59,11 +59,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
     },
 
     {
-      'title': 'Collections',
+      'title': 'Collection',
       'icon': Icons.grid_view,
       'color': Colors.green,
       'page': const AdminIngredientPage(),
-      'description': 'Manage collections',
+      'description': 'Manage collection',
     },
     {
       'title': 'Carousel',
