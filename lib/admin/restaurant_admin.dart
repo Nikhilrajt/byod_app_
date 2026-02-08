@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:project/auth/firebase/fibase_serviece.dart';
 
 class AdminRestaurantPage extends StatefulWidget {
@@ -12,6 +13,7 @@ class AdminRestaurantPage extends StatefulWidget {
 class _AdminUserPageState extends State<AdminRestaurantPage> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final AuthService _authService = AuthService();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
   String _searchQuery = '';
   String _selectedFilter = 'All';
 
@@ -486,7 +488,8 @@ class _AdminUserPageState extends State<AdminRestaurantPage> {
                 // Toggle Status Button
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: () => _toggleUserStatus(uid, isActive),
+                    onPressed: () =>
+                        _toggleUserStatus(uid, isActive, name, email),
                     icon: Icon(
                       isActive ? Icons.block : Icons.check_circle,
                       size: 18,
@@ -609,10 +612,33 @@ class _AdminUserPageState extends State<AdminRestaurantPage> {
     }
   }
 
-  Future<void> _toggleUserStatus(String uid, bool currentStatus) async {
+  Future<void> _toggleUserStatus(
+    String uid,
+    bool currentStatus,
+    String restaurantName,
+    String restaurantEmail,
+  ) async {
     try {
+      final newStatus = !currentStatus;
+
+      // Update the user/restaurant status
       await _firestore.collection('users').doc(uid).update({
-        'isActive': !currentStatus,
+        'isActive': newStatus,
+      });
+
+      // Log the activity to admin_activities collection
+      final adminUser = _auth.currentUser;
+      final adminEmail = adminUser?.email ?? 'Unknown Admin';
+
+      await _firestore.collection('admin_activities').add({
+        'action': newStatus ? 'Restaurant Activated' : 'Restaurant Deactivated',
+        'details': 'Restaurant: $restaurantName ($restaurantEmail)',
+        'adminEmail': adminEmail,
+        'restaurantId': uid,
+        'restaurantName': restaurantName,
+        'restaurantEmail': restaurantEmail,
+        'newStatus': newStatus,
+        'timestamp': FieldValue.serverTimestamp(),
       });
 
       if (mounted) {
@@ -620,8 +646,8 @@ class _AdminUserPageState extends State<AdminRestaurantPage> {
           SnackBar(
             content: Text(
               currentStatus
-                  ? 'User deactivated successfully'
-                  : 'User activated successfully',
+                  ? 'Restaurant deactivated successfully'
+                  : 'Restaurant activated successfully',
             ),
             backgroundColor: currentStatus ? Colors.orange : Colors.green,
             behavior: SnackBarBehavior.floating,

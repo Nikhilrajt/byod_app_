@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:project/auth/firebase/fibase_serviece.dart';
 
 class AdminUserPage extends StatefulWidget {
@@ -12,6 +13,7 @@ class AdminUserPage extends StatefulWidget {
 class _AdminUserPageState extends State<AdminUserPage> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final AuthService _authService = AuthService();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
   String _searchQuery = '';
   String _selectedFilter = 'All';
 
@@ -394,7 +396,8 @@ class _AdminUserPageState extends State<AdminUserPage> {
                 // Toggle Status Button
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: () => _toggleUserStatus(uid, isActive),
+                    onPressed: () =>
+                        _toggleUserStatus(uid, isActive, name, email),
                     icon: Icon(
                       isActive ? Icons.block : Icons.check_circle,
                       size: 18,
@@ -492,10 +495,33 @@ class _AdminUserPageState extends State<AdminUserPage> {
     }
   }
 
-  Future<void> _toggleUserStatus(String uid, bool currentStatus) async {
+  Future<void> _toggleUserStatus(
+    String uid,
+    bool currentStatus,
+    String userName,
+    String userEmail,
+  ) async {
     try {
+      final newStatus = !currentStatus;
+
+      // Update the user status
       await _firestore.collection('users').doc(uid).update({
-        'isActive': !currentStatus,
+        'isActive': newStatus,
+      });
+
+      // Log the activity to admin_activities collection
+      final adminUser = _auth.currentUser;
+      final adminEmail = adminUser?.email ?? 'Unknown Admin';
+
+      await _firestore.collection('admin_activities').add({
+        'action': newStatus ? 'User Activated' : 'User Deactivated',
+        'details': 'User: $userName ($userEmail)',
+        'adminEmail': adminEmail,
+        'userId': uid,
+        'userName': userName,
+        'userEmail': userEmail,
+        'newStatus': newStatus,
+        'timestamp': FieldValue.serverTimestamp(),
       });
 
       if (mounted) {

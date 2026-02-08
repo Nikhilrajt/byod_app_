@@ -382,14 +382,6 @@ class _CartScreenState extends State<CartScreen> {
           style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.delete_outline, color: Colors.red),
-            onPressed: () {
-              context.read<CartNotifier>().clearCart();
-            },
-          ),
-        ],
       ),
       body: SafeArea(
         child: Column(
@@ -982,8 +974,6 @@ class _CartScreenState extends State<CartScreen> {
 
                                 // Manual delete button (for removing default/dummy approvals)
                                 if ([
-                                  'pending',
-                                  'ready',
                                   'cancelled',
                                   'rejected',
                                   'awaitingapproval',
