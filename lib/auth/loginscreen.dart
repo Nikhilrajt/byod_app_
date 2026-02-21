@@ -886,24 +886,8 @@ class _LoginscreenState extends State<Loginscreen> {
             ],
           ),
           SizedBox(height: 10),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              TextButton(
-                onPressed: _handleRestaurantLogin,
-                child: Text(
-                  'Login As Restaurant',
-                  style: TextStyle(color: Colors.deepPurple),
-                ),
-              ),
-              Text('|', style: TextStyle(color: Colors.grey)),
-              TextButton(
-                onPressed: _handleAdminLogin,
-                child: Text(
-                  'Admin Login',
-                  style: TextStyle(color: Colors.deepPurple),
-                ),
-              ),
+          Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+      
             ],
           ),
         ],
