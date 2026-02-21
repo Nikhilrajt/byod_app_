@@ -684,233 +684,248 @@ class _LoginscreenState extends State<Loginscreen> {
   Widget _buildLoginForm() {
     final user = FirebaseAuth.instance.currentUser;
     final name = user?.displayName;
-    final firstName = (name != null && name.isNotEmpty) ? name.split(' ').first : null;
+    final firstName = (name != null && name.isNotEmpty)
+        ? name.split(' ').first
+        : null;
 
     return Form(
       key: _formKey,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              Text(
-                firstName != null ? 'Welcome Back, $firstName' : 'Welcome Back',
-                style: GoogleFonts.playfairDisplay(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 30),
-          TextFormField(
-            controller: _emailOrPhoneController,
-            focusNode: _emailFocusNode,
-            keyboardType: TextInputType.emailAddress,
-            textInputAction: TextInputAction.next,
-            style: GoogleFonts.lato(color: Colors.black87),
-            decoration: InputDecoration(
-              fillColor: Colors.grey[200],
-              filled: true,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.grey.shade400),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Colors.black87, width: 1.5),
-              ),
-              labelText: 'Email/Phone',
-              labelStyle: GoogleFonts.lato(color: Colors.grey[600]),
-              prefixIcon: const Icon(
-                Icons.person_outline_rounded,
-                color: Colors.grey,
-              ),
-              floatingLabelStyle: const TextStyle(color: Colors.black87),
-            ),
-            onFieldSubmitted: (_) {
-              FocusScope.of(context).requestFocus(_passwordFocusNode);
-            },
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Please enter email or phone number';
-              }
-              final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w]{2,4}$');
-              final phoneRegex = RegExp(r'^[6-9]\d{9}$');
-
-              if (!emailRegex.hasMatch(value) && !phoneRegex.hasMatch(value)) {
-                return 'Enter a valid email or phone number';
-              }
-              return null;
-            },
-          ),
-          SizedBox(height: 5),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              TextButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => ForgotPassword()),
-                  );
-                },
-                child: Text(
-                  'Forgot password?',
-                  style: GoogleFonts.lato(
-                    color: Colors.deepOrange[800],
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                Text(
+                  firstName != null
+                      ? 'Welcome Back, $firstName'
+                      : 'Welcome Back',
+                  style: GoogleFonts.playfairDisplay(
+                    fontSize: 32,
                     fontWeight: FontWeight.bold,
+                    color: Colors.black87,
                   ),
                 ),
-              ),
-            ],
-          ),
-          TextFormField(
-            controller: _passwordController,
-            focusNode: _passwordFocusNode,
-            obscureText: _obscureText,
-            textInputAction: TextInputAction.done,
-            style: GoogleFonts.lato(color: Colors.black87),
-            decoration: InputDecoration(
-              fillColor: Colors.grey[200],
-              filled: true,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.grey.shade400),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Colors.black87, width: 1.5),
-              ),
-              labelText: 'Password',
-              labelStyle: GoogleFonts.lato(color: Colors.grey[600]),
-              prefixIcon: const Icon(Icons.lock_outline, color: Colors.grey),
-              floatingLabelStyle: const TextStyle(color: Colors.black87),
-              suffixIcon: IconButton(
-                icon: Icon(
-                  _obscureText ? Icons.visibility_off : Icons.visibility,
+              ],
+            ),
+            const SizedBox(height: 30),
+            TextFormField(
+              controller: _emailOrPhoneController,
+              focusNode: _emailFocusNode,
+              keyboardType: TextInputType.emailAddress,
+              textInputAction: TextInputAction.next,
+              style: GoogleFonts.lato(color: Colors.black87),
+              decoration: InputDecoration(
+                fillColor: Colors.grey[200],
+                filled: true,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade400),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                    color: Colors.black87,
+                    width: 1.5,
+                  ),
+                ),
+                labelText: 'Email/Phone',
+                labelStyle: GoogleFonts.lato(color: Colors.grey[600]),
+                prefixIcon: const Icon(
+                  Icons.person_outline_rounded,
                   color: Colors.grey,
                 ),
-                onPressed: () {
-                  setState(() => _obscureText = !_obscureText);
-                },
+                floatingLabelStyle: const TextStyle(color: Colors.black87),
               ),
+              onFieldSubmitted: (_) {
+                FocusScope.of(context).requestFocus(_passwordFocusNode);
+              },
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter email or phone number';
+                }
+                final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w]{2,4}$');
+                final phoneRegex = RegExp(r'^[6-9]\d{9}$');
+
+                if (!emailRegex.hasMatch(value) &&
+                    !phoneRegex.hasMatch(value)) {
+                  return 'Enter a valid email or phone number';
+                }
+                return null;
+              },
             ),
-            onFieldSubmitted: (_) => _handleLogin(),
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'Password is required';
-              }
-              return null;
-            },
-          ),
-          SizedBox(height: 20),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.black87,
-              minimumSize: Size(double.infinity, 50),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+            SizedBox(height: 22),
+            // Row(
+            //   mainAxisAlignment: MainAxisAlignment.end,
+            //   children: [
+            //     TextButton(
+            //       onPressed: () {
+            //         Navigator.push(
+            //           context,
+            //           MaterialPageRoute(builder: (context) => ForgotPassword()),
+            //         );
+            //       },
+            //       child: Text(
+            //         '',
+            //         style: GoogleFonts.lato(
+            //           color: Colors.deepOrange[800],
+            //           fontWeight: FontWeight.bold,
+            //         ),
+            //       ),
+            //     ),
+            //   ],
+            // ),
+            TextFormField(
+              controller: _passwordController,
+              focusNode: _passwordFocusNode,
+              obscureText: _obscureText,
+              textInputAction: TextInputAction.done,
+              style: GoogleFonts.lato(color: Colors.black87),
+              decoration: InputDecoration(
+                fillColor: Colors.grey[200],
+                filled: true,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade400),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                    color: Colors.black87,
+                    width: 1.5,
+                  ),
+                ),
+                labelText: 'Password',
+                labelStyle: GoogleFonts.lato(color: Colors.grey[600]),
+                prefixIcon: const Icon(Icons.lock_outline, color: Colors.grey),
+                floatingLabelStyle: const TextStyle(color: Colors.black87),
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscureText ? Icons.visibility_off : Icons.visibility,
+                    color: Colors.grey,
+                  ),
+                  onPressed: () {
+                    setState(() => _obscureText = !_obscureText);
+                  },
+                ),
               ),
-              elevation: 4,
-              shadowColor: Colors.black.withOpacity(0.3),
+              onFieldSubmitted: (_) => _handleLogin(),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Password is required';
+                }
+                return null;
+              },
             ),
-            onPressed: _isLoading ? null : _handleLogin,
-            child: _isLoading
-                ? SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(
-                      color: Colors.white,
-                      strokeWidth: 2,
+            SizedBox(height: 20),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.black87,
+                minimumSize: Size(double.infinity, 50),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 4,
+                shadowColor: Colors.black.withOpacity(0.3),
+              ),
+              onPressed: _isLoading ? null : _handleLogin,
+              child: _isLoading
+                  ? SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : Text(
+                      'Login',
+                      style: GoogleFonts.lato(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.0,
+                      ),
                     ),
-                  )
-                : Text(
-                    'Login',
+            ),
+            SizedBox(height: 30),
+            // Row(
+            //   children: [
+            //     Expanded(child: Divider(color: Colors.grey, thickness: 1)),
+            //     Padding(
+            //       padding: const EdgeInsets.symmetric(horizontal: 10),
+            //       child: Text(
+            //         'OR',
+            //         style: GoogleFonts.lato(
+            //           color: Colors.grey[700],
+            //           fontWeight: FontWeight.bold,
+            //         ),
+            //       ),
+            //     ),
+            //     Expanded(child: Divider(color: Colors.grey, thickness: 1)),
+            //   ],
+            // ),
+            // SizedBox(height: 30),
+            // Row(
+            //   mainAxisAlignment: MainAxisAlignment.center,
+            //   children: [
+            //     _buildSocialButton(
+            //       icon: FontAwesomeIcons.google,
+            //       color: const Color(0xFFDB4437),
+            //       onTap: () =>
+            //           _showSnackBar('Google Sign-In coming soon!', Colors.blue),
+            //     ),
+            //     const SizedBox(width: 24),
+            //     _buildSocialButton(
+            //       icon: FontAwesomeIcons.facebook,
+            //       color: const Color(0xFF1877F2),
+            //       onTap: () =>
+            //           _showSnackBar('Facebook Sign-In coming soon!', Colors.blue),
+            //     ),
+            //   ],
+            // ),
+            SizedBox(height: 30),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  "Don't have an account?",
+                  style: GoogleFonts.lato(color: Colors.grey[700]),
+                ),
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      login = false;
+                      signInColor = selectedColor;
+                      loginColor = normalColor;
+                    });
+                  },
+                  child: Text(
+                    'Sign up',
                     style: GoogleFonts.lato(
-                      color: Colors.white,
-                      fontSize: 16,
+                      color: Colors.deepOrange[800],
                       fontWeight: FontWeight.bold,
-                      letterSpacing: 1.0,
                     ),
                   ),
-          ),
-          SizedBox(height: 30),
-          Row(
-            children: [
-              Expanded(child: Divider(color: Colors.grey, thickness: 1)),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                child: Text(
-                  'OR',
-                  style: GoogleFonts.lato(
-                    color: Colors.grey[700],
-                    fontWeight: FontWeight.bold,
-                  ),
                 ),
-              ),
-              Expanded(child: Divider(color: Colors.grey, thickness: 1)),
-            ],
-          ),
-          SizedBox(height: 30),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _buildSocialButton(
-                icon: FontAwesomeIcons.google,
-                color: const Color(0xFFDB4437),
-                onTap: () => _showSnackBar('Google Sign-In coming soon!', Colors.blue),
-              ),
-              const SizedBox(width: 24),
-              _buildSocialButton(
-                icon: FontAwesomeIcons.facebook,
-                color: const Color(0xFF1877F2),
-                onTap: () => _showSnackBar('Facebook Sign-In coming soon!', Colors.blue),
-              ),
-            ],
-          ),
-          SizedBox(height: 30),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                "Don't have an account?",
-                style: GoogleFonts.lato(color: Colors.grey[700]),
-              ),
-              TextButton(
-                onPressed: () {
-                  setState(() {
-                    login = false;
-                    signInColor = selectedColor;
-                    loginColor = normalColor;
-                  });
-                },
-                child: Text(
-                  'Sign up',
-                  style: GoogleFonts.lato(
-                    color: Colors.deepOrange[800],
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 10),
-          Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-      
-            ],
-          ),
-        ],
+              ],
+            ),
+            SizedBox(height: 10),
+            Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+        
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -958,7 +973,9 @@ class _LoginscreenState extends State<Loginscreen> {
                   height: 250,
                   width: double.infinity,
                   decoration: BoxDecoration(
-                    borderRadius: const BorderRadius.vertical(bottom: Radius.circular(30)),
+                    borderRadius: const BorderRadius.vertical(
+                      bottom: Radius.circular(30),
+                    ),
                     image: const DecorationImage(
                       image: AssetImage('assets/images/loginman.png'),
                       fit: BoxFit.cover,
@@ -1076,7 +1093,10 @@ class _RoleLoginDialogState extends State<RoleLoginDialog> {
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  prefixIcon: Icon(Icons.email_outlined, color: Colors.grey[700]),
+                  prefixIcon: Icon(
+                    Icons.email_outlined,
+                    color: Colors.grey[700],
+                  ),
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
