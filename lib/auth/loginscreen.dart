@@ -438,8 +438,10 @@
 // }
 import 'dart:developer';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:project/admin/dashboard_admin.dart';
 import 'package:project/auth/firebase/fibase_serviece.dart';
 import 'package:project/auth/forgot%20password/forgot_password.dart';
@@ -586,23 +588,40 @@ class _LoginscreenState extends State<Loginscreen> {
   Widget _buildToggleSwitch() {
     return Center(
       child: Container(
-        width: 200,
+        width: 240,
         height: 50,
         decoration: BoxDecoration(
-          color: Colors.black26,
-          borderRadius: BorderRadius.all(Radius.circular(50.0)),
+          color: Colors.grey[100],
+          borderRadius: BorderRadius.circular(25.0),
+          border: Border.all(color: Colors.grey[300]!),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 5,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Stack(
           children: [
             AnimatedAlign(
               alignment: Alignment(login ? -1 : 1, 0),
-              duration: Duration(milliseconds: 300),
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
               child: Container(
-                width: 100,
-                height: 50,
+                width: 120,
+                height: 40,
+                margin: const EdgeInsets.symmetric(horizontal: 5),
                 decoration: BoxDecoration(
-                  color: Colors.deepPurple,
-                  borderRadius: BorderRadius.all(Radius.circular(50.0)),
+                  color: Colors.black87,
+                  borderRadius: BorderRadius.circular(20.0),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -622,9 +641,10 @@ class _LoginscreenState extends State<Loginscreen> {
                       alignment: Alignment.center,
                       child: Text(
                         'Login',
-                        style: TextStyle(
-                          color: Colors.white,
+                        style: GoogleFonts.lato(
+                          color: login ? Colors.white : Colors.grey[600],
                           fontWeight: FontWeight.bold,
+                          fontSize: 16,
                         ),
                       ),
                     ),
@@ -644,9 +664,10 @@ class _LoginscreenState extends State<Loginscreen> {
                       alignment: Alignment.center,
                       child: Text(
                         'SignUp',
-                        style: TextStyle(
-                          color: Colors.white,
+                        style: GoogleFonts.lato(
+                          color: !login ? Colors.white : Colors.grey[600],
                           fontWeight: FontWeight.bold,
+                          fontSize: 16,
                         ),
                       ),
                     ),
@@ -661,6 +682,10 @@ class _LoginscreenState extends State<Loginscreen> {
   }
 
   Widget _buildLoginForm() {
+    final user = FirebaseAuth.instance.currentUser;
+    final name = user?.displayName;
+    final firstName = (name != null && name.isNotEmpty) ? name.split(' ').first : null;
+
     return Form(
       key: _formKey,
       child: Column(
@@ -670,34 +695,44 @@ class _LoginscreenState extends State<Loginscreen> {
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
               Text(
-                'Welcome back!',
-                style: TextStyle(
-                  fontSize: 30,
-                  color: Colors.black,
-                  fontWeight: FontWeight.w600,
+                firstName != null ? 'Welcome Back, $firstName' : 'Welcome Back',
+                style: GoogleFonts.playfairDisplay(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
                 ),
               ),
             ],
           ),
-          SizedBox(height: 15),
+          const SizedBox(height: 30),
           TextFormField(
             controller: _emailOrPhoneController,
             focusNode: _emailFocusNode,
             keyboardType: TextInputType.emailAddress,
             textInputAction: TextInputAction.next,
-            style: TextStyle(color: Colors.black87),
+            style: GoogleFonts.lato(color: Colors.black87),
             decoration: InputDecoration(
-              fillColor: Colors.white,
+              fillColor: Colors.grey[200],
               filled: true,
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: Colors.grey.shade400),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Colors.black87, width: 1.5),
               ),
               labelText: 'Email/Phone',
-              labelStyle: TextStyle(color: Colors.black54),
-              prefixIcon: Icon(
+              labelStyle: GoogleFonts.lato(color: Colors.grey[600]),
+              prefixIcon: const Icon(
                 Icons.person_outline_rounded,
-                color: Colors.deepPurple,
+                color: Colors.grey,
               ),
+              floatingLabelStyle: const TextStyle(color: Colors.black87),
             ),
             onFieldSubmitted: (_) {
               FocusScope.of(context).requestFocus(_passwordFocusNode);
@@ -728,9 +763,9 @@ class _LoginscreenState extends State<Loginscreen> {
                 },
                 child: Text(
                   'Forgot password?',
-                  style: TextStyle(
-                    color: Colors.deepPurple,
-                    fontWeight: FontWeight.w500,
+                  style: GoogleFonts.lato(
+                    color: Colors.deepOrange[800],
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
@@ -741,20 +776,30 @@ class _LoginscreenState extends State<Loginscreen> {
             focusNode: _passwordFocusNode,
             obscureText: _obscureText,
             textInputAction: TextInputAction.done,
-            style: TextStyle(color: Colors.black87),
+            style: GoogleFonts.lato(color: Colors.black87),
             decoration: InputDecoration(
-              fillColor: Colors.white,
+              fillColor: Colors.grey[200],
               filled: true,
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: Colors.grey.shade400),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Colors.black87, width: 1.5),
               ),
               labelText: 'Password',
-              labelStyle: TextStyle(color: Colors.black54),
-              prefixIcon: Icon(Icons.lock, color: Colors.deepPurple),
+              labelStyle: GoogleFonts.lato(color: Colors.grey[600]),
+              prefixIcon: const Icon(Icons.lock_outline, color: Colors.grey),
+              floatingLabelStyle: const TextStyle(color: Colors.black87),
               suffixIcon: IconButton(
                 icon: Icon(
                   _obscureText ? Icons.visibility_off : Icons.visibility,
-                  color: Colors.black54,
+                  color: Colors.grey,
                 ),
                 onPressed: () {
                   setState(() => _obscureText = !_obscureText);
@@ -772,12 +817,13 @@ class _LoginscreenState extends State<Loginscreen> {
           SizedBox(height: 20),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.deepPurple,
+              backgroundColor: Colors.black87,
               minimumSize: Size(double.infinity, 50),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(12),
               ),
-              elevation: 2,
+              elevation: 4,
+              shadowColor: Colors.black.withOpacity(0.3),
             ),
             onPressed: _isLoading ? null : _handleLogin,
             child: _isLoading
@@ -791,10 +837,11 @@ class _LoginscreenState extends State<Loginscreen> {
                   )
                 : Text(
                     'Login',
-                    style: TextStyle(
+                    style: GoogleFonts.lato(
                       color: Colors.white,
-                      fontSize: 18,
+                      fontSize: 16,
                       fontWeight: FontWeight.bold,
+                      letterSpacing: 1.0,
                     ),
                   ),
           ),
@@ -806,7 +853,7 @@ class _LoginscreenState extends State<Loginscreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 10),
                 child: Text(
                   'OR',
-                  style: TextStyle(
+                  style: GoogleFonts.lato(
                     color: Colors.grey[700],
                     fontWeight: FontWeight.bold,
                   ),
@@ -816,56 +863,29 @@ class _LoginscreenState extends State<Loginscreen> {
             ],
           ),
           SizedBox(height: 30),
-          ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              minimumSize: Size(double.infinity, 50),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-                side: BorderSide(color: Colors.grey.shade300),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _buildSocialButton(
+                icon: FontAwesomeIcons.google,
+                color: const Color(0xFFDB4437),
+                onTap: () => _showSnackBar('Google Sign-In coming soon!', Colors.blue),
               ),
-            ),
-            onPressed: () =>
-                _showSnackBar('Google Sign-In coming soon!', Colors.blue),
-            icon: const FaIcon(
-              FontAwesomeIcons.google,
-              color: Color(0xFFDB4437),
-              size: 20,
-            ),
-            label: Text(
-              'Continue with Google',
-              style: TextStyle(fontSize: 16, color: Colors.black87),
-            ),
-          ),
-          SizedBox(height: 10),
-          ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              minimumSize: Size(double.infinity, 50),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-                side: BorderSide(color: Colors.grey.shade300),
+              const SizedBox(width: 24),
+              _buildSocialButton(
+                icon: FontAwesomeIcons.facebook,
+                color: const Color(0xFF1877F2),
+                onTap: () => _showSnackBar('Facebook Sign-In coming soon!', Colors.blue),
               ),
-            ),
-            onPressed: () =>
-                _showSnackBar('Facebook Sign-In coming soon!', Colors.blue),
-            icon: const FaIcon(
-              FontAwesomeIcons.facebook,
-              color: Color(0xFF1877F2),
-              size: 20,
-            ),
-            label: Text(
-              'Continue with Facebook',
-              style: TextStyle(fontSize: 16, color: Colors.black87),
-            ),
+            ],
           ),
-          SizedBox(height: 20),
+          SizedBox(height: 30),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
                 "Don't have an account?",
-                style: TextStyle(color: Colors.grey[700]),
+                style: GoogleFonts.lato(color: Colors.grey[700]),
               ),
               TextButton(
                 onPressed: () {
@@ -877,8 +897,8 @@ class _LoginscreenState extends State<Loginscreen> {
                 },
                 child: Text(
                   'Sign up',
-                  style: TextStyle(
-                    color: Colors.deepPurple,
+                  style: GoogleFonts.lato(
+                    color: Colors.deepOrange[800],
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -891,6 +911,34 @@ class _LoginscreenState extends State<Loginscreen> {
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSocialButton({
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(50),
+      child: Container(
+        width: 50,
+        height: 50,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.white,
+          border: Border.all(color: Colors.grey.shade300),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Center(child: FaIcon(icon, color: color, size: 22)),
       ),
     );
   }
@@ -909,8 +957,9 @@ class _LoginscreenState extends State<Loginscreen> {
                 Container(
                   height: 250,
                   width: double.infinity,
-                  decoration: const BoxDecoration(
-                    image: DecorationImage(
+                  decoration: BoxDecoration(
+                    borderRadius: const BorderRadius.vertical(bottom: Radius.circular(30)),
+                    image: const DecorationImage(
                       image: AssetImage('assets/images/loginman.png'),
                       fit: BoxFit.cover,
                     ),
@@ -1027,7 +1076,7 @@ class _RoleLoginDialogState extends State<RoleLoginDialog> {
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  prefixIcon: Icon(Icons.email, color: Colors.deepPurple),
+                  prefixIcon: Icon(Icons.email_outlined, color: Colors.grey[700]),
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -1050,7 +1099,7 @@ class _RoleLoginDialogState extends State<RoleLoginDialog> {
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  prefixIcon: Icon(Icons.lock, color: Colors.deepPurple),
+                  prefixIcon: Icon(Icons.lock_outline, color: Colors.grey[700]),
                   suffixIcon: IconButton(
                     icon: Icon(
                       _obscureText ? Icons.visibility_off : Icons.visibility,
@@ -1077,7 +1126,7 @@ class _RoleLoginDialogState extends State<RoleLoginDialog> {
         ),
         ElevatedButton(
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.deepPurple,
+            backgroundColor: Colors.black87,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
             ),

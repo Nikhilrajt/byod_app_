@@ -2,6 +2,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:project/homescreen/HomeBannerCarousel.dart';
 
 import 'package:project/models/cart_item.dart';
@@ -1042,26 +1043,19 @@ class Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+    final displayName = user?.displayName ?? 'User';
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        const Column(
+        Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Welcome back,',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-            ),
-            SizedBox(height: 2),
-            Row(
-              children: [
-                Icon(Icons.location_on, size: 18),
-                SizedBox(width: 4),
-                Text(
-                  'Perinthalmanna',
-                  style: TextStyle(fontSize: 13, color: Colors.grey),
-                ),
-              ],
+              'Welcome,'
+              ' $displayName',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
             ),
           ],
         ),
