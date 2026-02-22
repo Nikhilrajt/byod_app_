@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:math';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -699,8 +700,95 @@ class _CategoryPageState extends State<CategoryPage> {
           ],
         ],
       ),
-      body: Column(
+      body: Stack(
         children: [
+          // Background design
+          Positioned.fill(
+            child: Container(decoration: BoxDecoration(color: Colors.white)),
+          ),
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 200,
+            child: ClipPath(
+              clipper: WaveClipper(),
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      const Color(0xFFFF9800).withOpacity(0.5),
+                      const Color(0xFFFF9800).withOpacity(0.2),
+                    ],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: 150,
+            child: Transform.rotate(
+              angle: pi,
+              child: ClipPath(
+                clipper: WaveClipper(),
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        const Color(0xFFFF5722).withOpacity(0.4),
+                        const Color(0xFFFF5722).withOpacity(0.1),
+                      ],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            top: 100,
+            right: 50,
+            child: Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    const Color(0xFFFF9800).withOpacity(0.4),
+                    const Color(0xFFFF9800).withOpacity(0.1),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: 200,
+            left: 30,
+            child: Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    const Color(0xFFFF5722).withOpacity(0.35),
+                    const Color(0xFFFF5722).withOpacity(0.1),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          
+          // Main Content
+          Column(
+            children: [
           // HORIZONTAL CATEGORY CHIPS
           Container(
             height: 60,
@@ -831,6 +919,8 @@ class _CategoryPageState extends State<CategoryPage> {
                 );
               },
             ),
+          ),
+            ],
           ),
         ],
       ),
