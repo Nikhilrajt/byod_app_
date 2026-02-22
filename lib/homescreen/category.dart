@@ -29,7 +29,7 @@ class _CategoryPageState extends State<CategoryPage> {
   String _currentCategoryId = "";
   String _currentCategoryName = "";
   String _lastHealthModeState = ""; // Track health mode changes
-  bool _shouldAutoSelect = false; // Only auto-select if coming from bottom nav
+  bool _shouldAutoSelect = false; // Only auto-select if coming from bottom navigation
   bool _userManuallySelectedCategory = false;
 
   // Search State
