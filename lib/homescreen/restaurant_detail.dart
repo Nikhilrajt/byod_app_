@@ -28,7 +28,13 @@ class RestaurantDetailPage extends StatelessWidget {
     final groupedByCategory = _groupFoodItemsByCategory(foodItems);
 
     return Scaffold(
-      appBar: AppBar(title: Text(name), elevation: 0),
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: Text(name),
+        elevation: 0,
+        backgroundColor: Colors.white,
+        iconTheme: IconThemeData(color: Colors.deepOrange),
+      ),
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

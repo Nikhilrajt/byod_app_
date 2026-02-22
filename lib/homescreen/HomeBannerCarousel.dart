@@ -74,6 +74,7 @@ class _HomeBannerCarouselState extends State<HomeBannerCarousel> {
                 height: isWide ? 340 : 260,
                 autoPlay: true,
                 enlargeCenterPage: true,
+                viewportFraction: 0.95,
                 onPageChanged: (i, _) => setState(() => _currentOffer = i),
               ),
               itemBuilder: (_, i, __) {

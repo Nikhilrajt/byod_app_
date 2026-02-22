@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:math';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -91,8 +92,9 @@ class _CategoryPageState extends State<CategoryPage> {
     if (docs.isEmpty) return;
 
     // Check if current category is valid (exists in the list)
-    bool currentCategoryExists =
-        docs.any((doc) => doc.id == _currentCategoryId);
+    bool currentCategoryExists = docs.any(
+      (doc) => doc.id == _currentCategoryId,
+    );
 
     if (_currentCategoryId.isEmpty || !currentCategoryExists) {
       final firstDoc = docs.first;
@@ -576,7 +578,7 @@ class _CategoryPageState extends State<CategoryPage> {
     final cart = context.watch<CartNotifier>();
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: _isSearching
             ? TextField(
@@ -592,7 +594,7 @@ class _CategoryPageState extends State<CategoryPage> {
                 _currentCategoryName,
                 style: const TextStyle(color: Colors.black),
               ),
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.white,
         elevation: 0, // Make it seamless with the body
         iconTheme: const IconThemeData(color: Colors.black),
         leading: _isSearching
@@ -698,8 +700,95 @@ class _CategoryPageState extends State<CategoryPage> {
           ],
         ],
       ),
-      body: Column(
+      body: Stack(
         children: [
+          // Background design
+          Positioned.fill(
+            child: Container(decoration: BoxDecoration(color: Colors.white)),
+          ),
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 200,
+            child: ClipPath(
+              clipper: WaveClipper(),
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      const Color(0xFFFF9800).withOpacity(0.5),
+                      const Color(0xFFFF9800).withOpacity(0.2),
+                    ],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: 150,
+            child: Transform.rotate(
+              angle: pi,
+              child: ClipPath(
+                clipper: WaveClipper(),
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        const Color(0xFFFF5722).withOpacity(0.4),
+                        const Color(0xFFFF5722).withOpacity(0.1),
+                      ],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            top: 100,
+            right: 50,
+            child: Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    const Color(0xFFFF9800).withOpacity(0.4),
+                    const Color(0xFFFF9800).withOpacity(0.1),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: 200,
+            left: 30,
+            child: Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    const Color(0xFFFF5722).withOpacity(0.35),
+                    const Color(0xFFFF5722).withOpacity(0.1),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          
+          // Main Content
+          Column(
+            children: [
           // HORIZONTAL CATEGORY CHIPS
           Container(
             height: 60,
@@ -830,6 +919,8 @@ class _CategoryPageState extends State<CategoryPage> {
                 );
               },
             ),
+          ),
+            ],
           ),
         ],
       ),
