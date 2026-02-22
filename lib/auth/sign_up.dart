@@ -306,9 +306,12 @@
 //   }
 // }
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:project/auth/firebase/fibase_serviece.dart';
 import 'package:project/auth/loginscreen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class SignUp extends StatefulWidget {
   const SignUp({super.key});
@@ -329,12 +332,14 @@ class _SignUpState extends State<SignUp> {
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _keywordController = TextEditingController();
 
   // Focus nodes for better keyboard management
   final FocusNode _nameFocusNode = FocusNode();
   final FocusNode _phoneFocusNode = FocusNode();
   final FocusNode _emailFocusNode = FocusNode();
   final FocusNode _passwordFocusNode = FocusNode();
+  final FocusNode _keywordFocusNode = FocusNode();
 
   @override
   void dispose() {
@@ -342,10 +347,12 @@ class _SignUpState extends State<SignUp> {
     _phoneController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _keywordController.dispose();
     _nameFocusNode.dispose();
     _phoneFocusNode.dispose();
     _emailFocusNode.dispose();
     _passwordFocusNode.dispose();
+    _keywordFocusNode.dispose();
     super.dispose();
   }
 
@@ -364,11 +371,27 @@ class _SignUpState extends State<SignUp> {
         fullName: _nameController.text.trim(),
         phoneNumber: _phoneController.text.trim(),
         role: _selectedRole,
+        // role: typecodeCTrl.text.trim() == 'gsdfsd'? UserRole.restaurant : UserRole.user,
       );
 
       if (!mounted) return;
 
       if (result['success']) {
+        // Save user details to Firestore and update Auth profile
+        final user = FirebaseAuth.instance.currentUser;
+        if (user != null) {
+          await user.updateDisplayName(_nameController.text.trim());
+          await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+            'uid': user.uid,
+            'name': _nameController.text.trim(),
+            'fullName': _nameController.text.trim(),
+            'email': _emailController.text.trim(),
+            'phone': _phoneController.text.trim(),
+            'role': _selectedRole.toString().split('.').last,
+            'createdAt': FieldValue.serverTimestamp(),
+          }, SetOptions(merge: true));
+        }
+
         _showSnackBar(
           result['message'] ?? 'Account created successfully!',
           Colors.green,
@@ -434,350 +457,456 @@ class _SignUpState extends State<SignUp> {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: [
-                  Text(
-                    'Create Account',
-                    style: TextStyle(
-                      fontSize: 30,
-                      color: Colors.black,
-                      fontWeight: FontWeight.w600,
-                    ),
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Create Account',
+              style: GoogleFonts.playfairDisplay(
+                fontSize: 32,
+                color: Colors.black87,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            SizedBox(height: 24),
+
+            // Role Selection
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.grey.shade200),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.03),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
                   ),
                 ],
               ),
-              SizedBox(height: 20),
-
-              // Role Selection
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey.shade300),
-                ),
-                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.person_pin,
-                          color: Colors.deepPurple,
-                          size: 20,
+              padding: EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.person_pin, color: Colors.black87, size: 20),
+                      SizedBox(width: 8),
+                      Text(
+                        'Select Account Type',
+                        style: GoogleFonts.lato(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
                         ),
-                        SizedBox(width: 8),
-                        Text(
-                          'Select Account Type',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black87,
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(child: _buildRoleCard(UserRole.user)),
-                        SizedBox(width: 8),
-                        Expanded(child: _buildRoleCard(UserRole.restaurant)),
-                      ],
-                    ),
-                  ],
-                ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(child: _buildRoleCard(UserRole.user)),
+                      SizedBox(width: 12),
+                      Expanded(child: _buildRoleCard(UserRole.restaurant)),
+                    ],
+                  ),
+                ],
               ),
-              SizedBox(height: 16),
+            ),
+            SizedBox(height: 24),
 
-              // Full Name Field
+            // Restaurant Keyword Field
+            if (_selectedRole == UserRole.restaurant) ...[
               TextFormField(
-                controller: _nameController,
-                focusNode: _nameFocusNode,
+                controller: _keywordController,
+                focusNode: _keywordFocusNode,
                 textInputAction: TextInputAction.next,
-                textCapitalization: TextCapitalization.words,
-                style: TextStyle(color: Colors.black87, fontSize: 16),
+                style: GoogleFonts.lato(color: Colors.black87, fontSize: 16),
                 decoration: InputDecoration(
-                  fillColor: Colors.white,
+                  fillColor: Colors.grey[200],
                   filled: true,
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
                   ),
-                  hintText: 'Enter your full name',
-                  labelText: 'Full Name',
-                  labelStyle: TextStyle(color: Colors.black54),
-                  prefixIcon: Icon(
-                    Icons.person_outline_rounded,
-                    color: Colors.deepPurple,
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.grey.shade400),
                   ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(
+                      color: Colors.black87,
+                      width: 1.5,
+                    ),
+                  ),
+                  hintText: 'Enter registration keyword',
+                  labelText: 'Restaurant Keyword',
+                  labelStyle: GoogleFonts.lato(color: Colors.grey[600]),
+                  prefixIcon: const Icon(
+                    Icons.vpn_key_outlined,
+                    color: Colors.grey,
+                  ),
+                  floatingLabelStyle: const TextStyle(color: Colors.black87),
                 ),
                 onFieldSubmitted: (_) {
-                  FocusScope.of(context).requestFocus(_phoneFocusNode);
+                  FocusScope.of(context).requestFocus(_nameFocusNode);
                 },
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
-                    return 'Please enter your name';
+                    return 'Please enter the keyword';
                   }
-                  if (value.trim().length < 3) {
-                    return 'Name must be at least 3 characters';
-                  }
-                  if (!RegExp(r'^[a-zA-Z\s]+$').hasMatch(value)) {
-                    return 'Name can only contain letters';
+                  if (value.trim() != 'ainafood') {
+                    return 'Invalid keyword. Cannot register as restaurant.';
                   }
                   return null;
                 },
               ),
               SizedBox(height: 16),
-
-              // Phone Number Field
-              TextFormField(
-                controller: _phoneController,
-                focusNode: _phoneFocusNode,
-                keyboardType: TextInputType.phone,
-                textInputAction: TextInputAction.next,
-                maxLength: 10,
-                style: TextStyle(color: Colors.black87, fontSize: 16),
-                decoration: InputDecoration(
-                  fillColor: Colors.white,
-                  filled: true,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  hintText: 'Enter 10-digit mobile number',
-                  labelText: 'Phone Number',
-                  labelStyle: TextStyle(color: Colors.black54),
-                  prefixIcon: Icon(Icons.phone, color: Colors.deepPurple),
-                  counterText: '',
-                ),
-                onFieldSubmitted: (_) {
-                  FocusScope.of(context).requestFocus(_emailFocusNode);
-                },
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter your phone number';
-                  }
-                  if (!RegExp(r'^[6-9]\d{9}$').hasMatch(value)) {
-                    return 'Enter valid 10-digit phone number';
-                  }
-                  return null;
-                },
-              ),
-              SizedBox(height: 16),
-
-              // Email Field
-              TextFormField(
-                controller: _emailController,
-                focusNode: _emailFocusNode,
-                keyboardType: TextInputType.emailAddress,
-                textInputAction: TextInputAction.next,
-                style: TextStyle(color: Colors.black87, fontSize: 16),
-                decoration: InputDecoration(
-                  fillColor: Colors.white,
-                  filled: true,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  hintText: 'Enter your email address',
-                  labelText: 'Email',
-                  labelStyle: TextStyle(color: Colors.black54),
-                  prefixIcon: Icon(Icons.email, color: Colors.deepPurple),
-                ),
-                onFieldSubmitted: (_) {
-                  FocusScope.of(context).requestFocus(_passwordFocusNode);
-                },
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter your email';
-                  }
-                  if (!RegExp(
-                    r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
-                  ).hasMatch(value)) {
-                    return 'Enter a valid email address';
-                  }
-                  return null;
-                },
-              ),
-              SizedBox(height: 16),
-
-              // Password Field
-              TextFormField(
-                controller: _passwordController,
-                focusNode: _passwordFocusNode,
-                obscureText: _obscureText,
-                textInputAction: TextInputAction.done,
-                style: TextStyle(color: Colors.black87, fontSize: 16),
-                decoration: InputDecoration(
-                  fillColor: Colors.white,
-                  filled: true,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  hintText: 'Create a strong password',
-                  labelText: 'Password',
-                  labelStyle: TextStyle(color: Colors.black54),
-                  prefixIcon: Icon(Icons.lock, color: Colors.deepPurple),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _obscureText ? Icons.visibility_off : Icons.visibility,
-                      color: Colors.black54,
-                    ),
-                    onPressed: () {
-                      setState(() => _obscureText = !_obscureText);
-                    },
-                  ),
-                ),
-                onFieldSubmitted: (_) => _handleSignUp(),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a password';
-                  }
-                  if (value.length < 8) {
-                    return 'Password must be at least 8 characters';
-                  }
-                  if (!RegExp(r'[A-Z]').hasMatch(value)) {
-                    return 'Must include at least one uppercase letter';
-                  }
-                  if (!RegExp(r'[a-z]').hasMatch(value)) {
-                    return 'Must include at least one lowercase letter';
-                  }
-                  if (!RegExp(r'[0-9]').hasMatch(value)) {
-                    return 'Must include at least one number';
-                  }
-                  if (!RegExp(r'[!@#\$&*~]').hasMatch(value)) {
-                    return 'Must include a special character (!@#\$&*~)';
-                  }
-                  return null;
-                },
-              ),
-
-              // Password Requirements Hint
-              Padding(
-                padding: const EdgeInsets.only(top: 8.0, left: 12.0),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'Password must have: 8+ chars, uppercase, lowercase, number, special char',
-                    style: TextStyle(fontSize: 11, color: Colors.grey[600]),
-                  ),
-                ),
-              ),
-
-              SizedBox(height: 24),
-
-              // Sign Up Button
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.deepPurple,
-                  minimumSize: Size(double.infinity, 50),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  elevation: 2,
-                ),
-                onPressed: _isLoading ? null : _handleSignUp,
-                child: _isLoading
-                    ? SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2,
-                        ),
-                      )
-                    : Text(
-                        'Create Account',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-              ),
-
-              SizedBox(height: 24),
-
-              // Divider
-              Row(
-                children: [
-                  Expanded(child: Divider(color: Colors.grey, thickness: 1)),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 10),
-                    child: Text(
-                      'OR',
-                      style: TextStyle(
-                        color: Colors.grey[700],
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  Expanded(child: Divider(color: Colors.grey, thickness: 1)),
-                ],
-              ),
-
-              SizedBox(height: 24),
-
-              // Google Sign-In Button
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  minimumSize: Size(double.infinity, 50),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    side: BorderSide(color: Colors.grey.shade300),
-                  ),
-                ),
-                onPressed: () {
-                  _showSnackBar('Google Sign-In coming soon!', Colors.blue);
-                },
-                icon: const FaIcon(
-                  FontAwesomeIcons.google,
-                  color: Color(0xFFDB4437),
-                  size: 20,
-                ),
-                label: Text(
-                  'Continue with Google',
-                  style: TextStyle(fontSize: 16, color: Colors.black87),
-                ),
-              ),
-
-              SizedBox(height: 12),
-
-              // Facebook Sign-In Button
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  minimumSize: Size(double.infinity, 50),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    side: BorderSide(color: Colors.grey.shade300),
-                  ),
-                ),
-                onPressed: () {
-                  _showSnackBar('Facebook Sign-In coming soon!', Colors.blue);
-                },
-                icon: const FaIcon(
-                  FontAwesomeIcons.facebook,
-                  color: Color(0xFF1877F2),
-                  size: 20,
-                ),
-                label: Text(
-                  'Continue with Facebook',
-                  style: TextStyle(fontSize: 16, color: Colors.black87),
-                ),
-              ),
-
-              SizedBox(height: 20),
             ],
-          ),
+
+            // Full Name Field
+            TextFormField(
+              controller: _nameController,
+              focusNode: _nameFocusNode,
+              textInputAction: TextInputAction.next,
+              textCapitalization: TextCapitalization.words,
+              style: GoogleFonts.lato(color: Colors.black87, fontSize: 16),
+              decoration: InputDecoration(
+                fillColor: Colors.grey[200],
+                filled: true,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade400),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                    color: Colors.black87,
+                    width: 1.5,
+                  ),
+                ),
+                hintText: 'Enter your full name',
+                labelText: 'Full Name',
+                labelStyle: GoogleFonts.lato(color: Colors.grey[600]),
+                prefixIcon: const Icon(
+                  Icons.person_outline_rounded,
+                  color: Colors.grey,
+                ),
+                floatingLabelStyle: const TextStyle(color: Colors.black87),
+              ),
+              onFieldSubmitted: (_) {
+                FocusScope.of(context).requestFocus(_phoneFocusNode);
+              },
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Please enter your name';
+                }
+                if (value.trim().length < 3) {
+                  return 'Name must be at least 3 characters';
+                }
+                if (!RegExp(r'^[a-zA-Z\s]+$').hasMatch(value)) {
+                  return 'Name can only contain letters';
+                }
+                return null;
+              },
+            ),
+            SizedBox(height: 16),
+
+            // Phone Number Field
+            TextFormField(
+              controller: _phoneController,
+              focusNode: _phoneFocusNode,
+              keyboardType: TextInputType.phone,
+              textInputAction: TextInputAction.next,
+              maxLength: 10,
+              style: GoogleFonts.lato(color: Colors.black87, fontSize: 16),
+              decoration: InputDecoration(
+                fillColor: Colors.grey[200],
+                filled: true,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade400),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                    color: Colors.black87,
+                    width: 1.5,
+                  ),
+                ),
+                hintText: 'Enter 10-digit mobile number',
+                labelText: 'Phone Number',
+                labelStyle: GoogleFonts.lato(color: Colors.grey[600]),
+                prefixIcon: const Icon(
+                  Icons.phone_outlined,
+                  color: Colors.grey,
+                ),
+                floatingLabelStyle: const TextStyle(color: Colors.black87),
+                counterText: '',
+              ),
+              onFieldSubmitted: (_) {
+                FocusScope.of(context).requestFocus(_emailFocusNode);
+              },
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter your phone number';
+                }
+                if (!RegExp(r'^[6-9]\d{9}$').hasMatch(value)) {
+                  return 'Enter valid 10-digit phone number';
+                }
+                return null;
+              },
+            ),
+            SizedBox(height: 16),
+
+            // Email Field
+            TextFormField(
+              controller: _emailController,
+              focusNode: _emailFocusNode,
+              keyboardType: TextInputType.emailAddress,
+              textInputAction: TextInputAction.next,
+              style: GoogleFonts.lato(color: Colors.black87, fontSize: 16),
+              decoration: InputDecoration(
+                fillColor: Colors.grey[200],
+                filled: true,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade400),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                    color: Colors.black87,
+                    width: 1.5,
+                  ),
+                ),
+                hintText: 'Enter your email address',
+                labelText: 'Email',
+                labelStyle: GoogleFonts.lato(color: Colors.grey[600]),
+                prefixIcon: const Icon(
+                  Icons.email_outlined,
+                  color: Colors.grey,
+                ),
+                floatingLabelStyle: const TextStyle(color: Colors.black87),
+              ),
+              onFieldSubmitted: (_) {
+                FocusScope.of(context).requestFocus(_passwordFocusNode);
+              },
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter your email';
+                }
+                if (!RegExp(
+                  r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                ).hasMatch(value)) {
+                  return 'Enter a valid email address';
+                }
+                return null;
+              },
+            ),
+            SizedBox(height: 16),
+
+            // Password Field
+            TextFormField(
+              controller: _passwordController,
+              focusNode: _passwordFocusNode,
+              obscureText: _obscureText,
+              textInputAction: TextInputAction.done,
+              style: GoogleFonts.lato(color: Colors.black87, fontSize: 16),
+              decoration: InputDecoration(
+                fillColor: Colors.grey[200],
+                filled: true,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade400),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                    color: Colors.black87,
+                    width: 1.5,
+                  ),
+                ),
+                hintText: 'Create a strong password',
+                labelText: 'Password',
+                labelStyle: GoogleFonts.lato(color: Colors.grey[600]),
+                prefixIcon: const Icon(Icons.lock_outline, color: Colors.grey),
+                floatingLabelStyle: const TextStyle(color: Colors.black87),
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscureText ? Icons.visibility_off : Icons.visibility,
+                    color: Colors.grey,
+                  ),
+                  onPressed: () {
+                    setState(() => _obscureText = !_obscureText);
+                  },
+                ),
+              ),
+              onFieldSubmitted: (_) => _handleSignUp(),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter a password';
+                }
+                if (value.length < 8) {
+                  return 'Password must be at least 8 characters';
+                }
+                if (!RegExp(r'[A-Z]').hasMatch(value)) {
+                  return 'Must include at least one uppercase letter';
+                }
+                if (!RegExp(r'[a-z]').hasMatch(value)) {
+                  return 'Must include at least one lowercase letter';
+                }
+                if (!RegExp(r'[0-9]').hasMatch(value)) {
+                  return 'Must include at least one number';
+                }
+                if (!RegExp(r'[!@#\$&*~]').hasMatch(value)) {
+                  return 'Must include a special character (!@#\$&*~)';
+                }
+                return null;
+              },
+            ),
+
+            // Password Requirements Hint
+            Padding(
+              padding: const EdgeInsets.only(top: 8.0, left: 12.0),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Password must have: 8+ chars, uppercase, lowercase, number, special char.',
+                  style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                ),
+              ),
+            ),
+
+            SizedBox(height: 24),
+
+            // Sign Up Button
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.black87,
+                minimumSize: Size(double.infinity, 50),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 4,
+                shadowColor: Colors.black.withOpacity(0.3),
+              ),
+              onPressed: _isLoading ? null : _handleSignUp,
+              child: _isLoading
+                  ? SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : Text(
+                      'Create Account',
+                      style: GoogleFonts.lato(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.0,
+                      ),
+                    ),
+            ),
+
+            SizedBox(height: 24),
+
+            // Divider
+            Row(
+              children: [
+                Expanded(child: Divider(color: Colors.grey, thickness: 1)),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  child: Text(
+                    'OR',
+                    style: GoogleFonts.lato(
+                      color: Colors.grey[700],
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                Expanded(child: Divider(color: Colors.grey, thickness: 1)),
+              ],
+            ),
+
+            SizedBox(height: 24),
+
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _buildSocialButton(
+                  icon: FontAwesomeIcons.google,
+                  color: const Color(0xFFDB4437),
+                  onTap: () =>
+                      _showSnackBar('Google Sign-In coming soon!', Colors.blue),
+                ),
+                const SizedBox(width: 24),
+                _buildSocialButton(
+                  icon: FontAwesomeIcons.facebook,
+                  color: const Color(0xFF1877F2),
+                  onTap: () => _showSnackBar(
+                    'Facebook Sign-In coming soon!',
+                    Colors.blue,
+                  ),
+                ),
+              ],
+            ),
+
+            SizedBox(height: 20),
+          ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildSocialButton({
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(50),
+      child: Container(
+        width: 50,
+        height: 50,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.white,
+          border: Border.all(color: Colors.grey.shade300),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Center(child: FaIcon(icon, color: color, size: 22)),
       ),
     );
   }
@@ -793,28 +922,28 @@ class _SignUpState extends State<SignUp> {
       child: Container(
         padding: EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: isSelected ? Colors.deepPurple : Colors.white,
-          borderRadius: BorderRadius.circular(8),
+          color: isSelected ? Colors.black.withOpacity(0.05) : Colors.white,
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? Colors.deepPurple : Colors.grey.shade300,
-            width: isSelected ? 2 : 1,
+            color: isSelected ? Colors.black87 : Colors.grey.shade200,
+            width: isSelected ? 1.5 : 1,
           ),
         ),
         child: Column(
           children: [
             Icon(
               _getRoleIcon(role),
-              color: isSelected ? Colors.white : Colors.deepPurple,
+              color: isSelected ? Colors.deepOrange[800] : Colors.grey[400],
               size: 28,
             ),
             SizedBox(height: 6),
             Text(
               _getRoleDisplayName(role),
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: GoogleFonts.lato(
                 fontSize: 13,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                color: isSelected ? Colors.white : Colors.black87,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                color: isSelected ? Colors.black87 : Colors.grey[600],
               ),
             ),
           ],

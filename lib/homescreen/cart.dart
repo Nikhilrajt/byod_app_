@@ -8,6 +8,7 @@ import '../models/category_models.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 import '../services/order_service.dart';
 import 'dart:async';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -479,17 +480,37 @@ class _CartScreenState extends State<CartScreen> {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
-              child: Image.asset(
-                item.imageUrl,
-                width: 80,
-                height: 80,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
-                  width: 80,
-                  height: 80,
-                  color: Colors.grey[200],
-                  child: const Icon(Icons.fastfood, color: Colors.grey),
-                ),
+              child: SizedBox(
+                width: 90,
+                height: 90,
+                child: item.imageUrl.trim().startsWith('http')
+                    ? CachedNetworkImage(
+                        imageUrl: item.imageUrl.trim(),
+                        memCacheWidth: 250,
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) => Container(
+                          color: Colors.grey[200],
+                          child: const Center(
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        ),
+                        errorWidget: (context, url, error) => Container(
+                          color: Colors.grey[200],
+                          child: const Icon(
+                            Icons.broken_image,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      )
+                    : Image.asset(
+                        item.imageUrl.trim(),
+                        cacheWidth: 250,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(
+                          color: Colors.grey[200],
+                          child: const Icon(Icons.fastfood, color: Colors.grey),
+                        ),
+                      ),
               ),
             ),
             const SizedBox(width: 16),
@@ -513,6 +534,26 @@ class _CartScreenState extends State<CartScreen> {
                     style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                   ),
                   const SizedBox(height: 8),
+                  if (item.isByod)
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: const Text(
+                        'BYOD',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: Colors.blue,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -585,7 +626,46 @@ class _CartScreenState extends State<CartScreen> {
     List<CartItem> items,
     int total,
   ) {
-    final isByod = items.any((item) => item.isByod);
+    final hasByod = items.any((item) => item.isByod);
+    final hasNormal = items.any((item) => !item.isByod);
+
+    if (hasByod && hasNormal) {
+      return Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, -5),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: const [
+              Text(
+                'Mixed Cart Detected',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.red,
+                ),
+              ),
+              SizedBox(height: 8),
+              Text(
+                'Billing for Normal and BYOD orders is separate.\nPlease remove one type of item to proceed.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -630,7 +710,7 @@ class _CartScreenState extends State<CartScreen> {
               width: double.infinity,
               height: 54,
               child: ElevatedButton(
-                onPressed: () => isByod
+                onPressed: () => hasByod
                     ? _submitForApproval(context, items, total)
                     : _showPaymentOptionsForNormalOrder(context, total),
                 style: ElevatedButton.styleFrom(
@@ -641,7 +721,7 @@ class _CartScreenState extends State<CartScreen> {
                   elevation: 2,
                 ),
                 child: Text(
-                  isByod ? 'Submit for Approval' : 'Checkout',
+                  hasByod ? 'Submit for Approval' : 'Checkout',
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -755,6 +835,16 @@ class _CartScreenState extends State<CartScreen> {
 
         if (docs.isEmpty) return const SizedBox.shrink();
 
+        // Sort requests by creation time (newest first)
+        docs.sort((a, b) {
+          final d1 = a.data() as Map<String, dynamic>;
+          final d2 = b.data() as Map<String, dynamic>;
+          final t1 = d1['createdAt'] as Timestamp?;
+          final t2 = d2['createdAt'] as Timestamp?;
+          if (t1 == null || t2 == null) return 0;
+          return t2.compareTo(t1);
+        });
+
         // Schedule timers to refresh the UI when a completed item expires
         for (final d in docs) {
           final data = d.data() as Map<String, dynamic>;
@@ -804,235 +894,301 @@ class _CartScreenState extends State<CartScreen> {
         }
 
         return Container(
-          margin: const EdgeInsets.all(16),
+          margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color(0xFFFFF3E0),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.orange.withOpacity(0.3)),
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
-          constraints: const BoxConstraints(maxHeight: 260),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Pending Approval',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
+          constraints: const BoxConstraints(maxHeight: 350),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(
+                    Icons.history_toggle_off,
                     color: Colors.deepOrange,
-                    fontSize: 16,
                   ),
-                ),
-                const SizedBox(height: 12),
-                ...docs.map((doc) {
-                  final data = doc.data() as Map<String, dynamic>;
-                  final orderId = (data['orderId'] as String?) ?? '';
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Active Requests',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Flexible(
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: docs.map((doc) {
+                      final data = doc.data() as Map<String, dynamic>;
+                      final orderId = (data['orderId'] as String?) ?? '';
 
-                  // Only render approvals that have a real linked order document
-                  return FutureBuilder<DocumentSnapshot>(
-                    future: orderId.isNotEmpty
-                        ? FirebaseFirestore.instance
-                              .collection('orders')
-                              .doc(orderId)
-                              .get()
-                        : Future.value(null),
-                    builder: (context, orderSnap) {
-                      if (!orderSnap.hasData ||
-                          orderSnap.data == null ||
-                          !orderSnap.data!.exists) {
-                        // linked order missing - don't show this (dummy) approval
-                        return const SizedBox.shrink();
-                      }
+                      // Only render approvals that have a real linked order document
+                      return FutureBuilder<DocumentSnapshot>(
+                        future: orderId.isNotEmpty
+                            ? FirebaseFirestore.instance
+                                  .collection('orders')
+                                  .doc(orderId)
+                                  .get()
+                            : Future.value(null),
+                        builder: (context, orderSnap) {
+                          if (!orderSnap.hasData ||
+                              orderSnap.data == null ||
+                              !orderSnap.data!.exists) {
+                            // linked order missing - don't show this (dummy) approval
+                            return const SizedBox.shrink();
+                          }
 
-                      final status = (data['status'] ?? 'pending')
-                          .toString()
-                          .toLowerCase();
-                      String badgeLabel;
-                      Color badgeColor = Colors.orange;
+                          final status = (data['status'] ?? 'pending')
+                              .toString()
+                              .toLowerCase();
+                          String badgeLabel;
+                          Color badgeColor = Colors.orange;
 
-                      if (status == 'outfordelivery') {
-                        badgeLabel = 'Reaching';
-                        badgeColor = Colors.orange;
-                      } else if (status == 'ready') {
-                        badgeLabel = 'Ready';
-                        badgeColor = Colors.green;
-                      } else if (status == 'completed') {
-                        badgeLabel = 'Reached successfully';
-                        badgeColor = Colors.green;
-                      } else if (status == 'cancelled') {
-                        badgeLabel = 'Cancelled';
-                        badgeColor = Colors.red;
-                      } else {
-                        badgeLabel = status.isNotEmpty
-                            ? status[0].toUpperCase() + status.substring(1)
-                            : 'Pending';
-                      }
+                          if (status == 'outfordelivery') {
+                            badgeLabel = 'Reaching';
+                            badgeColor = Colors.orange;
+                          } else if (status == 'ready') {
+                            badgeLabel = 'Ready';
+                            badgeColor = Colors.green;
+                          } else if (status == 'completed') {
+                            badgeLabel = 'Reached successfully';
+                            badgeColor = Colors.green;
+                          } else if (status == 'cancelled') {
+                            badgeLabel = 'Cancelled';
+                            badgeColor = Colors.red;
+                          } else {
+                            badgeLabel = status.isNotEmpty
+                                ? status[0].toUpperCase() + status.substring(1)
+                                : 'Pending';
+                          }
 
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
-                              blurRadius: 4,
-                              offset: const Offset(0, 2),
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[50],
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.grey[200]!),
                             ),
-                          ],
-                        ),
-                        child: Column(
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'Request to ${data['restaurantName']}',
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            data['restaurantName'] ?? '',
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 6,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: badgeColor,
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: Text(
+                                        badgeLabel,
                                         style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
+                                          fontSize: 12,
                                         ),
                                       ),
-                                      Text('Total: ₹${data['totalAmount']}'),
-                                    ],
-                                  ),
-                                ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 6,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: badgeColor,
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: Text(
-                                    badgeLabel,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 12,
                                     ),
-                                  ),
+                                  ],
                                 ),
-                              ],
-                            ),
-                            // Action buttons: Cancel (when pending) and Delete (manual cleanup)
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                if (status == 'pending')
-                                  TextButton.icon(
-                                    onPressed: () async {
-                                      final confirmed = await showDialog<bool>(
-                                        context: context,
-                                        builder: (context) => AlertDialog(
-                                          title: const Text('Cancel request'),
-                                          content: const Text(
-                                            'Are you sure you want to cancel this request?',
+                                const SizedBox(height: 8),
+                                Text(
+                                  (data['items'] as List<dynamic>?)
+                                          ?.map(
+                                            (e) =>
+                                                "${e['quantity']}x ${e['name']}",
+                                          )
+                                          .join(', ') ??
+                                      '',
+                                  style: TextStyle(
+                                    color: Colors.grey[600],
+                                    fontSize: 13,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 12),
+                                // Action buttons: Cancel (when pending) and Delete (manual cleanup)
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      'Total: ₹${data['totalAmount']}',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    Row(
+                                      children: [
+                                        if (status == 'pending')
+                                          TextButton.icon(
+                                            onPressed: () async {
+                                              final confirmed =
+                                                  await showDialog<bool>(
+                                                    context: context,
+                                                    builder: (context) =>
+                                                        AlertDialog(
+                                                          title: const Text(
+                                                            'Cancel request',
+                                                          ),
+                                                          content: const Text(
+                                                            'Are you sure you want to cancel this request?',
+                                                          ),
+                                                          actions: [
+                                                            TextButton(
+                                                              onPressed: () =>
+                                                                  Navigator.of(
+                                                                    context,
+                                                                  ).pop(false),
+                                                              child: const Text(
+                                                                'No',
+                                                              ),
+                                                            ),
+                                                            TextButton(
+                                                              onPressed: () =>
+                                                                  Navigator.of(
+                                                                    context,
+                                                                  ).pop(true),
+                                                              child: const Text(
+                                                                'Yes',
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                  );
+                                              if (confirmed == true) {
+                                                _cancelApproval(doc);
+                                              }
+                                            },
+                                            icon: const Icon(
+                                              Icons.delete_outline,
+                                              size: 18,
+                                              color: Colors.red,
+                                            ),
+                                            label: const Text(
+                                              'Cancel',
+                                              style: TextStyle(
+                                                color: Colors.red,
+                                              ),
+                                            ),
+                                            style: TextButton.styleFrom(
+                                              padding: EdgeInsets.zero,
+                                              tapTargetSize:
+                                                  MaterialTapTargetSize
+                                                      .shrinkWrap,
+                                            ),
                                           ),
-                                          actions: [
-                                            TextButton(
-                                              onPressed: () => Navigator.of(
-                                                context,
-                                              ).pop(false),
-                                              child: const Text('No'),
-                                            ),
-                                            TextButton(
-                                              onPressed: () => Navigator.of(
-                                                context,
-                                              ).pop(true),
-                                              child: const Text('Yes'),
-                                            ),
-                                          ],
-                                        ),
-                                      );
-                                      if (confirmed == true) {
-                                        _cancelApproval(doc);
-                                      }
-                                    },
-                                    icon: const Icon(
-                                      Icons.delete_outline,
-                                      size: 18,
-                                      color: Colors.red,
-                                    ),
-                                    label: const Text(
-                                      'Cancel',
-                                      style: TextStyle(color: Colors.red),
-                                    ),
-                                    style: TextButton.styleFrom(
-                                      padding: EdgeInsets.zero,
-                                      tapTargetSize:
-                                          MaterialTapTargetSize.shrinkWrap,
-                                    ),
-                                  ),
 
-                                // Manual delete button (for removing default/dummy approvals)
-                                if ([
-                                  'cancelled',
-                                  'rejected',
-                                  'awaitingapproval',
-                                  'pendingpayment',
-                                ].contains(status))
-                                  TextButton.icon(
-                                    onPressed: () async {
-                                      final confirmed = await showDialog<bool>(
-                                        context: context,
-                                        builder: (context) => AlertDialog(
-                                          title: const Text('Delete approval'),
-                                          content: const Text(
-                                            'This will permanently remove this approval request from your cart. Proceed?',
+                                        // Manual delete button (for removing default/dummy approvals)
+                                        if ([
+                                          'cancelled',
+                                          'rejected',
+                                          'awaitingapproval',
+                                          'pendingpayment',
+                                        ].contains(status))
+                                          TextButton.icon(
+                                            onPressed: () async {
+                                              final confirmed =
+                                                  await showDialog<bool>(
+                                                    context: context,
+                                                    builder: (context) =>
+                                                        AlertDialog(
+                                                          title: const Text(
+                                                            'Delete approval',
+                                                          ),
+                                                          content: const Text(
+                                                            'This will permanently remove this approval request from your cart. Proceed?',
+                                                          ),
+                                                          actions: [
+                                                            TextButton(
+                                                              onPressed: () =>
+                                                                  Navigator.of(
+                                                                    context,
+                                                                  ).pop(false),
+                                                              child: const Text(
+                                                                'No',
+                                                              ),
+                                                            ),
+                                                            TextButton(
+                                                              onPressed: () =>
+                                                                  Navigator.of(
+                                                                    context,
+                                                                  ).pop(true),
+                                                              child: const Text(
+                                                                'Yes',
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                  );
+                                              if (confirmed == true) {
+                                                _deleteApproval(doc);
+                                              }
+                                            },
+                                            icon: const Icon(
+                                              Icons.delete_forever,
+                                              size: 18,
+                                              color: Colors.red,
+                                            ),
+                                            label: const Text(
+                                              'Delete',
+                                              style: TextStyle(
+                                                color: Colors.red,
+                                              ),
+                                            ),
+                                            style: TextButton.styleFrom(
+                                              padding: EdgeInsets.zero,
+                                              tapTargetSize:
+                                                  MaterialTapTargetSize
+                                                      .shrinkWrap,
+                                            ),
                                           ),
-                                          actions: [
-                                            TextButton(
-                                              onPressed: () => Navigator.of(
-                                                context,
-                                              ).pop(false),
-                                              child: const Text('No'),
-                                            ),
-                                            TextButton(
-                                              onPressed: () => Navigator.of(
-                                                context,
-                                              ).pop(true),
-                                              child: const Text('Yes'),
-                                            ),
-                                          ],
-                                        ),
-                                      );
-                                      if (confirmed == true) {
-                                        _deleteApproval(doc);
-                                      }
-                                    },
-                                    icon: const Icon(
-                                      Icons.delete_forever,
-                                      size: 18,
-                                      color: Colors.red,
+                                      ],
                                     ),
-                                    label: const Text(
-                                      'Delete',
-                                      style: TextStyle(color: Colors.red),
-                                    ),
-                                    style: TextButton.styleFrom(
-                                      padding: EdgeInsets.zero,
-                                      tapTargetSize:
-                                          MaterialTapTargetSize.shrinkWrap,
-                                    ),
-                                  ),
+                                  ],
+                                ),
                               ],
                             ),
-                          ],
-                        ),
+                          );
+                        },
                       );
-                    },
-                  );
-                }).toList(),
-              ],
-            ),
+                    }).toList(),
+                  ),
+                ),
+              ),
+            ],
           ),
         );
       },
