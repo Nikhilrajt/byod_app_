@@ -1,6 +1,7 @@
 // lib/main.dart
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:dotted_border/dotted_border.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -71,15 +72,19 @@ class RestaurentListScreen extends StatelessWidget {
     final primary = Theme.of(context).primaryColor;
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'TasteHub Restaurants',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
+        title: Text(
+          'BYOD Restaurants',
+          style: GoogleFonts.poppins(
+            fontWeight: FontWeight.bold,
+            fontSize: 22,
+            color: Colors.black,
+          ),
         ),
         backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-        elevation: 1,
+        foregroundColor: Colors.deepOrange,
+        elevation: 0,
       ),
-      backgroundColor: Colors.grey[50],
+      backgroundColor: Colors.white,
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('users')

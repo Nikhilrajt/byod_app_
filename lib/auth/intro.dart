@@ -20,11 +20,10 @@ class _IntroState extends State<Intro> {
           Container(
             height: headerHeight,
             width: double.infinity,
-            decoration: const BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage('assets/images/loginman.png'),
-                fit: BoxFit.cover,
-              ),
+            child: Image.asset(
+              'assets/images/loginman.png',
+              fit: BoxFit.cover,
+              cacheWidth: 800,
             ),
           ),
 

@@ -1,8 +1,10 @@
 // lib/homescreen/homecontent.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:carousel_slider/carousel_slider.dart';
 import 'package:project/homescreen/HomeBannerCarousel.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import 'package:project/models/cart_item.dart';
 import 'package:project/models/category_models.dart';
@@ -35,20 +37,6 @@ class _HomeContentState extends State<HomeContent> {
     _searchCtl.dispose();
     super.dispose();
   }
-
-  /// Normal offer banners
-  final List<String> normalBanners = const [
-    'assets/images/1.png',
-    'assets/images/2.png',
-    'assets/images/3.png',
-    'assets/images/4.png',
-  ];
-
-  /// Health mode banners
-  final List<String> healthBanners = const [
-    'assets/images/health1.png',
-    'assets/images/health2.png',
-  ];
 
   /// Normal Categories (original)
   // final List<_Category> normalCategories = const [
@@ -132,8 +120,6 @@ class _HomeContentState extends State<HomeContent> {
   //     healthMode ? healthCategories : normalCategories;
   List<_Food> getActiveNewArrivals(bool healthMode) =>
       healthMode ? healthNewArrivals : normalNewArrivals;
-  List<String> getActiveBanners(bool healthMode) =>
-      healthMode ? healthBanners : normalBanners;
 
   // Get food items for a specific restaurant
   List<CategoryItem> _getFoodItemsForRestaurant(String restaurantName) {
@@ -576,6 +562,7 @@ class _HomeContentState extends State<HomeContent> {
     final healthMode = context.watch<HealthModeNotifier>().isOn;
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       body: SafeArea(
         bottom: false,
         child: SingleChildScrollView(
@@ -607,7 +594,7 @@ class _HomeContentState extends State<HomeContent> {
                         );
                       },
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 20),
                     CustomTextField(
                       controller: _searchCtl,
                       hint: 'Search your food or restaurant',
@@ -645,12 +632,7 @@ class _HomeContentState extends State<HomeContent> {
                 ),
               ] else ...[
                 // ORIGINAL home when there's no query
-                // _buildCarousel(context, healthMode),
-                // 🔥 REPLACING _buildCarousel with the new isolated widget
-                HomeBannerCarousel(
-                  banners: getActiveBanners(healthMode),
-                  healthMode: healthMode,
-                ),
+                HomeBannerCarousel(healthMode: healthMode),
 
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -671,11 +653,11 @@ class _HomeContentState extends State<HomeContent> {
                       //   healthMode ? 'Nutrition Picks' : 'Most Preferred',
                       // ),
                       // const SizedBox(height: 12),
-                      const SizedBox(height: 24),
-                      _buildSection(context, 'Restaurants'),
                       const SizedBox(height: 12),
+                      _buildSection(context, 'Restaurants'),
+                      const SizedBox(height: 8),
                       _buildFirestoreRestaurants(context),
-                      const SizedBox(height: 28),
+                      const SizedBox(height: 16),
                     ],
                   ),
                 ),
@@ -904,72 +886,6 @@ class _HomeContentState extends State<HomeContent> {
     );
   }
 
-  // ---------------- CAROUSEL ----------------
-  Widget _buildCarousel(BuildContext context, bool healthMode) {
-    final banners = getActiveBanners(healthMode);
-    final w = MediaQuery.of(context).size.width;
-    final isWide = w >= 900;
-
-    return Column(
-      children: [
-        CarouselSlider.builder(
-          itemCount: banners.length,
-          options: CarouselOptions(
-            height: isWide ? 320 : 240,
-            autoPlay: true,
-            enlargeCenterPage: true,
-            onPageChanged: (i, _) => setState(() => _currentOffer = i),
-          ),
-          itemBuilder: (_, i, __) {
-            return GestureDetector(
-              onTap: () {
-                if (banners[i] == 'assets/images/4.png') {
-                  context.read<HealthModeNotifier>().toggle();
-                  final enabled = context.read<HealthModeNotifier>().isOn;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        enabled
-                            ? 'Health mode activated via banner! 🥗'
-                            : 'Health mode deactivated.',
-                      ),
-                      duration: const Duration(seconds: 1),
-                    ),
-                  );
-                }
-              },
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(isWide ? 18 : 14),
-                child: Image.asset(banners[i], fit: BoxFit.cover),
-              ),
-            );
-          },
-        ),
-
-        const SizedBox(height: 8),
-
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: List.generate(
-            banners.length,
-            (i) => AnimatedContainer(
-              duration: const Duration(milliseconds: 250),
-              width: _currentOffer == i ? 18 : 8,
-              height: 8,
-              margin: const EdgeInsets.symmetric(horizontal: 4),
-              decoration: BoxDecoration(
-                color: _currentOffer == i
-                    ? (healthMode ? Colors.green : Colors.deepOrange)
-                    : Colors.grey,
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
   static Row _buildSection(
     BuildContext context,
     String title, {
@@ -1042,35 +958,42 @@ class Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+    final displayName = user?.displayName ?? 'User';
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        const Column(
+        Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Welcome back,',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-            ),
-            SizedBox(height: 2),
-            Row(
-              children: [
-                Icon(Icons.location_on, size: 18),
-                SizedBox(width: 4),
-                Text(
-                  'Perinthalmanna',
-                  style: TextStyle(fontSize: 13, color: Colors.grey),
-                ),
-              ],
+              'Welcome,'
+              '\n$displayName',
+              style: GoogleFonts.poppins(
+                fontWeight: FontWeight.w700,
+                fontSize: 28,
+                height: 1.2,
+                color: Colors.deepOrange.shade800,
+              ),
             ),
           ],
         ),
-        IconButton(
+        ElevatedButton(
           onPressed: onToggleHealthMode,
-          icon: Icon(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: healthMode
+                ? Colors.green.shade100
+                : Colors.grey.shade200,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            padding: const EdgeInsets.all(12),
+          ),
+          child: Icon(
             Icons.health_and_safety,
-            size: 28,
-            color: healthMode ? Colors.green : Colors.grey,
+            size: 24,
+            color: healthMode ? Colors.green.shade700 : Colors.grey.shade600,
           ),
         ),
       ],
@@ -1456,22 +1379,35 @@ class CustomTextField extends StatelessWidget {
   Widget build(BuildContext context) {
     final hasText = controller?.text.isNotEmpty == true;
     return Material(
-      elevation: 2,
-      borderRadius: BorderRadius.circular(14),
-      child: TextField(
-        controller: controller,
-        onChanged: onChanged,
-        onSubmitted: onSubmitted,
-        decoration: InputDecoration(
-          hintText: hint,
-          border: const OutlineInputBorder(borderSide: BorderSide.none),
-          prefixIcon: const Icon(Icons.search),
-          suffixIcon: hasText
-              ? IconButton(icon: const Icon(Icons.clear), onPressed: onClear)
-              : null,
-          filled: true,
-          fillColor: Colors.white,
-          contentPadding: const EdgeInsets.symmetric(vertical: 14),
+      elevation: 4,
+      borderRadius: BorderRadius.circular(25),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(25),
+          gradient: LinearGradient(
+            colors: [Colors.white, Colors.orange.shade50],
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+          ),
+        ),
+        child: TextField(
+          controller: controller,
+          onChanged: onChanged,
+          onSubmitted: onSubmitted,
+          decoration: InputDecoration(
+            hintText: hint,
+            border: const OutlineInputBorder(borderSide: BorderSide.none),
+            prefixIcon: Icon(Icons.search, color: Colors.orange.shade600),
+            suffixIcon: hasText
+                ? IconButton(
+                    icon: Icon(Icons.clear, color: Colors.orange.shade600),
+                    onPressed: onClear,
+                  )
+                : null,
+            filled: true,
+            fillColor: Colors.transparent,
+            contentPadding: const EdgeInsets.symmetric(vertical: 14),
+          ),
         ),
       ),
     );

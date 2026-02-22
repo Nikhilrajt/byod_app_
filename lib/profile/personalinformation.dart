@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class Personalinformation extends StatefulWidget {
   const Personalinformation({super.key});
@@ -10,678 +11,470 @@ class Personalinformation extends StatefulWidget {
 }
 
 class _PersonalinformationState extends State<Personalinformation> {
+  final User? user = FirebaseAuth.instance.currentUser;
   final _formKey = GlobalKey<FormState>();
-  bool _isLoading = false;
 
-  // Text editing controllers
-  final _nameController = TextEditingController();
-  final _dayController = TextEditingController();
-  final _monthController = TextEditingController();
-  final _yearController = TextEditingController();
-  final _emailController = TextEditingController();
-  final _phoneController = TextEditingController();
-  final _addressController = TextEditingController();
+  late TextEditingController _nameController;
+  late TextEditingController _phoneController;
+  late TextEditingController _emailController;
+  late TextEditingController _dobController;
+  late TextEditingController _stateController;
+  late TextEditingController _addressController;
 
-  // Dropdown state
-  String? _selectedCountry;
-  String? _selectedProvince;
+  bool _isEditing = false;
+  bool _isLoading = true;
 
-  // List of countries
-  static const List<String> countries = [
-    'Afghanistan',
-    'Albania',
-    'Algeria',
-    'Andorra',
-    'Angola',
-    'Argentina',
-    'Armenia',
-    'Australia',
-    'Austria',
-    'Azerbaijan',
-    'Bahamas',
-    'Bahrain',
-    'Bangladesh',
-    'Barbados',
-    'Belarus',
-    'Belgium',
-    'Belize',
-    'Benin',
-    'Bhutan',
-    'Bolivia',
-    'Bosnia and Herzegovina',
-    'Botswana',
-    'Brazil',
-    'Brunei',
-    'Bulgaria',
-    'Burkina Faso',
-    'Burundi',
-    'Cambodia',
-    'Cameroon',
-    'Canada',
-    'Cape Verde',
-    'Central African Republic',
-    'Chad',
-    'Chile',
-    'China',
-    'Colombia',
-    'Comoros',
-    'Congo',
-    'Costa Rica',
-    'Croatia',
-    'Cuba',
-    'Cyprus',
-    'Czech Republic',
-    'Czechia',
-    'Denmark',
-    'Djibouti',
-    'Dominica',
-    'Dominican Republic',
-    'East Timor',
-    'Ecuador',
-    'Egypt',
-    'El Salvador',
-    'Equatorial Guinea',
-    'Eritrea',
-    'Estonia',
-    'Ethiopia',
-    'Fiji',
-    'Finland',
-    'France',
-    'Gabon',
-    'Gambia',
-    'Georgia',
-    'Germany',
-    'Ghana',
-    'Greece',
-    'Grenada',
-    'Guatemala',
-    'Guinea',
-    'Guinea-Bissau',
-    'Guyana',
-    'Haiti',
-    'Honduras',
-    'Hungary',
-    'Iceland',
-    'India',
-    'Indonesia',
-    'Iran',
-    'Iraq',
-    'Ireland',
-    'Israel',
-    'Italy',
-    'Ivory Coast',
-    'Jamaica',
-    'Japan',
-    'Jordan',
-    'Kazakhstan',
-    'Kenya',
-    'Kiribati',
-    'Korea North',
-    'Korea South',
-    'Kosovo',
-    'Kuwait',
-    'Kyrgyzstan',
-    'Laos',
-    'Latvia',
-    'Lebanon',
-    'Lesotho',
-    'Liberia',
-    'Libya',
-    'Liechtenstein',
-    'Lithuania',
-    'Luxembourg',
-    'Madagascar',
-    'Malawi',
-    'Malaysia',
-    'Maldives',
-    'Mali',
-    'Malta',
-    'Marshall Islands',
-    'Mauritania',
-    'Mauritius',
-    'Mexico',
-    'Micronesia',
-    'Moldova',
-    'Monaco',
-    'Mongolia',
-    'Montenegro',
-    'Morocco',
-    'Mozambique',
-    'Myanmar',
-    'Namibia',
-    'Nauru',
-    'Nepal',
-    'Netherlands',
-    'New Zealand',
-    'Nicaragua',
-    'Niger',
-    'Nigeria',
-    'North Macedonia',
-    'Norway',
-    'Oman',
-    'Pakistan',
-    'Palau',
-    'Palestine',
-    'Panama',
-    'Papua New Guinea',
-    'Paraguay',
-    'Peru',
-    'Philippines',
-    'Poland',
-    'Portugal',
-    'Qatar',
-    'Romania',
-    'Russia',
-    'Rwanda',
-    'Saint Kitts and Nevis',
-    'Saint Lucia',
-    'Saint Vincent and the Grenadines',
-    'Samoa',
-    'San Marino',
-    'Sao Tome and Principe',
-    'Saudi Arabia',
-    'Senegal',
-    'Serbia',
-    'Seychelles',
-    'Sierra Leone',
-    'Singapore',
-    'Slovakia',
-    'Slovenia',
-    'Solomon Islands',
-    'Somalia',
-    'South Africa',
-    'South Sudan',
-    'Spain',
-    'Sri Lanka',
-    'Sudan',
-    'Suriname',
-    'Sweden',
-    'Switzerland',
-    'Syria',
-    'Taiwan',
-    'Tajikistan',
-    'Tanzania',
-    'Thailand',
-    'Timor-Leste',
-    'Togo',
-    'Tonga',
-    'Trinidad and Tobago',
-    'Tunisia',
-    'Turkey',
-    'Turkmenistan',
-    'Tuvalu',
-    'Uganda',
-    'Ukraine',
-    'United Arab Emirates',
-    'United Kingdom',
-    'United States',
-    'Uruguay',
-    'Uzbekistan',
-    'Vanuatu',
-    'Vatican City',
-    'Venezuela',
-    'Vietnam',
-    'Yemen',
-    'Zambia',
-    'Zimbabwe',
+  final List<String> _indianStates = [
+    'Andhra Pradesh',
+    'Arunachal Pradesh',
+    'Assam',
+    'Bihar',
+    'Chhattisgarh',
+    'Goa',
+    'Gujarat',
+    'Haryana',
+    'Himachal Pradesh',
+    'Jharkhand',
+    'Karnataka',
+    'Kerala',
+    'Madhya Pradesh',
+    'Maharashtra',
+    'Manipur',
+    'Meghalaya',
+    'Mizoram',
+    'Nagaland',
+    'Odisha',
+    'Punjab',
+    'Rajasthan',
+    'Sikkim',
+    'Tamil Nadu',
+    'Telangana',
+    'Tripura',
+    'Uttar Pradesh',
+    'Uttarakhand',
+    'West Bengal',
+    'Andaman and Nicobar Islands',
+    'Chandigarh',
+    'Dadra and Nagar Haveli and Daman and Diu',
+    'Delhi',
+    'Jammu and Kashmir',
+    'Ladakh',
+    'Lakshadweep',
+    'Puducherry',
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController();
+    _phoneController = TextEditingController();
+    _emailController = TextEditingController();
+    _dobController = TextEditingController();
+    _stateController = TextEditingController();
+    _addressController = TextEditingController();
+    _fetchUserData();
+  }
 
   @override
   void dispose() {
     _nameController.dispose();
-    _dayController.dispose();
-    _monthController.dispose();
-    _yearController.dispose();
-    _emailController.dispose();
     _phoneController.dispose();
+    _emailController.dispose();
+    _dobController.dispose();
+    _stateController.dispose();
     _addressController.dispose();
     super.dispose();
   }
 
-  void _refreshForm() {
-    setState(() {
-      _nameController.clear();
-      _dayController.clear();
-      _monthController.clear();
-      _yearController.clear();
-      _emailController.clear();
-      _phoneController.clear();
-      _addressController.clear();
-      _selectedCountry = null;
-      _selectedProvince = null;
-      _formKey.currentState?.reset();
-    });
-  }
+  Future<void> _fetchUserData() async {
+    if (user != null) {
+      try {
+        final doc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user!.uid)
+            .get();
 
-  bool _isValidDate(int day, int month, int year) {
-    try {
-      final date = DateTime(year, month, day);
-      return date.year == year && date.month == month && date.day == day;
-    } catch (e) {
-      return false;
-    }
-  }
-
-  Future<void> _savePersonalInfo({
-    required String name,
-    required DateTime dateOfBirth,
-    required String email,
-    required String phone,
-    required String country,
-    required String address,
-  }) async {
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) {
-        throw Exception('User not logged in');
+        if (doc.exists) {
+          final data = doc.data() as Map<String, dynamic>;
+          _nameController.text =
+              data['name'] ?? data['fullName'] ?? user!.displayName ?? '';
+          _phoneController.text = data['phone'] ?? data['phoneNumber'] ?? '';
+          _emailController.text = data['email'] ?? user!.email ?? '';
+          _dobController.text = data['dob'] ?? '';
+          _stateController.text = data['state'] ?? '';
+          _addressController.text = data['address'] ?? '';
+        } else {
+          _nameController.text = user!.displayName ?? '';
+          _emailController.text = user!.email ?? '';
+          _phoneController.text = '';
+          _dobController.text = '';
+          _stateController.text = '';
+          _addressController.text = '';
+        }
+      } catch (e) {
+        debugPrint("Error fetching profile: $e");
       }
+    }
+    if (mounted) setState(() => _isLoading = false);
+  }
 
-      await FirebaseFirestore.instance.collection('users').doc(user.uid).update(
-        {
-          'personalInfo': {
-            'name': name,
-            'dateOfBirth': dateOfBirth,
-            'email': email,
-            'phone': phone,
-            'country': country,
-            'address': address,
-            'updatedAt': FieldValue.serverTimestamp(),
-          },
-        },
-      );
+  Future<void> _updateUserData() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+    try {
+      if (user != null) {
+        // Update Firestore
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user!.uid)
+            .set({
+              'name': _nameController.text.trim(),
+              'fullName': _nameController.text.trim(),
+              'phone': _phoneController.text.trim(),
+              'email': _emailController.text.trim(),
+              'dob': _dobController.text.trim(),
+              'state': _stateController.text.trim(),
+              'address': _addressController.text.trim(),
+              'updatedAt': FieldValue.serverTimestamp(),
+            }, SetOptions(merge: true));
+
+        // Update Auth Display Name (so Home screen updates)
+        await user!.updateDisplayName(_nameController.text.trim());
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Profile updated successfully')),
+          );
+          setState(() => _isEditing = false);
+        }
+      }
     } catch (e) {
-      throw Exception('Failed to save personal information: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error updating profile: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  void _saveForm() {
-    if (_formKey.currentState!.validate()) {
-      // Get form values
-      final name = _nameController.text.trim();
-      final day = int.tryParse(_dayController.text) ?? 0;
-      final month = int.tryParse(_monthController.text) ?? 0;
-      final year = int.tryParse(_yearController.text) ?? 0;
-      final email = _emailController.text.trim();
-      final phone = _phoneController.text.trim();
-      final country = _selectedCountry ?? '';
-      final address = _addressController.text.trim();
-
-      // Create date of birth
-      final dateOfBirth = DateTime(year, month, day);
-
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
+    );
+    if (picked != null) {
       setState(() {
-        _isLoading = true;
+        _dobController.text = "${picked.toLocal()}".split(' ')[0];
       });
-
-      _savePersonalInfo(
-            name: name,
-            dateOfBirth: dateOfBirth,
-            email: email,
-            phone: phone,
-            country: country,
-            address: address,
-          )
-          .then((_) {
-            setState(() {
-              _isLoading = false;
-            });
-
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Personal information saved successfully!'),
-                backgroundColor: Colors.green,
-                duration: Duration(seconds: 2),
-              ),
-            );
-          })
-          .catchError((error) {
-            setState(() {
-              _isLoading = false;
-            });
-
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Error: $error'),
-                backgroundColor: Colors.red,
-                duration: const Duration(seconds: 3),
-              ),
-            );
-          });
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
+        title: Text(
           'Personal Information',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        actions: [
-          IconButton(icon: Icon(Icons.refresh), onPressed: _refreshForm),
-        ],
-        centerTitle: true,
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-        elevation: 0,
-      ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 8),
-                const Text(
-                  'Name',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: _nameController,
-                  keyboardType: TextInputType.name,
-                  decoration: InputDecoration(
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(),
-                    hintText: 'Enter your name',
-                    prefixIcon: Icon(Icons.person_2_outlined),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Please enter your name';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Date of Birth',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextFormField(
-                        controller: _dayController,
-                        keyboardType: TextInputType.number,
-                        decoration: InputDecoration(
-                          border: OutlineInputBorder(),
-                          hintText: 'dd',
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'DD';
-                          }
-                          final day = int.tryParse(value);
-                          if (day == null || day < 1 || day > 31) {
-                            return 'Invalid';
-                          }
-                          // Validate complete date if all fields are filled
-                          final month = int.tryParse(_monthController.text);
-                          final year = int.tryParse(_yearController.text);
-                          if (month != null && year != null) {
-                            if (!_isValidDate(day, month, year)) {
-                              return 'Invalid date';
-                            }
-                          }
-                          return null;
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: TextFormField(
-                        controller: _monthController,
-                        keyboardType: TextInputType.number,
-                        decoration: InputDecoration(
-                          border: OutlineInputBorder(),
-                          hintText: 'mm',
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'MM';
-                          }
-                          final month = int.tryParse(value);
-                          if (month == null || month < 1 || month > 12) {
-                            return 'Invalid';
-                          }
-                          // Validate complete date if all fields are filled
-                          final day = int.tryParse(_dayController.text);
-                          final year = int.tryParse(_yearController.text);
-                          if (day != null && year != null) {
-                            if (!_isValidDate(day, month, year)) {
-                              return 'Invalid date';
-                            }
-                          }
-                          return null;
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: TextFormField(
-                        controller: _yearController,
-                        keyboardType: TextInputType.number,
-                        decoration: InputDecoration(
-                          border: OutlineInputBorder(),
-                          hintText: 'yyyy',
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'YYYY';
-                          }
-                          final year = int.tryParse(value);
-                          if (year == null ||
-                              year < 1900 ||
-                              year > DateTime.now().year) {
-                            return 'Invalid';
-                          }
-                          // Validate complete date if all fields are filled
-                          final day = int.tryParse(_dayController.text);
-                          final month = int.tryParse(_monthController.text);
-                          if (day != null && month != null) {
-                            if (!_isValidDate(day, month, year)) {
-                              return 'Invalid date';
-                            }
-                            // Check if date is not in the future
-                            final date = DateTime(year, month, day);
-                            if (date.isAfter(DateTime.now())) {
-                              return 'Future date';
-                            }
-                          }
-                          return null;
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Email',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: InputDecoration(
-                    border: OutlineInputBorder(),
-                    hintText: 'Enter your email',
-                    prefixIcon: Icon(Icons.email_outlined),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your email';
-                    }
-                    final emailRegex = RegExp(
-                      r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
-                    );
-                    if (!emailRegex.hasMatch(value)) {
-                      return 'Invalid email';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Phone Number',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: _phoneController,
-                  keyboardType: TextInputType.phone,
-                  decoration: InputDecoration(
-                    border: OutlineInputBorder(),
-                    hintText: 'Enter your number',
-                    prefixIcon: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Padding(
-                          padding: EdgeInsets.only(left: 8.0, right: 4.0),
-                          child: Icon(Icons.flag),
-                        ),
-                        Text(
-                          '+91',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your phone number';
-                    }
-                    final phoneRegex = RegExp(r'^[0-9]{10,}$');
-                    if (!phoneRegex.hasMatch(value)) {
-                      return 'Invalid phone number';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Add Your Address',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                DropdownButtonFormField<String>(
-                  initialValue: _selectedCountry,
-                  decoration: InputDecoration(
-                    border: OutlineInputBorder(),
-                    hintText: 'Country',
-                  ),
-                  items: countries
-                      .map(
-                        (country) => DropdownMenuItem(
-                          value: country,
-                          child: Text(country),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedCountry = value;
-                    });
-                  },
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please select a country';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 8),
-
-                // DropdownButtonFormField<String>(
-                //   value: _selectedProvince,
-                //   decoration: InputDecoration(
-                //     border: OutlineInputBorder(),
-                //     hintText: 'address',
-                //   ),
-                //   items: ['Province 1', 'Province 2', 'Province 3']
-                //       .map(
-                //         (province) => DropdownMenuItem(
-                //           value: province,
-                //           child: Text(province),
-                //         ),
-                //       )
-                //       .toList(),
-                //   onChanged: (value) {
-                //     setState(() {
-                //       _selectedProvince = value;
-                //     });
-                //   },
-                //   validator: (value) {
-                //     if (value == null || value.isEmpty) {
-                //       return 'Please select a province';
-                //     }
-                //     return null;
-                //   },
-                // ),
-                TextFormField(
-                  controller: _addressController,
-                  decoration: InputDecoration(
-                    border: OutlineInputBorder(),
-                    hintText: 'Address',
-                  ),
-                  maxLines: 3,
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Please enter your address';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.deepPurple,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      elevation: 8,
-                      shadowColor: Colors.deepPurple.withOpacity(0.5),
-                    ),
-                    onPressed: _isLoading ? null : _saveForm,
-                    child: _isLoading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                Colors.white,
-                              ),
-                              strokeWidth: 2,
-                            ),
-                          )
-                        : const Text(
-                            'Save',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                  ),
-                ),
-              ],
-            ),
+          style: GoogleFonts.playfairDisplay(
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
           ),
         ),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.black87),
+          onPressed: () => Navigator.pop(context),
+        ),
+        actions: [
+          IconButton(
+            icon: Icon(
+              _isEditing ? Icons.close : Icons.edit,
+              color: Colors.black87,
+            ),
+            onPressed: () {
+              setState(() {
+                if (_isEditing) {
+                  // Cancel editing, revert changes
+                  _fetchUserData();
+                  _isEditing = false;
+                } else {
+                  _isEditing = true;
+                }
+              });
+            },
+          ),
+        ],
       ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  children: [
+                    const SizedBox(height: 20),
+                    // Profile Picture Placeholder
+                    Center(
+                      child: Stack(
+                        children: [
+                          Container(
+                            width: 100,
+                            height: 100,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.grey[200],
+                              border: Border.all(color: Colors.white, width: 4),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.1),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 5),
+                                ),
+                              ],
+                            ),
+                            child: const Icon(
+                              Icons.person,
+                              size: 50,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 40),
+
+                    // Personal Information Section
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildTextField(
+                            label: 'Full Name',
+                            controller: _nameController,
+                            icon: Icons.person_outline,
+                            enabled: _isEditing,
+                          ),
+                          const SizedBox(height: 16),
+                          _buildTextField(
+                            label: 'Phone Number',
+                            controller: _phoneController,
+                            icon: Icons.phone_outlined,
+                            enabled: _isEditing,
+                            keyboardType: TextInputType.phone,
+                          ),
+                          const SizedBox(height: 16),
+                          _buildTextField(
+                            label: 'Email',
+                            controller: _emailController,
+                            icon: Icons.email_outlined,
+                            enabled:
+                                false, // Email usually not editable directly
+                          ),
+                          const SizedBox(height: 16),
+                          _buildTextField(
+                            label: 'Date of Birth',
+                            controller: _dobController,
+                            icon: Icons.calendar_today,
+                            enabled: _isEditing,
+                            onTap: _isEditing
+                                ? () => _selectDate(context)
+                                : null,
+                          ),
+                          const SizedBox(height: 16),
+                          DropdownButtonFormField<String>(
+                            isExpanded: true,
+                            value: _indianStates.contains(_stateController.text)
+                                ? _stateController.text
+                                : null,
+                            decoration: InputDecoration(
+                              labelText: 'State',
+                              labelStyle: TextStyle(color: Colors.grey[600]),
+                              prefixIcon: Icon(
+                                Icons.map,
+                                color: _isEditing
+                                    ? Colors.deepOrange
+                                    : Colors.grey,
+                              ),
+                              filled: true,
+                              fillColor: _isEditing
+                                  ? Colors.white
+                                  : Colors.grey[100],
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                  color: Colors.grey[300]!,
+                                ),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                  color: Colors.grey[300]!,
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                  color: Colors.deepOrange,
+                                  width: 1.5,
+                                ),
+                              ),
+                              disabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                  color: Colors.grey[200]!,
+                                ),
+                              ),
+                            ),
+                            items: _indianStates.map((String state) {
+                              return DropdownMenuItem<String>(
+                                value: state,
+                                child: Text(
+                                  state,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: GoogleFonts.lato(
+                                    color: Colors.black87,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                            onChanged: _isEditing
+                                ? (String? newValue) {
+                                    setState(() {
+                                      _stateController.text = newValue ?? '';
+                                    });
+                                  }
+                                : null,
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'State cannot be empty';
+                              }
+                              return null;
+                            },
+                            icon: Icon(
+                              Icons.arrow_drop_down,
+                              color: _isEditing
+                                  ? Colors.deepOrange
+                                  : Colors.grey,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          _buildTextField(
+                            label: 'Address',
+                            controller: _addressController,
+                            icon: Icons.home,
+                            enabled: _isEditing,
+                            maxLines: 3,
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 30),
+
+                    if (_isEditing)
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: ElevatedButton(
+                          onPressed: _updateUserData,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.deepOrange,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 2,
+                          ),
+                          child: Text(
+                            'Save Changes',
+                            style: GoogleFonts.lato(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+    );
+  }
+
+  Widget _buildTextField({
+    required String label,
+    required TextEditingController controller,
+    required IconData icon,
+    bool enabled = true,
+    TextInputType keyboardType = TextInputType.text,
+    VoidCallback? onTap,
+    int maxLines = 1,
+  }) {
+    return TextFormField(
+      controller: controller,
+      enabled: enabled,
+      keyboardType: keyboardType,
+      onTap: onTap,
+      readOnly: onTap != null,
+      maxLines: maxLines,
+      style: GoogleFonts.lato(
+        color: Colors.black87,
+        fontWeight: FontWeight.w500,
+      ),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: TextStyle(color: Colors.grey[600]),
+        prefixIcon: Icon(
+          icon,
+          color: enabled ? Colors.deepOrange : Colors.grey,
+        ),
+        filled: true,
+        fillColor: enabled ? Colors.white : Colors.grey[100],
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey[300]!),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey[300]!),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Colors.deepOrange, width: 1.5),
+        ),
+        disabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey[200]!),
+        ),
+      ),
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return '$label cannot be empty';
+        }
+        return null;
+      },
     );
   }
 }
