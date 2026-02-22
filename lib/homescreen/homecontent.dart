@@ -1,9 +1,10 @@
 // lib/homescreen/homecontent.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:carousel_slider/carousel_slider.dart';
+import 'package:project/homescreen/HomeBannerCarousel.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import 'package:project/models/cart_item.dart';
 import 'package:project/models/category_models.dart';
@@ -24,16 +25,6 @@ class HomeContent extends StatefulWidget {
 
 class _HomeContentState extends State<HomeContent> {
   int _currentOffer = 0;
-  late Stream<QuerySnapshot> _bannerStream;
-
-  @override
-  void initState() {
-    super.initState();
-    _bannerStream = FirebaseFirestore.instance
-        .collection('carousel_banners')
-        .orderBy('createdAt', descending: true)
-        .snapshots();
-  }
 
   // ---------- SEARCH STATE ----------
   final TextEditingController _searchCtl = TextEditingController();
@@ -571,6 +562,7 @@ class _HomeContentState extends State<HomeContent> {
     final healthMode = context.watch<HealthModeNotifier>().isOn;
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       body: SafeArea(
         bottom: false,
         child: SingleChildScrollView(
@@ -602,7 +594,7 @@ class _HomeContentState extends State<HomeContent> {
                         );
                       },
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 20),
                     CustomTextField(
                       controller: _searchCtl,
                       hint: 'Search your food or restaurant',
@@ -640,7 +632,7 @@ class _HomeContentState extends State<HomeContent> {
                 ),
               ] else ...[
                 // ORIGINAL home when there's no query
-                _buildFirestoreCarousel(context),
+                HomeBannerCarousel(healthMode: healthMode),
 
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -894,64 +886,7 @@ class _HomeContentState extends State<HomeContent> {
     );
   }
 
-  // ---------------- FIRESTORE CAROUSEL ----------------
-  Widget _buildFirestoreCarousel(BuildContext context) {
-    return StreamBuilder<QuerySnapshot>(
-      stream: _bannerStream,
-      builder: (context, snapshot) {
-        if (snapshot.hasError) {
-          return Container(
-            height: 200,
-            margin: const EdgeInsets.symmetric(horizontal: 20),
-            decoration: BoxDecoration(
-              color: Colors.grey[200],
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: const Center(child: Text("Unable to load offers")),
-          );
-        }
 
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const SizedBox(
-            height: 240,
-            child: Center(child: CircularProgressIndicator()),
-          );
-        }
-
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return Container(
-            height: 200,
-            margin: const EdgeInsets.symmetric(horizontal: 20),
-            decoration: BoxDecoration(
-              color: Colors.grey[200],
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: const Center(child: Text("No offers currently available")),
-          );
-        }
-
-        final docs = snapshot.data!.docs;
-        final banners = docs.map((doc) {
-          final data = doc.data() as Map<String, dynamic>?;
-          return data?['imageUrl'] as String? ?? '';
-        }).where((url) => url.isNotEmpty).toList();
-
-        if (banners.isEmpty) {
-          return Container(
-            height: 200,
-            margin: const EdgeInsets.symmetric(horizontal: 20),
-            decoration: BoxDecoration(
-              color: Colors.grey[200],
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: const Center(child: Text("No valid offers found")),
-          );
-        }
-
-        return _FirestoreBannerCarousel(banners: banners);
-      },
-    );
-  }
 
   static Row _buildSection(
     BuildContext context,
@@ -1011,75 +946,7 @@ class _HomeContentState extends State<HomeContent> {
   }
 }
 
-class _FirestoreBannerCarousel extends StatefulWidget {
-  final List<String> banners;
 
-  const _FirestoreBannerCarousel({super.key, required this.banners});
-
-  @override
-  State<_FirestoreBannerCarousel> createState() =>
-      _FirestoreBannerCarouselState();
-}
-
-class _FirestoreBannerCarouselState extends State<_FirestoreBannerCarousel> {
-  int _currentOffer = 0;
-
-  @override
-  Widget build(BuildContext context) {
-    final w = MediaQuery.of(context).size.width;
-    final isWide = w >= 900;
-
-    return Column(
-      children: [
-        CarouselSlider.builder(
-          itemCount: widget.banners.length,
-          options: CarouselOptions(
-            height: isWide ? 320 : 240,
-            autoPlay: true,
-            enlargeCenterPage: true,
-            viewportFraction: 0.9,
-            onPageChanged: (i, _) => setState(() => _currentOffer = i),
-          ),
-          itemBuilder: (_, i, __) {
-            return ClipRRect(
-              borderRadius: BorderRadius.circular(isWide ? 18 : 14),
-              child: CachedNetworkImage(
-                imageUrl: widget.banners[i],
-                fit: BoxFit.cover,
-                width: double.infinity,
-                placeholder: (context, url) => Container(
-                  color: Colors.grey[200],
-                  child: const Center(child: CircularProgressIndicator()),
-                ),
-                errorWidget: (context, url, error) => Container(
-                  color: Colors.grey[200],
-                  child: const Icon(Icons.broken_image),
-                ),
-              ),
-            );
-          },
-        ),
-        const SizedBox(height: 8),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: List.generate(
-            widget.banners.length,
-            (i) => AnimatedContainer(
-              duration: const Duration(milliseconds: 250),
-              width: _currentOffer == i ? 18 : 8,
-              height: 8,
-              margin: const EdgeInsets.symmetric(horizontal: 4),
-              decoration: BoxDecoration(
-                color: _currentOffer == i ? Colors.deepOrange : Colors.grey,
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
 
 // ---------------- SMALL COMPONENTS ----------------
 
@@ -1106,8 +973,13 @@ class Header extends StatelessWidget {
           children: [
             Text(
               'Welcome,'
-              ' $displayName',
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              '\n$displayName',
+              style: GoogleFonts.poppins(
+                fontWeight: FontWeight.w600,
+                fontSize: 26,
+                height: 1.2,
+                color: Colors.black87,
+              ),
             ),
           ],
         ),
