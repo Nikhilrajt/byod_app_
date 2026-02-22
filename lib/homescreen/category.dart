@@ -576,7 +576,7 @@ class _CategoryPageState extends State<CategoryPage> {
     final cart = context.watch<CartNotifier>();
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: _isSearching
             ? TextField(
@@ -592,8 +592,8 @@ class _CategoryPageState extends State<CategoryPage> {
                 _currentCategoryName,
                 style: const TextStyle(color: Colors.black),
               ),
-        backgroundColor: Colors.white,
-        elevation: 0,
+        backgroundColor: Colors.transparent,
+        elevation: 0, // Make it seamless with the body
         iconTheme: const IconThemeData(color: Colors.black),
         leading: _isSearching
             ? IconButton(
@@ -703,7 +703,7 @@ class _CategoryPageState extends State<CategoryPage> {
           // HORIZONTAL CATEGORY CHIPS
           Container(
             height: 60,
-            color: Colors.white,
+            color: Colors.transparent,
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
                   .collection("categories")
