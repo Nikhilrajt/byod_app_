@@ -91,8 +91,9 @@ class _CategoryPageState extends State<CategoryPage> {
     if (docs.isEmpty) return;
 
     // Check if current category is valid (exists in the list)
-    bool currentCategoryExists =
-        docs.any((doc) => doc.id == _currentCategoryId);
+    bool currentCategoryExists = docs.any(
+      (doc) => doc.id == _currentCategoryId,
+    );
 
     if (_currentCategoryId.isEmpty || !currentCategoryExists) {
       final firstDoc = docs.first;
@@ -576,7 +577,7 @@ class _CategoryPageState extends State<CategoryPage> {
     final cart = context.watch<CartNotifier>();
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: _isSearching
             ? TextField(
@@ -592,7 +593,7 @@ class _CategoryPageState extends State<CategoryPage> {
                 _currentCategoryName,
                 style: const TextStyle(color: Colors.black),
               ),
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.white,
         elevation: 0, // Make it seamless with the body
         iconTheme: const IconThemeData(color: Colors.black),
         leading: _isSearching

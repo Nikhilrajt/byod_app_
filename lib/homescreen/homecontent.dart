@@ -653,11 +653,11 @@ class _HomeContentState extends State<HomeContent> {
                       //   healthMode ? 'Nutrition Picks' : 'Most Preferred',
                       // ),
                       // const SizedBox(height: 12),
-                      const SizedBox(height: 24),
-                      _buildSection(context, 'Restaurants'),
                       const SizedBox(height: 12),
+                      _buildSection(context, 'Restaurants'),
+                      const SizedBox(height: 8),
                       _buildFirestoreRestaurants(context),
-                      const SizedBox(height: 28),
+                      const SizedBox(height: 16),
                     ],
                   ),
                 ),
@@ -886,8 +886,6 @@ class _HomeContentState extends State<HomeContent> {
     );
   }
 
-
-
   static Row _buildSection(
     BuildContext context,
     String title, {
@@ -946,8 +944,6 @@ class _HomeContentState extends State<HomeContent> {
   }
 }
 
-
-
 // ---------------- SMALL COMPONENTS ----------------
 
 class Header extends StatelessWidget {
@@ -975,20 +971,29 @@ class Header extends StatelessWidget {
               'Welcome,'
               '\n$displayName',
               style: GoogleFonts.poppins(
-                fontWeight: FontWeight.w600,
-                fontSize: 26,
+                fontWeight: FontWeight.w700,
+                fontSize: 28,
                 height: 1.2,
-                color: Colors.black87,
+                color: Colors.deepOrange.shade800,
               ),
             ),
           ],
         ),
-        IconButton(
+        ElevatedButton(
           onPressed: onToggleHealthMode,
-          icon: Icon(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: healthMode
+                ? Colors.green.shade100
+                : Colors.grey.shade200,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            padding: const EdgeInsets.all(12),
+          ),
+          child: Icon(
             Icons.health_and_safety,
-            size: 28,
-            color: healthMode ? Colors.green : Colors.grey,
+            size: 24,
+            color: healthMode ? Colors.green.shade700 : Colors.grey.shade600,
           ),
         ),
       ],
@@ -1374,22 +1379,35 @@ class CustomTextField extends StatelessWidget {
   Widget build(BuildContext context) {
     final hasText = controller?.text.isNotEmpty == true;
     return Material(
-      elevation: 2,
-      borderRadius: BorderRadius.circular(14),
-      child: TextField(
-        controller: controller,
-        onChanged: onChanged,
-        onSubmitted: onSubmitted,
-        decoration: InputDecoration(
-          hintText: hint,
-          border: const OutlineInputBorder(borderSide: BorderSide.none),
-          prefixIcon: const Icon(Icons.search),
-          suffixIcon: hasText
-              ? IconButton(icon: const Icon(Icons.clear), onPressed: onClear)
-              : null,
-          filled: true,
-          fillColor: Colors.white,
-          contentPadding: const EdgeInsets.symmetric(vertical: 14),
+      elevation: 4,
+      borderRadius: BorderRadius.circular(25),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(25),
+          gradient: LinearGradient(
+            colors: [Colors.white, Colors.orange.shade50],
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+          ),
+        ),
+        child: TextField(
+          controller: controller,
+          onChanged: onChanged,
+          onSubmitted: onSubmitted,
+          decoration: InputDecoration(
+            hintText: hint,
+            border: const OutlineInputBorder(borderSide: BorderSide.none),
+            prefixIcon: Icon(Icons.search, color: Colors.orange.shade600),
+            suffixIcon: hasText
+                ? IconButton(
+                    icon: Icon(Icons.clear, color: Colors.orange.shade600),
+                    onPressed: onClear,
+                  )
+                : null,
+            filled: true,
+            fillColor: Colors.transparent,
+            contentPadding: const EdgeInsets.symmetric(vertical: 14),
+          ),
         ),
       ),
     );

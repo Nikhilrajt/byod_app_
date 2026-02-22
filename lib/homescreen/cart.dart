@@ -9,6 +9,37 @@ import 'package:razorpay_flutter/razorpay_flutter.dart';
 import '../services/order_service.dart';
 import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'dart:math';
+
+class WaveClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    var path = Path();
+    path.lineTo(0, size.height * 0.7);
+    var firstControlPoint = Offset(size.width * 0.25, size.height * 0.9);
+    var firstEndPoint = Offset(size.width * 0.5, size.height * 0.7);
+    path.quadraticBezierTo(
+      firstControlPoint.dx,
+      firstControlPoint.dy,
+      firstEndPoint.dx,
+      firstEndPoint.dy,
+    );
+    var secondControlPoint = Offset(size.width * 0.75, size.height * 0.5);
+    var secondEndPoint = Offset(size.width, size.height * 0.7);
+    path.quadraticBezierTo(
+      secondControlPoint.dx,
+      secondControlPoint.dy,
+      secondEndPoint.dx,
+      secondEndPoint.dy,
+    );
+    path.lineTo(size.width, 0);
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
+}
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -374,7 +405,7 @@ class _CartScreenState extends State<CartScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -384,73 +415,195 @@ class _CartScreenState extends State<CartScreen> {
         ),
         centerTitle: true,
       ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildPendingApprovalSection(),
-            Expanded(
-              child: Consumer<CartNotifier>(
-                builder: (_, cart, __) {
-                  final items = cart.items;
-                  if (items.isEmpty) {
-                    return SizedBox(
-                      width: double.infinity,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(
-                            Icons.shopping_cart_outlined,
-                            size: 80,
-                            color: Colors.grey,
-                          ),
-                          const SizedBox(height: 20),
-                          const Text('Your cart is empty'),
-                          const SizedBox(height: 20),
-                          ElevatedButton(
-                            onPressed: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const CategoryPage(
-                                  categoryId: '',
-                                  categoryName: '',
-                                ),
-                              ),
-                            ),
-                            child: const Text('Browse Menu'),
-                          ),
-                        ],
-                      ),
-                    );
-                  }
-
-                  final total = items.fold(
-                    0,
-                    (sum, item) => sum + item.totalPrice,
-                  );
-
-                  return Column(
-                    children: [
-                      Expanded(
-                        child: ListView.builder(
-                          padding: EdgeInsets.fromLTRB(
-                            16,
-                            0,
-                            16,
-                            MediaQuery.of(context).padding.bottom + 88,
-                          ),
-                          itemCount: items.length,
-                          itemBuilder: (_, i) =>
-                              _buildCartItem(context, items[i], i, cart),
-                        ),
-                      ),
-                      _buildBottomSection(context, items, total),
+      body: Stack(
+        children: [
+          // Background design
+          Positioned.fill(
+            child: Container(decoration: BoxDecoration(color: Colors.white)),
+          ),
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 200,
+            child: ClipPath(
+              clipper: WaveClipper(),
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      const Color(0xFFFF9800).withOpacity(0.5),
+                      const Color(0xFFFF9800).withOpacity(0.2),
                     ],
-                  );
-                },
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
+                ),
               ),
             ),
-          ],
-        ),
+          ),
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: 150,
+            child: Transform.rotate(
+              angle: pi,
+              child: ClipPath(
+                clipper: WaveClipper(),
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        const Color(0xFFFF5722).withOpacity(0.4),
+                        const Color(0xFFFF5722).withOpacity(0.1),
+                      ],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            top: 100,
+            right: 50,
+            child: Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    const Color(0xFFFF9800).withOpacity(0.4),
+                    const Color(0xFFFF9800).withOpacity(0.1),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: 200,
+            left: 30,
+            child: Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    const Color(0xFFFF5722).withOpacity(0.35),
+                    const Color(0xFFFF5722).withOpacity(0.1),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            top: 300,
+            left: 100,
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    const Color(0xFFFF9800).withOpacity(0.3),
+                    const Color(0xFFFF9800).withOpacity(0.05),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            top: 200,
+            right: 100,
+            child: Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    const Color(0xFFFF5722).withOpacity(0.25),
+                    const Color(0xFFFF5722).withOpacity(0.05),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          // Main content
+          SafeArea(
+            child: Column(
+              children: [
+                _buildPendingApprovalSection(),
+                Expanded(
+                  child: Consumer<CartNotifier>(
+                    builder: (_, cart, __) {
+                      final items = cart.items;
+                      if (items.isEmpty) {
+                        return SizedBox(
+                          width: double.infinity,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.shopping_cart_outlined,
+                                size: 80,
+                                color: Colors.grey,
+                              ),
+                              const SizedBox(height: 20),
+                              const Text('Your cart is empty'),
+                              const SizedBox(height: 20),
+                              ElevatedButton(
+                                onPressed: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const CategoryPage(
+                                      categoryId: '',
+                                      categoryName: '',
+                                    ),
+                                  ),
+                                ),
+                                child: const Text('Browse Menu'),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+
+                      final total = items.fold(
+                        0,
+                        (sum, item) => sum + item.totalPrice,
+                      );
+
+                      return Column(
+                        children: [
+                          Expanded(
+                            child: ListView.builder(
+                              padding: EdgeInsets.fromLTRB(
+                                16,
+                                0,
+                                16,
+                                MediaQuery.of(context).padding.bottom + 88,
+                              ),
+                              itemCount: items.length,
+                              itemBuilder: (_, i) =>
+                                  _buildCartItem(context, items[i], i, cart),
+                            ),
+                          ),
+                          _buildBottomSection(context, items, total),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -631,7 +784,7 @@ class _CartScreenState extends State<CartScreen> {
 
     if (hasByod && hasNormal) {
       return Container(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 90),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
@@ -643,32 +796,30 @@ class _CartScreenState extends State<CartScreen> {
             ),
           ],
         ),
-        child: SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: const [
-              Text(
-                'Mixed Cart Detected',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.red,
-                ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: const [
+            Text(
+              'Mixed Cart Detected',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.red,
               ),
-              SizedBox(height: 8),
-              Text(
-                'Billing for Normal and BYOD orders is separate.\nPlease remove one type of item to proceed.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey),
-              ),
-            ],
-          ),
+            ),
+            SizedBox(height: 8),
+            Text(
+              'Billing for Normal and BYOD orders is separate.\nPlease remove one type of item to proceed.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey),
+            ),
+          ],
         ),
       );
     }
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 90),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
@@ -680,58 +831,56 @@ class _CartScreenState extends State<CartScreen> {
           ),
         ],
       ),
-      child: SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Total Amount',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.grey,
-                  ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Total Amount',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.grey,
                 ),
-                Text(
-                  '₹$total',
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
-                  ),
+              ),
+              Text(
+                '₹$total',
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
                 ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              height: 54,
-              child: ElevatedButton(
-                onPressed: () => hasByod
-                    ? _submitForApproval(context, items, total)
-                    : _showPaymentOptionsForNormalOrder(context, total),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.deepOrange,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  elevation: 2,
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            height: 54,
+            child: ElevatedButton(
+              onPressed: () => hasByod
+                  ? _submitForApproval(context, items, total)
+                  : _showPaymentOptionsForNormalOrder(context, total),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.deepOrange,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                child: Text(
-                  hasByod ? 'Submit for Approval' : 'Checkout',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
+                elevation: 2,
+              ),
+              child: Text(
+                hasByod ? 'Submit for Approval' : 'Checkout',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

@@ -74,13 +74,17 @@ class RestaurentListScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text(
           'BYOD Restaurants',
-          style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 22),
+          style: GoogleFonts.poppins(
+            fontWeight: FontWeight.bold,
+            fontSize: 22,
+            color: Colors.black,
+          ),
         ),
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.black,
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.deepOrange,
         elevation: 0,
       ),
-      backgroundColor: Colors.transparent,
+      backgroundColor: Colors.white,
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('users')

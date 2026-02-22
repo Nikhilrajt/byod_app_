@@ -47,7 +47,7 @@ class RestaurantListScreen extends StatelessWidget {
         foregroundColor: Colors.white,
         elevation: 0,
       ),
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Colors.white,
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('users')
@@ -240,6 +240,7 @@ class RestaurantDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: Text(restaurant.name),
         backgroundColor: Colors.deepOrange,
@@ -449,30 +450,32 @@ class _ByodPageState extends State<ByodPage> {
 
       // Create customizations list for the single tile
       List<String> customizations = [];
-      
+
       // Internal tags for logic (will be extracted by cart)
       customizations.add('BYOD_NAME:${recipeNameController.text.trim()}');
       customizations.add('BYOD_TYPE:$recipeType');
       customizations.add('BYOD_CONTENT:${recipeContent ?? ''}');
 
       // Visible details for Cart and Restaurant
-      if (recipeType == 'write' && recipeContent != null && recipeContent.isNotEmpty) {
-         customizations.add('Instructions: $recipeContent');
+      if (recipeType == 'write' &&
+          recipeContent != null &&
+          recipeContent.isNotEmpty) {
+        customizations.add('Instructions: $recipeContent');
       }
       if (ingredientNames.isNotEmpty) {
-         customizations.add('Ingredients: ${ingredientNames.join(', ')}');
+        customizations.add('Ingredients: ${ingredientNames.join(', ')}');
       }
 
       // Create SINGLE CartItem representing the whole dish
       final byodItem = CartItem(
         name: recipeNameController.text.trim(), // Dish Name
         price: totalPrice,
-        imageUrl: '', 
+        imageUrl: '',
         restaurantName: widget.restaurant.name,
         restaurantId: widget.restaurant.id,
         quantity: 1,
         customizations: customizations,
-        isHealthy: false, 
+        isHealthy: false,
       );
 
       cart.addToCart(byodItem);
@@ -499,7 +502,7 @@ class _ByodPageState extends State<ByodPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
