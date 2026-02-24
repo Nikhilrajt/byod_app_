@@ -10,9 +10,6 @@ class SettingPage extends StatefulWidget {
 }
 
 class _SettingPageState extends State<SettingPage> {
-  // Settings state variables
-  bool _notificationsEnabled = true;
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -61,35 +58,6 @@ class _SettingPageState extends State<SettingPage> {
                         ),
                       );
                     },
-                  ),
-                ],
-              ),
-            ),
-
-            _buildSectionHeader('Preferences'),
-            Card(
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: BorderSide(color: Colors.grey.shade200),
-              ),
-              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Column(
-                children: [
-                  SwitchListTile(
-                    secondary: const Icon(
-                      Icons.notifications_active,
-                      color: Colors.deepPurple,
-                    ),
-                    title: const Text('Notifications'),
-                    subtitle: const Text('Enable push notifications'),
-                    value: _notificationsEnabled,
-                    onChanged: (value) {
-                      setState(() {
-                        _notificationsEnabled = value;
-                      });
-                    },
-                    activeThumbColor: Colors.deepPurple,
                   ),
                 ],
               ),

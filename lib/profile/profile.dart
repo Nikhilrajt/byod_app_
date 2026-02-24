@@ -307,8 +307,6 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  bool pushNotifications = true;
-  bool promotionalNotifications = false;
   String selectedLanguage = 'English';
   String selectedCountry = 'United Kingdom';
 
@@ -415,6 +413,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ),
 
+                const SizedBox(height: 10),
+
                 // 2. Personal Information
                 ListTile(
                   leading: const Icon(Icons.person, color: Colors.deepPurple),
@@ -430,6 +430,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   },
                 ),
 
+                const SizedBox(height: 12),
                 // 2.5. My Orders (NEW)
                 ListTile(
                   leading: const Icon(Icons.history, color: Colors.deepPurple),
@@ -445,6 +446,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   },
                 ),
 
+                const SizedBox(height: 12),
                 // Delivery Page
                 ListTile(
                   leading: const Icon(
@@ -456,6 +458,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   onTap: _navigateToDelivery,
                 ),
 
+                const SizedBox(height: 12),
                 // 3. Language Selector
                 LanguageSelector(
                   selectedLanguage: selectedLanguage,
@@ -468,6 +471,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   },
                 ),
 
+                const SizedBox(height: 12),
                 // 4. Privacy and Policy
                 ListTile(
                   leading: const Icon(
@@ -486,6 +490,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   },
                 ),
 
+                const SizedBox(height: 12),
                 // 5. Settings
                 ListTile(
                   leading: const Icon(Icons.settings, color: Colors.deepPurple),
@@ -501,53 +506,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   },
                 ),
 
-                // Divider and Notifications Section Title
-                const Divider(
-                  height: 1,
-                  thickness: 1,
-                  indent: 16,
-                  endIndent: 16,
-                ),
-                const Padding(
-                  padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
-                  child: Text(
-                    'Notifications',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                  ),
-                ),
-
-                // 6. Push Notifications Switch
-                SwitchListTile(
-                  secondary: const Icon(
-                    Icons.notifications_active,
-                    color: Colors.deepPurple,
-                  ),
-                  title: const Text('Push Notifications'),
-                  value: pushNotifications,
-                  onChanged: (bool value) {
-                    setState(() {
-                      pushNotifications = value;
-                    });
-                  },
-                  activeThumbColor: Colors.deepPurple,
-                ),
-
-                // 7. Promotional Notifications Switch
-                SwitchListTile(
-                  secondary: const Icon(
-                    Icons.local_offer,
-                    color: Colors.deepPurple,
-                  ),
-                  title: const Text('Promotional Notifications'),
-                  value: promotionalNotifications,
-                  onChanged: (bool value) {
-                    setState(() {
-                      promotionalNotifications = value;
-                    });
-                  },
-                  activeThumbColor: Colors.deepPurple,
-                ),
-
                 // Divider
                 const Divider(
                   height: 1,
@@ -556,6 +514,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   endIndent: 16,
                 ),
 
+                const SizedBox(height: 12),
                 // 8. Help Center
                 ListTile(
                   leading: const Icon(
@@ -574,6 +533,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   },
                 ),
 
+                const SizedBox(height: 12),
                 // 8.5 Feedback
                 ListTile(
                   leading: const Icon(
@@ -592,6 +552,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   },
                 ),
 
+                const SizedBox(height: 12),
                 // 9. Logout
                 ListTile(
                   leading: const Icon(Icons.logout, color: Colors.black),
