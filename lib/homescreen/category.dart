@@ -72,18 +72,6 @@ class _CategoryPageState extends State<CategoryPage> {
     }
   }
 
-  // --- 1. FUNCTION TO CHECK IF A CATEGORY CONTAINS HEALTHY ITEMS ---
-  Future<bool> _categoryHasHealthyItems(String categoryId) async {
-    final snapshot = await FirebaseFirestore.instance
-        .collection("categories")
-        .doc(categoryId)
-        .collection("items")
-        .where("isHealthy", isEqualTo: true)
-        .limit(1)
-        .get();
-    return snapshot.docs.isNotEmpty;
-  }
-
   // ---------------------------------------------------
   // 2. AUTO-SELECT FIRST CATEGORY
   // ---------------------------------------------------
@@ -805,46 +793,25 @@ class _CategoryPageState extends State<CategoryPage> {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       );
                     }
-                    var docs = snapshot.data!.docs;
+                    final docs = snapshot.data!.docs;
+                    final filteredDocs = docs.where((doc) {
+                      final data = doc.data() as Map<String, dynamic>;
+                      final isHealthy = data['isHealthy'] ?? false;
+                      if (healthMode) {
+                        return isHealthy == true;
+                      } else {
+                        return isHealthy == false;
+                      }
+                    }).toList();
 
-                    if (healthMode) {
-                      return FutureBuilder<List<DocumentSnapshot>>(
-                        future: Future.wait(
-                          docs
-                              .map((doc) async {
-                                return await _categoryHasHealthyItems(doc.id)
-                                    ? doc
-                                    : null;
-                              })
-                              .where((f) => f != null)
-                              .cast<Future<DocumentSnapshot>>(),
-                        ),
-                        builder: (context, filteredSnapshot) {
-                          if (filteredSnapshot.connectionState ==
-                              ConnectionState.waiting) {
-                            return const Center(
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            );
-                          }
-
-                          final healthyDocs =
-                              filteredSnapshot.data
-                                  ?.where((d) => d != null)
-                                  .toList() ??
-                              [];
-
-                          if (healthyDocs.isEmpty) {
-                            return const Center(
-                              child: Text("No healthy categories available"),
-                            );
-                          }
-
-                          return _buildCategoryChips(healthyDocs, healthMode);
-                        },
+                    if (filteredDocs.isEmpty) {
+                      return Center(
+                        child: Text(healthMode
+                            ? "No healthy categories available"
+                            : "No categories available"),
                       );
-                    } else {
-                      return _buildCategoryChips(docs, healthMode);
                     }
+                    return _buildCategoryChips(filteredDocs, healthMode);
                   },
                 ),
               ),
