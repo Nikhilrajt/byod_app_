@@ -186,116 +186,6 @@ class TermsAndConditions extends StatelessWidget {
 // }
 
 // -----------------------------------------------------------------
-// LANGUAGE SELECTOR WIDGET
-// -----------------------------------------------------------------
-
-class LanguageSelector extends StatefulWidget {
-  final String selectedLanguage;
-  final String selectedCountry;
-  final Function(String, String) onSelected;
-
-  const LanguageSelector({
-    required this.selectedLanguage,
-    required this.selectedCountry,
-    required this.onSelected,
-    super.key,
-  });
-
-  @override
-  State<LanguageSelector> createState() => _LanguageSelectorState();
-}
-
-class _LanguageSelectorState extends State<LanguageSelector> {
-  final List<Map<String, String>> languages = const [
-    {'lang': 'English', 'country': 'United Kingdom'},
-    {'lang': 'हिंदी', 'country': 'भारत'},
-    {'lang': 'العربية', 'country': 'العالم'},
-    {'lang': 'বাংলা', 'country': 'বাংলাদেশ'},
-    {'lang': '简体中文', 'country': '中国'},
-    {'lang': 'Français', 'country': 'France'},
-    {'lang': 'Português', 'country': 'Portugal'},
-    {'lang': 'Русский', 'country': 'Россия'},
-    {'lang': 'Español', 'country': 'España'},
-    {'lang': 'اردو', 'country': 'پاکستان'},
-  ];
-
-  void _showLanguagesheet() {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        return SizedBox(
-          height: MediaQuery.of(context).size.height * 0.5,
-          child: ListView(
-            children: languages.map((lang) {
-              final isSelected =
-                  lang['lang'] == widget.selectedLanguage &&
-                  lang['country'] == widget.selectedCountry;
-              return ListTile(
-                title: Row(
-                  children: [
-                    Text(lang['lang'] ?? ''),
-                    const SizedBox(width: 8),
-                    Text(
-                      lang['country'] ?? '',
-                      style: const TextStyle(color: Colors.grey),
-                    ),
-                  ],
-                ),
-                trailing: isSelected
-                    ? const Icon(
-                        Icons.check_circle,
-                        color: Color.fromARGB(255, 32, 5, 150),
-                      )
-                    : null,
-                onTap: () {
-                  widget.onSelected(lang['lang']!, lang['country']!);
-                  Navigator.pop(context);
-                },
-              );
-            }).toList(),
-          ),
-        );
-      },
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: _showLanguagesheet,
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: Colors.grey[200],
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          children: [
-            const Icon(Icons.language, color: Colors.deepPurple),
-            const SizedBox(width: 8),
-            Text(
-              widget.selectedLanguage,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(width: 4),
-            Text(
-              widget.selectedCountry,
-              style: const TextStyle(color: Colors.grey),
-            ),
-            const Spacer(),
-            const Icon(Icons.keyboard_arrow_down),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// -----------------------------------------------------------------
 // PROFILE SCREEN WIDGET (Updated with OrdersPage link)
 // -----------------------------------------------------------------
 
@@ -307,9 +197,6 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  String selectedLanguage = 'English';
-  String selectedCountry = 'United Kingdom';
-
   Future<void> _navigateToDelivery() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
@@ -459,19 +346,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
 
                 const SizedBox(height: 12),
-                // 3. Language Selector
-                LanguageSelector(
-                  selectedLanguage: selectedLanguage,
-                  selectedCountry: selectedCountry,
-                  onSelected: (lang, country) {
-                    setState(() {
-                      selectedLanguage = lang;
-                      selectedCountry = country;
-                    });
-                  },
-                ),
-
-                const SizedBox(height: 12),
                 // 4. Privacy and Policy
                 ListTile(
                   leading: const Icon(
@@ -555,44 +429,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(height: 12),
                 // 9. Logout
                 ListTile(
-                  leading: const Icon(Icons.logout, color: Colors.black),
-                  title: const Text("Logout"),
-                  subtitle: const Text("Sign out from this account"),
-                  onTap: () {
-                    showDialog(
-                      context: context,
-                      builder: (BuildContext context) {
-                        return AlertDialog(
-                          title: const Text('Logout'),
-                          content: const Text(
-                            'Are you sure you want to log out?',
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () {
-                                Navigator.of(context).pop();
-                              },
-                              child: const Text('Cancel'),
-                            ),
-                            TextButton(
-                              onPressed: () {
-                                AuthService().signOut();
-                                // Navigator.of(context).pop();
-                                Navigator.pushAndRemoveUntil(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => Loginscreen(),
-                                  ),
-                                  (route) => true,
-                                );
-                              },
-                              child: const Text('Logout'),
-                            ),
-                          ],
-                        );
-                      },
-                    );
-                  },
+                  leading: const Icon(Icons.logout, color: Colors.redAccent),
+                  title: const Text(
+                    "Logout",
+                    style: TextStyle(
+                      color: Colors.redAccent,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  subtitle: Text(
+                    "Sign out from this account",
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                  onTap: () => _showLogoutDialog(context),
                 ),
                 const SizedBox(height: 20),
               ],
@@ -600,6 +451,93 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  void _showLogoutDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            dialogBackgroundColor: Colors.white,
+          ),
+          child: AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            icon: const Icon(
+              Icons.logout,
+              color: Colors.redAccent,
+              size: 40,
+            ),
+            title: Text(
+              'Confirm Logout',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.lato(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+            content: Text(
+              'Are you sure you want to sign out?',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.lato(
+                fontSize: 16,
+                color: Colors.black54,
+              ),
+            ),
+            actionsAlignment: MainAxisAlignment.center,
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                child: Text(
+                  'Cancel',
+                  style: GoogleFonts.lato(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black54,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.redAccent,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 12,
+                  ),
+                ),
+                onPressed: () {
+                  AuthService().signOut();
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => Loginscreen(),
+                    ),
+                    (route) => true,
+                  );
+                },
+                child: Text(
+                  'Logout',
+                  style: GoogleFonts.lato(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

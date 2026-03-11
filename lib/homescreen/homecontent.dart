@@ -539,6 +539,10 @@ class _HomeContentState extends State<HomeContent> {
                 title: name,
                 image: imageUrl ?? "",
                 onTap: () {
+                  print(
+                    'Opening category: '
+                    'name: $name, id: $categoryId',
+                  );
                   Navigator.push(
                     context,
                     MaterialPageRoute(

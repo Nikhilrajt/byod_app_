@@ -13,6 +13,25 @@ class _AdminReviewPageState extends State<AdminReviewPage> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   String _searchQuery = '';
   int? _filterRating;
+  late Stream<QuerySnapshot> _reviewStream;
+
+  @override
+  void initState() {
+    super.initState();
+    _reviewStream = _firestore
+        .collection('feedbacks')
+        .orderBy('createdAt', descending: true)
+        .snapshots();
+  }
+
+  void _refreshReviews() {
+    setState(() {
+      _reviewStream = _firestore
+          .collection('feedbacks')
+          .orderBy('createdAt', descending: true)
+          .snapshots();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +47,7 @@ class _AdminReviewPageState extends State<AdminReviewPage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white),
-            onPressed: () => setState(() {}),
+            onPressed: _refreshReviews,
           ),
         ],
       ),
@@ -84,10 +103,7 @@ class _AdminReviewPageState extends State<AdminReviewPage> {
           // List
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
-              stream: _firestore
-                  .collection('feedbacks')
-                  .orderBy('createdAt', descending: true)
-                  .snapshots(),
+              stream: _reviewStream,
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
                   return Center(child: Text('Error: ${snapshot.error}'));

@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:project/restaurent/Orderpage.dart' as OP;
+import '../../homescreen/BYOD/full_screen_image.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class PendingByodRequestsPage extends StatefulWidget {
@@ -251,19 +252,24 @@ class _PendingByodRequestsPageState extends State<PendingByodRequestsPage> {
       case 'upload':
         contentWidget = content != null && content.isNotEmpty
             ? InkWell(
-                onTap: () => showDialog(
-                  context: context,
-                  builder: (_) => Dialog(child: Image.network(content)),
-                ),
-                child: Container(
-                  height: 150,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8),
-                    image: DecorationImage(
-                      image: NetworkImage(content),
-                      fit: BoxFit.cover,
+                onTap: () {
+                  print('Tapped image: $content');
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => FullScreenImageScreen(imageUrl: content),
                     ),
+                  );
+                },
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.network(
+                    content,
+                    height: 150,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) =>
+                        const Center(child: Text('Could not load image.')),
                   ),
                 ),
               )

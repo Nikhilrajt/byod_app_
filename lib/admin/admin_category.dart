@@ -16,6 +16,25 @@ class _AdminCategoryPageState extends State<AdminCategoryPage> {
   final ImagePicker _picker = ImagePicker();
   final CloudneryUploader _uploader = CloudneryUploader();
   String _searchQuery = '';
+  late Stream<QuerySnapshot> _categoryStream;
+
+  @override
+  void initState() {
+    super.initState();
+    _categoryStream = _firestore
+        .collection('categories')
+        .orderBy('createdAt', descending: true)
+        .snapshots();
+  }
+
+  void _refreshCategories() {
+    setState(() {
+      _categoryStream = _firestore
+          .collection('categories')
+          .orderBy('createdAt', descending: true)
+          .snapshots();
+    });
+  }
 
   // 🔥 NEW: Batch update existing categories
   Future<void> _fixExistingCategories() async {
@@ -100,6 +119,15 @@ class _AdminCategoryPageState extends State<AdminCategoryPage> {
     }
   }
 
+  // Add this method to batch update all categories to healthy
+  Future<void> makeAllCategoriesHealthy() async {
+    final snapshot = await _firestore.collection('categories').get();
+    for (var doc in snapshot.docs) {
+      await doc.reference.update({'isHealthy': true});
+    }
+    _showSnackBar('All categories set to healthy!', Colors.green);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -120,7 +148,13 @@ class _AdminCategoryPageState extends State<AdminCategoryPage> {
           ),
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white),
-            onPressed: () => setState(() {}),
+            onPressed: _refreshCategories,
+          ),
+          // Example: Add this button to your AppBar actions or somewhere convenient
+          IconButton(
+            icon: Icon(Icons.healing, color: Colors.white),
+            tooltip: "Set All Healthy",
+            onPressed: makeAllCategoriesHealthy,
           ),
         ],
       ),
@@ -149,10 +183,7 @@ class _AdminCategoryPageState extends State<AdminCategoryPage> {
 
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
-              stream: _firestore
-                  .collection('categories')
-                  .orderBy('createdAt', descending: true)
-                  .snapshots(),
+              stream: _categoryStream,
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
                   return const Center(child: Text("Error loading categories"));
