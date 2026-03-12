@@ -22,19 +22,15 @@ class CategoryPage extends StatefulWidget {
   });
 
   @override
-  State<CategoryPage> createState() => _CategoryPageState();
+  State<CategoryPage> createState() => _CategoryPageState(); 
 }
 
 class _CategoryPageState extends State<CategoryPage> {
   String _currentCategoryId = "";
   String _currentCategoryName = "";
   String _lastHealthModeState = ""; // Track health mode changes
-<<<<<<< HEAD
-  bool _shouldAutoSelect = false; // Only auto-select if coming from bottom navigation
-=======
   bool _shouldAutoSelect =
       false; // Only auto-select if coming from bottom navigation
->>>>>>> nikhil
   bool _userManuallySelectedCategory = false;
 
   // Search State
