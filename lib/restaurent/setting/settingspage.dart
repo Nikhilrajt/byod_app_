@@ -17,8 +17,6 @@ class Settingspage extends StatefulWidget {
 }
 
 class _SettingspageState extends State<Settingspage> {
-  bool _notificationsEnabled = true;
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -96,28 +94,7 @@ class _SettingspageState extends State<Settingspage> {
               );
             },
           ),
-          const Divider(),
-          SwitchListTile(
-            secondary: const Icon(Icons.notifications, color: Colors.redAccent),
-            title: const Text("Notifications"),
-            subtitle: const Text("Enable or disable push notifications"),
-            value: _notificationsEnabled,
-            onChanged: (bool value) {
-              setState(() {
-                _notificationsEnabled = value;
-              });
-
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    _notificationsEnabled
-                        ? "Notifications Enabled"
-                        : "Notifications Disabled",
-                  ),
-                ),
-              );
-            },
-          ),
+          // Notifications section removed
           const Divider(),
           ListTile(
             leading: const Icon(Icons.lock, color: Colors.teal),
@@ -133,37 +110,88 @@ class _SettingspageState extends State<Settingspage> {
           ),
           const Divider(),
           ListTile(
-            leading: const Icon(Icons.logout, color: Colors.black),
+            leading: const Icon(Icons.logout, color: Colors.redAccent),
             title: const Text("Logout"),
             subtitle: const Text("Sign out from this account"),
             onTap: () {
               showDialog(
                 context: context,
                 builder: (BuildContext context) {
-                  return AlertDialog(
-                    title: const Text('Logout'),
-                    content: const Text('Are you sure you want to log out?'),
-                    actions: [
-                      TextButton(
-                        onPressed: () {
-                          Navigator.of(context).pop();
-                        },
-                        child: const Text('Cancel'),
+                  return Theme(
+                    data: Theme.of(
+                      context,
+                    ).copyWith(dialogBackgroundColor: Colors.white),
+                    child: AlertDialog(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
                       ),
-                      TextButton(
-                        onPressed: () {
-                          AuthService().signOut();
-                          Navigator.pushAndRemoveUntil(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const Loginscreen(),
+                      icon: const Icon(
+                        Icons.logout,
+                        color: Colors.redAccent,
+                        size: 40,
+                      ),
+                      title: const Text(
+                        'Confirm Logout',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      content: const Text(
+                        'Are you sure you want to sign out?',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 16, color: Colors.black54),
+                      ),
+                      actionsAlignment: MainAxisAlignment.center,
+                      actions: [
+                        TextButton(
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                          },
+                          child: const Text(
+                            'Cancel',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black54,
                             ),
-                            (route) => false,
-                          );
-                        },
-                        child: const Text('Logout'),
-                      ),
-                    ],
+                          ),
+                        ),
+                        SizedBox(width: 16),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.redAccent,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 32,
+                              vertical: 12,
+                            ),
+                          ),
+                          onPressed: () {
+                            AuthService().signOut();
+                            Navigator.pushAndRemoveUntil(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const Loginscreen(),
+                              ),
+                              (route) => false,
+                            );
+                          },
+                          child: const Text(
+                            'Logout',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   );
                 },
               );

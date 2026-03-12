@@ -29,7 +29,12 @@ class _CategoryPageState extends State<CategoryPage> {
   String _currentCategoryId = "";
   String _currentCategoryName = "";
   String _lastHealthModeState = ""; // Track health mode changes
+<<<<<<< HEAD
   bool _shouldAutoSelect = false; // Only auto-select if coming from bottom navigation
+=======
+  bool _shouldAutoSelect =
+      false; // Only auto-select if coming from bottom navigation
+>>>>>>> nikhil
   bool _userManuallySelectedCategory = false;
 
   // Search State
@@ -67,19 +72,8 @@ class _CategoryPageState extends State<CategoryPage> {
       _currentCategoryName = widget.categoryName;
       _lastHealthModeState = "initialized"; // Mark as already initialized
       _userManuallySelectedCategory = true;
+      print('CategoryPage opened with id: $_currentCategoryId');
     }
-  }
-
-  // --- 1. FUNCTION TO CHECK IF A CATEGORY CONTAINS HEALTHY ITEMS ---
-  Future<bool> _categoryHasHealthyItems(String categoryId) async {
-    final snapshot = await FirebaseFirestore.instance
-        .collection("categories")
-        .doc(categoryId)
-        .collection("items")
-        .where("isHealthy", isEqualTo: true)
-        .limit(1)
-        .get();
-    return snapshot.docs.isNotEmpty;
   }
 
   // ---------------------------------------------------
@@ -359,6 +353,7 @@ class _CategoryPageState extends State<CategoryPage> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color.fromARGB(255, 141, 7, 7)),
         boxShadow: [
           BoxShadow(
             color: Colors.grey.withOpacity(0.1),
@@ -785,141 +780,143 @@ class _CategoryPageState extends State<CategoryPage> {
               ),
             ),
           ),
-          
-          // Main Content
+
           Column(
             children: [
-          // HORIZONTAL CATEGORY CHIPS
-          Container(
-            height: 60,
-            color: Colors.transparent,
-            child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection("categories")
-                  .snapshots(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) return const SizedBox();
-                var docs = snapshot.data!.docs;
-
-                if (healthMode) {
-                  return FutureBuilder<List<DocumentSnapshot?>>(
-                    future: Future.wait(
-                      docs.map((doc) async {
-                        if (await _categoryHasHealthyItems(doc.id)) {
-                          return doc;
-                        }
-                        return null;
-                      }),
-                    ),
-                    builder: (context, filteredSnapshot) {
-                      if (filteredSnapshot.connectionState ==
-                          ConnectionState.waiting) {
-                        return const Center(
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        );
+              // HORIZONTAL CATEGORY CHIPS
+              Container(
+                height: 60,
+                color: Colors.transparent,
+                child: StreamBuilder<QuerySnapshot>(
+                  stream: FirebaseFirestore.instance
+                      .collection("categories")
+                      .snapshots(),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData) {
+                      return const Center(
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      );
+                    }
+                    final docs = snapshot.data!.docs;
+                    final filteredDocs = docs.where((doc) {
+                      final data = doc.data() as Map<String, dynamic>;
+                      final isHealthy = data['isHealthy'] ?? false;
+                      if (healthMode) {
+                        return isHealthy == true;
+                      } else {
+                        return isHealthy == false;
                       }
+                    }).toList();
 
-                      final healthyDocs = filteredSnapshot.data!
-                          .where((d) => d != null)
-                          .cast<DocumentSnapshot>()
-                          .toList();
-
-                      if (healthyDocs.isEmpty) {
-                        return const Center(
-                          child: Text("No healthy categories available"),
-                        );
-                      }
-
-                      return _buildCategoryChips(healthyDocs, healthMode);
-                    },
-                  );
-                } else {
-                  return _buildCategoryChips(docs, healthMode);
-                }
-              },
-            ),
-          ),
-
-          // MAIN ITEMS LIST
-          Expanded(
-            child: StreamBuilder<List<CategoryItem>>(
-              stream: fetchCategoryItems(_currentCategoryId, healthMode),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Center(
-                    child: CircularProgressIndicator(color: Colors.deepOrange),
-                  );
-                }
-
-                final items = snapshot.data!;
-                final filteredItems = _searchQuery.isEmpty
-                    ? items
-                    : items
-                          .where(
-                            (item) =>
-                                item.name.toLowerCase().contains(_searchQuery),
-                          )
-                          .toList();
-
-                if (filteredItems.isEmpty) {
-                  final noItemsText = _searchQuery.isNotEmpty
-                      ? "No items found matching '$_searchQuery'"
-                      : (healthMode
-                            ? "No healthy items found in $_currentCategoryName."
-                            : "No items found in $_currentCategoryName.");
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.fastfood_outlined,
-                          size: 60,
-                          color: Colors.grey[300],
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Text(
-                            noItemsText,
-                            style: TextStyle(color: Colors.grey),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-
-                Map<String, List<CategoryItem>> groupedItems = {};
-
-                for (var item in filteredItems) {
-                  if (!groupedItems.containsKey(item.restaurantName)) {
-                    groupedItems[item.restaurantName] = [];
-                  }
-                  groupedItems[item.restaurantName]!.add(item);
-                }
-
-                return ListView.builder(
-                  padding: EdgeInsets.only(bottom: 20),
-                  itemCount: groupedItems.length,
-                  itemBuilder: (context, index) {
-                    String restaurantName = groupedItems.keys.elementAt(index);
-                    List<CategoryItem> restaurantItems =
-                        groupedItems[restaurantName]!;
-
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildRestaurantHeader(restaurantName),
-                        ...restaurantItems.map(
-                          (item) => _buildItemCard(item, cart),
-                        ),
-                      ],
-                    );
+                    if (filteredDocs.isEmpty) {
+                      return Center(
+                        child: Text(healthMode
+                            ? "No healthy categories available"
+                            : "No categories available"),
+                      );
+                    }
+                    return _buildCategoryChips(filteredDocs, healthMode);
                   },
-                );
-              },
-            ),
-          ),
+                ),
+              ),
+
+              // MAIN ITEMS LIST
+              Expanded(
+                child: _currentCategoryId.isEmpty
+                    ? const Center(
+                        child: CircularProgressIndicator(
+                          color: Colors.deepOrange,
+                        ),
+                      )
+                    : StreamBuilder<List<CategoryItem>>(
+                        stream: fetchCategoryItems(
+                          _currentCategoryId,
+                          healthMode,
+                        ),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return const Center(
+                              child: CircularProgressIndicator(
+                                color: Colors.deepOrange,
+                              ),
+                            );
+                          }
+
+                          final items = snapshot.data ?? [];
+                          final filteredItems = _searchQuery.isEmpty
+                              ? items
+                              : items
+                                    .where(
+                                      (item) => item.name
+                                          .toLowerCase()
+                                          .contains(_searchQuery),
+                                    )
+                                    .toList();
+
+                          if (filteredItems.isEmpty) {
+                            final noItemsText = _searchQuery.isNotEmpty
+                                ? "No items found matching '$_searchQuery'"
+                                : (healthMode
+                                      ? "No healthy items found in $_currentCategoryName."
+                                      : "No items found in $_currentCategoryName.");
+                            return Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.fastfood_outlined,
+                                    size: 60,
+                                    color: Colors.grey[300],
+                                  ),
+                                  Padding(
+                                    padding: const EdgeInsets.all(8.0),
+                                    child: Text(
+                                      noItemsText,
+                                      style: const TextStyle(
+                                        color: Colors.grey,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }
+
+                          Map<String, List<CategoryItem>> groupedItems = {};
+                          for (var item in filteredItems) {
+                            if (!groupedItems.containsKey(
+                              item.restaurantName,
+                            )) {
+                              groupedItems[item.restaurantName] = [];
+                            }
+                            groupedItems[item.restaurantName]!.add(item);
+                          }
+
+                          return ListView.builder(
+                            padding: const EdgeInsets.only(bottom: 20),
+                            itemCount: groupedItems.length,
+                            itemBuilder: (context, index) {
+                              String restaurantName = groupedItems.keys
+                                  .elementAt(index);
+                              List<CategoryItem> restaurantItems =
+                                  groupedItems[restaurantName]!;
+
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _buildRestaurantHeader(restaurantName),
+                                  ...restaurantItems.map(
+                                    (item) => _buildItemCard(item, cart),
+                                  ),
+                                ],
+                              );
+                            },
+                          );
+                        },
+                      ),
+              ),
             ],
           ),
         ],

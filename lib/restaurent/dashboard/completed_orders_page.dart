@@ -3,6 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'package:project/restaurent/Orderpage.dart' as OP;
+import '../../homescreen/BYOD/full_screen_image.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class CompletedOrdersPage extends StatelessWidget {
   const CompletedOrdersPage({super.key});
@@ -260,6 +262,7 @@ class _DetailedCompletedOrderCard extends StatelessWidget {
               );
             },
           ),
+          if (order.type == OP.OrderType.BYOD) _ByodDetailsWidget(order: order),
 
           // Footer / Total
           Container(
@@ -289,6 +292,120 @@ class _DetailedCompletedOrderCard extends StatelessWidget {
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ByodDetailsWidget extends StatelessWidget {
+  final OP.Order order;
+
+  const _ByodDetailsWidget({required this.order});
+
+  @override
+  Widget build(BuildContext context) {
+    if (order.type != OP.OrderType.BYOD ||
+        order.byodRecipeContent == null ||
+        order.byodRecipeContent!.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    Widget contentWidget;
+    switch (order.byodRecipeType) {
+      case 'write':
+        contentWidget = Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.grey.shade200),
+          ),
+          child: Text(
+            order.byodRecipeContent!,
+            style: const TextStyle(fontSize: 14, height: 1.4),
+          ),
+        );
+        break;
+      case 'upload':
+        contentWidget = InkWell(
+          onTap: () {
+            print('Tapped image: ${order.byodRecipeContent!}');
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) =>
+                    FullScreenImageScreen(imageUrl: order.byodRecipeContent!),
+              ),
+            );
+          },
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(8.0),
+            child: Image.network(
+              order.byodRecipeContent!,
+              height: 150,
+              width: double.infinity,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) =>
+                  const Center(child: Text('Could not load image.')),
+            ),
+          ),
+        );
+        break;
+      case 'link':
+        contentWidget = InkWell(
+          onTap: () async {
+            final url = Uri.tryParse(order.byodRecipeContent!);
+            if (url != null && await canLaunchUrl(url)) {
+              await launchUrl(url, mode: LaunchMode.externalApplication);
+            }
+          },
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.blue.shade200),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.link, color: Colors.blue),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    order.byodRecipeContent!,
+                    style: const TextStyle(
+                      color: Colors.blue,
+                      decoration: TextDecoration.underline,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+        break;
+      default:
+        contentWidget = const SizedBox.shrink();
+    }
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Divider(height: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8.0),
+            child: Text(
+              "BYOD Recipe: ${order.byodRecipeName ?? 'Custom'}",
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+            ),
+          ),
+          contentWidget,
         ],
       ),
     );

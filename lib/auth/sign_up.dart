@@ -381,15 +381,18 @@ class _SignUpState extends State<SignUp> {
         final user = FirebaseAuth.instance.currentUser;
         if (user != null) {
           await user.updateDisplayName(_nameController.text.trim());
-          await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
-            'uid': user.uid,
-            'name': _nameController.text.trim(),
-            'fullName': _nameController.text.trim(),
-            'email': _emailController.text.trim(),
-            'phone': _phoneController.text.trim(),
-            'role': _selectedRole.toString().split('.').last,
-            'createdAt': FieldValue.serverTimestamp(),
-          }, SetOptions(merge: true));
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .set({
+                'uid': user.uid,
+                'name': _nameController.text.trim(),
+                'fullName': _nameController.text.trim(),
+                'email': _emailController.text.trim(),
+                'phone': _phoneController.text.trim(),
+                'role': _selectedRole.toString().split('.').last,
+                'createdAt': FieldValue.serverTimestamp(),
+              }, SetOptions(merge: true));
         }
 
         _showSnackBar(
@@ -833,80 +836,9 @@ class _SignUpState extends State<SignUp> {
                     ),
             ),
 
-            SizedBox(height: 24),
-
-            // Divider
-            Row(
-              children: [
-                Expanded(child: Divider(color: Colors.grey, thickness: 1)),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  child: Text(
-                    'OR',
-                    style: GoogleFonts.lato(
-                      color: Colors.grey[700],
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                Expanded(child: Divider(color: Colors.grey, thickness: 1)),
-              ],
-            ),
-
-            SizedBox(height: 24),
-
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _buildSocialButton(
-                  icon: FontAwesomeIcons.google,
-                  color: const Color(0xFFDB4437),
-                  onTap: () =>
-                      _showSnackBar('Google Sign-In coming soon!', Colors.blue),
-                ),
-                const SizedBox(width: 24),
-                _buildSocialButton(
-                  icon: FontAwesomeIcons.facebook,
-                  color: const Color(0xFF1877F2),
-                  onTap: () => _showSnackBar(
-                    'Facebook Sign-In coming soon!',
-                    Colors.blue,
-                  ),
-                ),
-              ],
-            ),
-
             SizedBox(height: 20),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildSocialButton({
-    required IconData icon,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(50),
-      child: Container(
-        width: 50,
-        height: 50,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: Colors.white,
-          border: Border.all(color: Colors.grey.shade300),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Center(child: FaIcon(icon, color: color, size: 22)),
       ),
     );
   }

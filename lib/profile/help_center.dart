@@ -57,19 +57,7 @@ class HelpCenterPage extends StatelessWidget {
               'Still need help?',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 10),
-            _buildContactOption(
-              context,
-              Icons.chat,
-              'Chat with Support',
-              'Start a live chat with our team',
-              () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Chat support coming soon')),
-                );
-              },
-            ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 20),
             _buildContactOption(
               context,
               Icons.email,

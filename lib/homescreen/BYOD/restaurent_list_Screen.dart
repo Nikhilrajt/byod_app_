@@ -513,7 +513,7 @@ class _ByodPageState extends State<ByodPage> {
     if (picked != null) setState(() => _selectedImage = picked);
   }
 
-  void _submit() {
+  void _submit() async {
     final cart = context.read<CartNotifier>();
     final name = recipeNameController.text.trim();
 
@@ -523,6 +523,47 @@ class _ByodPageState extends State<ByodPage> {
       );
       return;
     }
+
+    String? imageUrl;
+    if (_mode == RecipeInputType.upload) {
+      if (_selectedImage == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please select an image to upload.')),
+        );
+        return;
+      }
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return const Dialog(
+            child: Padding(
+              padding: EdgeInsets.all(20.0),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(width: 20),
+                  Text("Uploading image..."),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+
+      final uploader = CloudneryUploader();
+      imageUrl = await uploader.uploadFile(_selectedImage!);
+      Navigator.pop(context); // Close loading dialog
+
+      if (imageUrl == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Image upload failed. Please try again.')),
+        );
+        return;
+      }
+    }
+
 
     // Collect ingredient details
     List<String> ingredientDetails = [];
@@ -561,6 +602,9 @@ class _ByodPageState extends State<ByodPage> {
         customizations.add('Instructions: $recipeContent');
       }
     }
+    if (imageUrl != null) {
+        customizations.add('BYOD_IMAGE_URL:$imageUrl');
+    }
     customizations.add('Ingredients: ${ingredientDetails.join(', ')}');
 
     final byodItem = CartItem(
@@ -569,7 +613,7 @@ class _ByodPageState extends State<ByodPage> {
       quantity: 1,
       restaurantName: widget.restaurant.name,
       restaurantId: widget.restaurant.id,
-      imageUrl: '',
+      imageUrl: imageUrl ?? '',
       isHealthy: false,
       customizations: customizations,
     );
